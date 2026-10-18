@@ -17,12 +17,15 @@ import {
   Zap,
   Activity,
   Layers,
+  Menu,
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
+import { useMobileNav } from '@/context/MobileNavContext';
 
 export default function Navbar() {
   const router = useRouter();
   const { user, loading, logout, openAuthModal } = useAuth();
+  const { openMobileDrawer } = useMobileNav();
   const [searchQuery, setSearchQuery] = useState('');
 
   const handleSearchSubmit = (e: React.FormEvent) => {
@@ -36,9 +39,18 @@ export default function Navbar() {
   };
 
   return (
-    <header className="h-16 bg-white/95 backdrop-blur-xl border-b border-slate-200/80 px-6 sm:px-8 flex items-center justify-between sticky top-0 z-20 shadow-xs">
-      {/* Left: Command Search Input */}
-      <div className="flex items-center gap-4 flex-1 max-w-lg">
+    <header className="h-16 bg-white/95 backdrop-blur-xl border-b border-slate-200/80 px-4 sm:px-8 flex items-center justify-between sticky top-0 z-20 shadow-xs">
+      {/* Left: Hamburger for mobile + Command Search Input */}
+      <div className="flex items-center gap-2 sm:gap-4 flex-1 max-w-lg min-w-0">
+        <button
+          type="button"
+          onClick={openMobileDrawer}
+          className="lg:hidden p-2 rounded-xl text-slate-700 hover:text-slate-900 hover:bg-slate-100 transition-colors border border-slate-200/80 shrink-0"
+          title="Mở menu"
+        >
+          <Menu className="w-5 h-5" />
+        </button>
+
         <form onSubmit={handleSearchSubmit} className="relative w-full">
           <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
           <input

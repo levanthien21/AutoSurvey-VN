@@ -143,7 +143,7 @@ class DatabaseManager {
     return this.cache;
   }
 
-  private saveDb() {
+  public saveDb() {
     if (!this.cache) return;
     try {
       fs.writeFileSync(DB_FILE, JSON.stringify(this.cache, null, 2), 'utf8');

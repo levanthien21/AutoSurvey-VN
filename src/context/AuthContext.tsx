@@ -19,6 +19,10 @@ import {
   UserCheck,
   Zap,
 } from 'lucide-react';
+import {
+  signInWithGoogleFirebase,
+  saveUserToFirestore,
+} from '@/lib/firebase';
 
 export interface SafeUser {
   id: string;
@@ -198,6 +202,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return { success: false, error: data.error };
       }
       setUser(data.user);
+      // Sync user profile to Firebase Firestore database
+      saveUserToFirestore({
+        uid: data.user.id,
+        email: data.user.email,
+        username: data.user.username,
+        role: data.user.role,
+        credits: data.user.credits,
+        avatar: data.user.avatar,
+      });
       setFormSuccess(data.message || 'Đăng nhập Google thành công!');
       setTimeout(() => {
         closeAuthModal();
@@ -280,8 +293,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setSubmitting(false);
   };
 
-  const handleGoogleClick = () => {
+  const handleGoogleClick = async () => {
     setFormError(null);
+    setSubmitting(true);
+    try {
+      // 1. Attempt genuine Google Sign-In with Firebase Auth popup
+      const fbRes = await signInWithGoogleFirebase();
+      if (fbRes.success && fbRes.user) {
+        await loginWithGoogle({
+          email: fbRes.user.email,
+          name: fbRes.user.displayName,
+          avatar: fbRes.user.photoURL,
+          googleId: fbRes.user.uid,
+        });
+        setSubmitting(false);
+        return;
+      }
+    } catch (fbErr) {
+      console.warn('Firebase Google Auth popup fallback:', fbErr);
+    }
+    setSubmitting(false);
+    // 2. Fast responsive account chooser fallback
     setIsGoogleChooserOpen(true);
   };
 

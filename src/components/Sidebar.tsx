@@ -19,22 +19,25 @@ import {
   LogIn,
   ArrowUpRight,
   Sparkles,
+  X,
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
+import { useMobileNav } from '@/context/MobileNavContext';
 
 export default function Sidebar() {
   const pathname = usePathname();
   const { user, openAuthModal } = useAuth();
+  const { isMobileDrawerOpen, closeMobileDrawer } = useMobileNav();
 
   const isActive = (path: string) => {
     if (path === '/') return pathname === '/';
     return pathname.startsWith(path);
   };
 
-  return (
-    <aside className="w-68 bg-white text-slate-700 flex flex-col h-screen sticky top-0 shrink-0 z-30 select-none border-r border-slate-200/90 shadow-xs">
+  const navContent = (isMobile = false) => (
+    <>
       {/* Brand Header */}
-      <div className="p-5 border-b border-slate-200/80 bg-white">
+      <div className="p-5 border-b border-slate-200/80 bg-white flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="w-11 h-11 rounded-2xl bg-white p-1 border border-slate-200 shadow-xs flex items-center justify-center shrink-0 group hover:scale-105 transition-transform">
             <img
@@ -58,8 +61,20 @@ export default function Sidebar() {
           </div>
         </div>
 
-        {/* Workspace Switcher Badge */}
-        <div className="mt-3.5 flex items-center justify-between px-2.5 py-1.5 rounded-xl bg-slate-50 border border-slate-200 text-[11px] text-slate-600">
+        {isMobile && (
+          <button
+            onClick={closeMobileDrawer}
+            className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center transition-colors"
+            title="Đóng menu"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        )}
+      </div>
+
+      {/* Workspace Switcher Badge */}
+      <div className="p-4 pb-0">
+        <div className="flex items-center justify-between px-2.5 py-1.5 rounded-xl bg-slate-50 border border-slate-200 text-[11px] text-slate-600">
           <div className="flex items-center gap-2 truncate">
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
             <span className="font-semibold text-slate-700 truncate">
@@ -78,6 +93,7 @@ export default function Sidebar() {
         <div className="space-y-1">
           <Link
             href="/"
+            onClick={isMobile ? closeMobileDrawer : undefined}
             className={`flex items-center gap-3 px-3 py-2.5 rounded-xl font-bold transition-all relative ${
               isActive('/') && pathname === '/'
                 ? 'bg-blue-600 text-white shadow-md shadow-blue-500/20'
@@ -89,7 +105,7 @@ export default function Sidebar() {
           </Link>
         </div>
 
-        {/* Hub 2: Studio Khảo Sát (Form Filling Engines) */}
+        {/* Hub 2: Studio Khảo Sát */}
         <div className="space-y-1">
           <div className="px-3 pb-1 text-[10px] font-black uppercase tracking-wider text-slate-400 flex items-center justify-between">
             <span>Studio Điền Khảo Sát</span>
@@ -98,6 +114,7 @@ export default function Sidebar() {
 
           <Link
             href="/create-form/model"
+            onClick={isMobile ? closeMobileDrawer : undefined}
             className={`flex items-center justify-between px-3 py-2 rounded-xl font-bold transition-all ${
               pathname === '/create-form/model'
                 ? 'bg-gradient-to-r from-orange-500 to-amber-500 text-white shadow-md shadow-orange-500/20'
@@ -119,6 +136,7 @@ export default function Sidebar() {
 
           <Link
             href="/create-form/ratio"
+            onClick={isMobile ? closeMobileDrawer : undefined}
             className={`flex items-center gap-2.5 px-3 py-2 rounded-xl font-semibold transition-all ${
               pathname === '/create-form/ratio'
                 ? 'bg-blue-600 text-white font-bold shadow-md shadow-blue-500/20'
@@ -131,6 +149,7 @@ export default function Sidebar() {
 
           <Link
             href="/create-form/data"
+            onClick={isMobile ? closeMobileDrawer : undefined}
             className={`flex items-center gap-2.5 px-3 py-2 rounded-xl font-semibold transition-all ${
               pathname === '/create-form/data'
                 ? 'bg-emerald-600 text-white font-bold shadow-md shadow-emerald-500/20'
@@ -143,6 +162,7 @@ export default function Sidebar() {
 
           <Link
             href="/create-form/agent"
+            onClick={isMobile ? closeMobileDrawer : undefined}
             className={`flex items-center gap-2.5 px-3 py-2 rounded-xl font-semibold transition-all ${
               pathname === '/create-form/agent'
                 ? 'bg-purple-600 text-white font-bold shadow-md shadow-purple-500/20'
@@ -154,7 +174,7 @@ export default function Sidebar() {
           </Link>
         </div>
 
-        {/* Hub 3: Phòng Lab Dữ Liệu SPSS */}
+        {/* Hub 3: Phòng Lab Dữ Liệu */}
         <div className="space-y-1">
           <div className="px-3 pb-1 text-[10px] font-black uppercase tracking-wider text-slate-400">
             Phòng Lab Dữ Liệu
@@ -162,81 +182,90 @@ export default function Sidebar() {
 
           <Link
             href="/data-builder"
+            onClick={isMobile ? closeMobileDrawer : undefined}
             className={`flex items-center gap-2.5 px-3 py-2 rounded-xl font-semibold transition-all ${
-              isActive('/data-builder')
-                ? 'bg-emerald-600 text-white font-bold shadow-md shadow-emerald-500/20'
+              pathname === '/data-builder'
+                ? 'bg-blue-600 text-white font-bold shadow-md shadow-blue-500/20'
                 : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900'
             }`}
           >
-            <Database className={`w-4 h-4 ${isActive('/data-builder') ? 'text-white' : 'text-emerald-600'}`} />
-            <span>Bộ tổng hợp dữ liệu sạch</span>
+            <Database className={`w-4 h-4 ${pathname === '/data-builder' ? 'text-white' : 'text-blue-600'}`} />
+            <span>Tạo Ma Trận Dữ Liệu Tự Động</span>
           </Link>
 
           <Link
             href="/data-encode"
+            onClick={isMobile ? closeMobileDrawer : undefined}
             className={`flex items-center gap-2.5 px-3 py-2 rounded-xl font-semibold transition-all ${
-              isActive('/data-encode')
-                ? 'bg-amber-600 text-white font-bold shadow-md shadow-amber-500/20'
+              pathname === '/data-encode'
+                ? 'bg-blue-600 text-white font-bold shadow-md shadow-blue-500/20'
                 : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900'
             }`}
           >
-            <Binary className={`w-4 h-4 ${isActive('/data-encode') ? 'text-white' : 'text-amber-600'}`} />
-            <span>Mã hoá thang đo Likert</span>
+            <Binary className={`w-4 h-4 ${pathname === '/data-encode' ? 'text-white' : 'text-indigo-600'}`} />
+            <span>Mã Hóa Biến Định Lượng</span>
           </Link>
         </div>
 
-        {/* Hub 4: Quản lý & Vận hành */}
+        {/* Hub 4: Quản lý & Tài chính */}
         <div className="space-y-1">
           <div className="px-3 pb-1 text-[10px] font-black uppercase tracking-wider text-slate-400">
-            Vận Hành & Tài Chính
+            Quản Lý & Số Dư
           </div>
 
           <Link
             href="/orders"
-            className={`flex items-center justify-between px-3 py-2 rounded-xl font-semibold transition-all ${
-              isActive('/orders')
+            onClick={isMobile ? closeMobileDrawer : undefined}
+            className={`flex items-center gap-2.5 px-3 py-2 rounded-xl font-semibold transition-all ${
+              pathname === '/orders'
                 ? 'bg-blue-600 text-white font-bold shadow-md shadow-blue-500/20'
                 : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900'
             }`}
           >
-            <div className="flex items-center gap-2.5">
-              <ClipboardList className={`w-4 h-4 ${isActive('/orders') ? 'text-white' : 'text-blue-600'}`} />
-              <span>Tiến trình & Báo cáo Excel</span>
-            </div>
+            <ClipboardList className={`w-4 h-4 ${pathname === '/orders' ? 'text-white' : 'text-cyan-600'}`} />
+            <span>Chiến dịch & Lịch sử chạy đơn</span>
           </Link>
 
           <Link
             href="/credit"
-            className={`flex items-center gap-2.5 px-3 py-2 rounded-xl font-semibold transition-all ${
-              isActive('/credit')
-                ? 'bg-orange-500 text-white font-bold shadow-md shadow-orange-500/20'
+            onClick={isMobile ? closeMobileDrawer : undefined}
+            className={`flex items-center justify-between px-3 py-2 rounded-xl font-semibold transition-all ${
+              pathname === '/credit'
+                ? 'bg-orange-600 text-white font-bold shadow-md shadow-orange-500/20'
                 : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900'
             }`}
           >
-            <Wallet className={`w-4 h-4 ${isActive('/credit') ? 'text-white' : 'text-orange-500'}`} />
-            <span>Nạp tiền VietQR 24/7</span>
+            <div className="flex items-center gap-2.5">
+              <Wallet className={`w-4 h-4 ${pathname === '/credit' ? 'text-white' : 'text-orange-500'}`} />
+              <span>Nạp tiền & Đổi Credits</span>
+            </div>
+            <span className="text-[10px] font-bold text-orange-600 bg-orange-50 px-1.5 py-0.2 rounded border border-orange-200">
+              VietQR
+            </span>
           </Link>
 
           <Link
             href="/settings"
+            onClick={isMobile ? closeMobileDrawer : undefined}
             className={`flex items-center gap-2.5 px-3 py-2 rounded-xl font-semibold transition-all ${
-              isActive('/settings')
+              pathname === '/settings'
                 ? 'bg-blue-600 text-white font-bold shadow-md shadow-blue-500/20'
                 : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900'
             }`}
           >
-            <Settings className={`w-4 h-4 ${isActive('/settings') ? 'text-white' : 'text-slate-500'}`} />
-            <span>Cài đặt & Bot Protection</span>
+            <Settings className={`w-4 h-4 ${pathname === '/settings' ? 'text-white' : 'text-slate-500'}`} />
+            <span>Cài đặt & Tài khoản</span>
           </Link>
 
-          {/* Admin link */}
+          {/* Admin area if admin */}
           {user?.role === 'admin' && (
             <Link
               href="/admin"
-              className={`flex items-center gap-2.5 px-3 py-2 rounded-xl font-bold transition-all mt-2 ${
-                isActive('/admin')
-                  ? 'bg-purple-600 text-white shadow-md shadow-purple-500/20'
-                  : 'text-purple-700 bg-purple-50 hover:bg-purple-100 border border-purple-200'
+              onClick={isMobile ? closeMobileDrawer : undefined}
+              className={`flex items-center gap-2.5 px-3 py-2 rounded-xl font-bold transition-all border ${
+                pathname === '/admin'
+                  ? 'bg-purple-600 text-white border-purple-500 shadow-md shadow-purple-500/20'
+                  : 'bg-purple-50/70 text-purple-700 border-purple-200 hover:bg-purple-100'
               }`}
             >
               <ShieldAlert className="w-4 h-4 text-purple-600" />
@@ -271,6 +300,7 @@ export default function Sidebar() {
               </span>
               <Link
                 href="/credit"
+                onClick={isMobile ? closeMobileDrawer : undefined}
                 className="inline-flex items-center gap-1 text-[11px] font-bold text-orange-600 hover:text-orange-700 transition-colors"
               >
                 <span>+ Nạp VietQR</span>
@@ -288,7 +318,10 @@ export default function Sidebar() {
               Tạo tài khoản để nhận ngay <strong className="text-orange-600 font-bold">50.000 Credits</strong> chạy thử nghiệm!
             </p>
             <button
-              onClick={() => openAuthModal('register')}
+              onClick={() => {
+                if (isMobile) closeMobileDrawer();
+                openAuthModal('register');
+              }}
               className="w-full py-2 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white rounded-xl text-xs font-extrabold transition-all shadow-sm flex items-center justify-center gap-1.5"
             >
               <LogIn className="w-3.5 h-3.5" />
@@ -305,6 +338,28 @@ export default function Sidebar() {
           <span className="text-[10px] text-emerald-600 font-mono font-bold bg-emerald-50 px-1 rounded">24/7</span>
         </div>
       </div>
-    </aside>
+    </>
+  );
+
+  return (
+    <>
+      {/* Desktop Sidebar (Hidden on mobile/tablet) */}
+      <aside className="hidden lg:flex w-68 bg-white text-slate-700 flex-col h-screen sticky top-0 shrink-0 z-30 select-none border-r border-slate-200/90 shadow-xs">
+        {navContent(false)}
+      </aside>
+
+      {/* Mobile Drawer Slide-out (Visible when toggled on mobile) */}
+      {isMobileDrawerOpen && (
+        <div className="lg:hidden fixed inset-0 z-50 flex animate-fadeIn">
+          <div
+            className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm"
+            onClick={closeMobileDrawer}
+          />
+          <aside className="w-72 bg-white text-slate-700 flex flex-col h-full relative z-10 shadow-2xl select-none animate-slideRight">
+            {navContent(true)}
+          </aside>
+        </div>
+      )}
+    </>
   );
 }
