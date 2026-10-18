@@ -158,17 +158,36 @@ function LoginFormContent() {
         setErrorMsg(res.error || 'Đăng ký không thành công');
       }
     } else if (mode === 'forgot') {
-      const targetEmail = (email || username).trim();
-      if (!targetEmail) {
-        setErrorMsg('Vui lòng nhập địa chỉ Email tài khoản của bạn.');
+      const inputAccount = (email || username).trim();
+      if (!inputAccount) {
+        setErrorMsg('Vui lòng nhập Email hoặc Tên đăng nhập của tài khoản.');
         setLoading(false);
         return;
       }
 
+      let targetEmail = inputAccount;
+
+      // If user typed username without '@', look up their email from the database
       if (!targetEmail.includes('@')) {
-        setErrorMsg('Vui lòng nhập đúng định dạng Email (ví dụ: name@gmail.com).');
-        setLoading(false);
-        return;
+        try {
+          const res = await fetch('/api/auth/forgot-password', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ account: targetEmail }),
+          });
+          const data = await res.json();
+          if (data.email) {
+            targetEmail = data.email;
+          } else {
+            setErrorMsg(data.error || `Không tìm thấy tài khoản với tên đăng nhập "${inputAccount}".`);
+            setLoading(false);
+            return;
+          }
+        } catch {
+          setErrorMsg('Vui lòng nhập đúng định dạng Email (ví dụ: name@gmail.com).');
+          setLoading(false);
+          return;
+        }
       }
 
       try {
@@ -441,38 +460,83 @@ function LoginFormContent() {
                       <strong className="text-emerald-900 font-mono text-sm block mt-1">{forgotSentEmail}</strong>
                     </p>
 
-                    <div className="pt-2 border-t border-emerald-200/80 space-y-1.5 text-[11px] text-slate-600">
-                      <p className="font-bold text-slate-800">Các bước tiếp theo:</p>
-                      <p>1. Mở ứng dụng Gmail hoặc hòm thư của bạn.</p>
-                      <p>2. Tìm thư có tiêu đề <strong>"Reset your password for AutoSurvey VN"</strong> (kiểm tra cả mục Spam / Thư rác nếu cần).</p>
-                      <p>3. Bấm vào liên kết trong email để đặt lại mật khẩu mới bảo mật.</p>
+                    <div className="pt-2 border-t border-emerald-200/80 space-y-2 text-[11px] text-slate-700">
+                      <p className="font-bold text-slate-900">Hướng dẫn nhận thư:</p>
+                      <p className="flex items-start gap-1.5">
+                        <span className="font-bold text-emerald-700">1.</span>
+                        <span>Mở hộp thư Gmail của <strong>{forgotSentEmail}</strong>.</span>
+                      </p>
+                      <div className="p-2.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-[11px] leading-relaxed">
+                        <span className="font-bold block text-amber-950 mb-0.5">⚠️ Lưu ý quan trọng từ Google:</span>
+                        Do thư được gửi tự động từ máy chủ Firebase, Gmail thường phân loại thư vào mục <strong>Thư rác (Spam)</strong>, <strong>Quảng cáo (Promotions)</strong> hoặc <strong>Cập nhật</strong>. Vui lòng kiểm tra các thư mục này hoặc gõ tìm kiếm từ khóa <code className="bg-amber-100 px-1 py-0.5 rounded font-mono text-[10px]">AutoSurvey</code> trong Gmail!
+                      </div>
+                      <p className="flex items-start gap-1.5">
+                        <span className="font-bold text-emerald-700">2.</span>
+                        <span>Bấm vào liên kết trong email để đặt lại mật khẩu mới bảo mật.</span>
+                      </p>
                     </div>
                   </div>
 
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setMode('login');
-                      setForgotSent(false);
-                      setErrorMsg(null);
-                    }}
-                    className="w-full h-12 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-black text-sm shadow-md shadow-blue-500/20 active:scale-95 transition-all flex items-center justify-center gap-2"
-                  >
-                    <LogIn className="w-4 h-4" />
-                    <span>Quay lại trang Đăng nhập</span>
-                  </button>
+                  <div className="space-y-2.5">
+                    <a
+                      href="https://mail.google.com"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="w-full h-11 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs shadow-sm active:scale-95 transition-all flex items-center justify-center gap-2"
+                    >
+                      <Mail className="w-4 h-4 text-rose-400" />
+                      <span>Mở hộp thư Gmail ngay</span>
+                      <ExternalLink className="w-3.5 h-3.5 opacity-60" />
+                    </a>
 
-                  <div className="text-center pt-1">
                     <button
                       type="button"
                       onClick={() => {
+                        setMode('login');
                         setForgotSent(false);
                         setErrorMsg(null);
                       }}
-                      className="text-xs text-slate-500 hover:text-blue-600 font-medium transition-colors"
+                      className="w-full h-11 rounded-xl bg-white border border-slate-200 hover:border-slate-300 text-slate-700 font-semibold text-xs shadow-2xs active:scale-95 transition-all flex items-center justify-center gap-2"
                     >
-                      ← Nhập lại địa chỉ email khác
+                      <LogIn className="w-4 h-4 text-slate-400" />
+                      <span>Quay lại trang Đăng nhập</span>
                     </button>
+                  </div>
+
+                  <div className="text-center pt-1 space-y-2">
+                    <div>
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          setLoading(true);
+                          try {
+                            await sendPasswordResetEmailFirebase(forgotSentEmail);
+                            setSuccessMsg('Đã gửi lại email khôi phục! Vui lòng kiểm tra kỹ hòm thư.');
+                          } catch {
+                            setErrorMsg('Chưa thể gửi lại lúc này. Vui lòng thử lại sau 1 phút.');
+                          } finally {
+                            setLoading(false);
+                          }
+                        }}
+                        disabled={loading}
+                        className="text-xs text-blue-600 hover:text-blue-700 font-medium hover:underline transition-colors disabled:opacity-50"
+                      >
+                        {loading ? 'Đang gửi lại...' : 'Chưa nhận được? Bấm vào đây để gửi lại email'}
+                      </button>
+                    </div>
+
+                    <div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setForgotSent(false);
+                          setErrorMsg(null);
+                        }}
+                        className="text-xs text-slate-500 hover:text-blue-600 font-medium transition-colors"
+                      >
+                        ← Nhập lại địa chỉ email khác
+                      </button>
+                    </div>
                   </div>
                 </div>
               ) : (

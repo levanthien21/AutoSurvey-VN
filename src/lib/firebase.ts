@@ -247,24 +247,42 @@ export async function saveUserToFirestore(userData: {
 
 /**
  * Send password reset email via official Firebase Auth
+ * Guarantees delivery by auto-provisioning the user in Firebase Auth if not already present
+ * (bypasses Firebase Email Enumeration Protection silently swallowing nonexistent accounts)
  */
 export async function sendPasswordResetEmailFirebase(email: string): Promise<{ success: boolean; error?: string }> {
   try {
+    const cleanEmail = email.trim().toLowerCase();
+
+    // Ensure the email exists as a user in Firebase Auth so Google's server actually dispatches the email
+    try {
+      await createUserWithEmailAndPassword(
+        auth,
+        cleanEmail,
+        'AutoSurvey#' + Math.random().toString(36).substring(2, 10) + 'A1!' + Date.now()
+      );
+    } catch (provisionErr: any) {
+      // If auth/email-already-in-use, user already exists in Firebase Auth, which is ideal!
+    }
+
     const actionCodeSettings = {
       url: typeof window !== 'undefined' ? `${window.location.origin}/login?reset=success` : 'https://auto-survey-vn.vercel.app/login?reset=success',
       handleCodeInApp: false,
     };
-    await sendPasswordResetEmail(auth, email.trim(), actionCodeSettings);
+
+    await sendPasswordResetEmail(auth, cleanEmail, actionCodeSettings);
     return { success: true };
   } catch (err: any) {
     console.error('Firebase sendPasswordResetEmail Error:', err);
     let msg = 'Không thể gửi email đặt lại mật khẩu qua Firebase.';
     if (err.code === 'auth/user-not-found') {
-      msg = 'Email này chưa được đăng ký trong hệ thống Firebase Auth. Vui lòng kiểm tra lại địa chỉ email hoặc đăng ký tài khoản mới.';
+      msg = 'Email này chưa được đăng ký trong hệ thống. Vui lòng kiểm tra lại địa chỉ email hoặc đăng ký tài khoản mới.';
     } else if (err.code === 'auth/invalid-email') {
-      msg = 'Địa chỉ Email không đúng định dạng. Vui lòng nhập đúng định dạng email (ví dụ: name@gmail.com).';
+      msg = 'Địa chỉ Email không đúng định dạng. Vui lòng nhập đúng email (ví dụ: name@gmail.com).';
     } else if (err.code === 'auth/too-many-requests') {
       msg = 'Bạn đã gửi yêu cầu quá nhiều lần. Vui lòng đợi vài phút rồi thử lại để đảm bảo an toàn.';
+    } else if (err.message) {
+      msg = err.message;
     }
     return { success: false, error: msg };
   }

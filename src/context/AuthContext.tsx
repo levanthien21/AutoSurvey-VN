@@ -23,6 +23,7 @@ import {
 import {
   signInWithGoogleFirebase,
   saveUserToFirestore,
+  registerWithEmailFirebase,
 } from '@/lib/firebase';
 
 export interface SafeUser {
@@ -182,6 +183,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return { success: false, error: data.error || 'Đăng ký không thành công' };
       }
       setUser(data.user);
+
+      // Also register into Firebase Auth for password resets & future Firebase features
+      if (emailInput && emailInput.includes('@')) {
+        registerWithEmailFirebase(emailInput, passwordInput).catch(() => {});
+      }
+
       return { success: true };
     } catch (err: any) {
       return { success: false, error: err.message || 'Lỗi kết nối máy chủ' };
