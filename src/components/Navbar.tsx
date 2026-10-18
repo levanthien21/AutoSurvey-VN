@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
@@ -16,14 +16,17 @@ import {
   Database,
   ClipboardList,
   Crown,
+  Calculator,
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useMobileNav } from '@/context/MobileNavContext';
+import CostEstimatorModal from '@/components/CostEstimatorModal';
 
 export default function Navbar() {
   const pathname = usePathname();
   const { user, loading, logout } = useAuth();
   const { openMobileDrawer } = useMobileNav();
+  const [isEstimatorOpen, setIsEstimatorOpen] = useState(false);
 
   const isNavActive = (path: string) => {
     if (path === '/') return pathname === '/';
@@ -100,6 +103,18 @@ export default function Navbar() {
 
       {/* Right: Harmonious, Clean & Balanced Action Header */}
       <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
+        {/* 0. Ước tính ngân sách & TG Button */}
+        <button
+          type="button"
+          onClick={() => setIsEstimatorOpen(true)}
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-blue-200/90 hover:border-blue-500 bg-blue-50/70 hover:bg-blue-100/70 text-blue-800 text-xs font-bold shadow-2xs transition-all active:scale-95 shrink-0 group"
+          title="Ước tính ngân sách & thời gian chạy khảo sát"
+        >
+          <Calculator className="w-3.5 h-3.5 text-blue-600 group-hover:scale-110 transition-transform" />
+          <span className="hidden sm:inline">Ước tính ngân sách & TG</span>
+          <span className="sm:hidden">Ước tính</span>
+        </button>
+
         {/* 1. Facebook Fanpage Pill (Sleek, subtle) */}
         <a
           href="https://www.facebook.com/profile.php?id=61592111095108"
@@ -205,6 +220,11 @@ export default function Navbar() {
           </div>
         )}
       </div>
+
+      <CostEstimatorModal
+        isOpen={isEstimatorOpen}
+        onClose={() => setIsEstimatorOpen(false)}
+      />
     </header>
   );
 }

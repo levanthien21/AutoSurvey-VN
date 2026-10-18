@@ -894,7 +894,7 @@ export default function HomePage() {
       {/* =========================================================================
           SECTION 4: STUDIO COMPUTE & CAPACITY MATRIX (High-Contrast Cyber Slider)
       ========================================================================= */}
-      <div className="bg-white rounded-3xl p-7 sm:p-10 text-slate-900 shadow-md border-2 border-blue-200/90 space-y-6">
+      <div id="calculator" className="bg-white rounded-3xl p-7 sm:p-10 text-slate-900 shadow-md border-2 border-blue-200/90 space-y-6 scroll-mt-24">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-50 text-blue-700 text-xs font-bold mb-2 border border-blue-200">

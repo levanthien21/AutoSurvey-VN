@@ -20,6 +20,7 @@ import {
   ArrowUpRight,
   Sparkles,
   X,
+  Calculator,
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useMobileNav } from '@/context/MobileNavContext';
@@ -102,6 +103,20 @@ export default function Sidebar() {
           >
             <LayoutDashboard className={`w-4 h-4 ${isActive('/') && pathname === '/' ? 'text-white' : 'text-blue-600'}`} />
             <span>Bảng điều khiển trung tâm</span>
+          </Link>
+
+          <Link
+            href="/#calculator"
+            onClick={isMobile ? closeMobileDrawer : undefined}
+            className="flex items-center justify-between px-3 py-2 rounded-xl font-bold transition-all text-slate-600 hover:bg-slate-100 hover:text-slate-900 group"
+          >
+            <div className="flex items-center gap-3">
+              <Calculator className="w-4 h-4 text-amber-500 group-hover:scale-110 transition-transform" />
+              <span>Ước tính ngân sách & TG</span>
+            </div>
+            <span className="text-[9px] bg-amber-100 text-amber-800 font-bold px-1.5 py-0.2 rounded font-mono">
+              Sim
+            </span>
           </Link>
         </div>
 

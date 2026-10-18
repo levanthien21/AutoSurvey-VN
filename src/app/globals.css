@@ -12,6 +12,10 @@
   --brand-orange: #EA580C;
 }
 
+html {
+  scroll-behavior: smooth;
+}
+
 body {
   color: rgb(var(--foreground-rgb));
   background: #f8fafc;
