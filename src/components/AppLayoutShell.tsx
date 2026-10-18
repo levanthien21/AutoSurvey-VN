@@ -19,7 +19,6 @@ export default function AppLayoutShell({
     return (
       <div className="min-h-screen w-full flex flex-col bg-[#f8fbff] text-slate-800 antialiased">
         {children}
-        <MascotChatWidget />
       </div>
     );
   }
@@ -33,7 +32,6 @@ export default function AppLayoutShell({
           {children}
         </main>
         <MobileBottomNav />
-        <MascotChatWidget />
       </div>
     </div>
   );

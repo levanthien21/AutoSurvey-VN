@@ -22,6 +22,7 @@ export const metadata: Metadata = {
 };
 
 import AppLayoutShell from '@/components/AppLayoutShell';
+import Script from 'next/script';
 
 export default function RootLayout({
   children,
@@ -87,6 +88,13 @@ export default function RootLayout({
             </AppLayoutShell>
           </MobileNavProvider>
         </AuthProvider>
+
+        {/* AI Agent Tư Vấn Khách Hàng (Bộ não SPSS Khảo Sát) */}
+        <Script
+          src="https://ai-agent-zeta-gules.vercel.app/static/widget.js?id=SPSS%20Kh%E1%BA%A3o%20S%C3%A1t"
+          data-domain="SPSS Khảo Sát"
+          strategy="afterInteractive"
+        />
       </body>
     </html>
   );

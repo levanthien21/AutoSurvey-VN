@@ -222,3 +222,57 @@ body {
   box-shadow: 0 20px 40px -15px rgba(15, 23, 42, 0.08);
   border-color: rgba(59, 130, 246, 0.3);
 }
+
+/* =========================================================================
+   LUXA AI AGENT WIDGET CUSTOMIZATION (SPSS Khảo Sát Brain + 3D Mascot Avatar)
+========================================================================= */
+#luxa-widget-root {
+  z-index: 2147483647 !important;
+}
+
+#luxa-launcher {
+  background-image: url('/mascot.jpg') !important;
+  background-size: cover !important;
+  background-position: 48% 28% !important;
+  border: 2.5px solid #60a5fa !important;
+  box-shadow: 0 10px 30px rgba(37, 99, 235, 0.35) !important;
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s ease !important;
+}
+
+#luxa-launcher:hover {
+  transform: scale(1.08) !important;
+  box-shadow: 0 14px 38px rgba(37, 99, 235, 0.5) !important;
+}
+
+#luxa-launcher:not(.open) svg {
+  display: none !important;
+}
+
+#luxa-launcher.open {
+  background-image: none !important;
+  background: #1e293b !important;
+}
+
+#luxa-launcher.open svg {
+  display: block !important;
+}
+
+.luxa-avatar-box {
+  background-image: url('/mascot.jpg') !important;
+  background-size: cover !important;
+  background-position: 48% 28% !important;
+  border: 1.5px solid rgba(255, 255, 255, 0.4) !important;
+}
+
+.luxa-avatar-box svg {
+  display: none !important;
+}
+
+/* Adjust position on mobile to float cleanly above MobileBottomNav */
+@media (max-width: 768px) {
+  #luxa-widget-root {
+    bottom: 76px !important;
+    right: 14px !important;
+  }
+}
+
