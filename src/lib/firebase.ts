@@ -3,6 +3,8 @@ import {
   getAuth,
   GoogleAuthProvider,
   signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   signOut,
@@ -32,6 +34,12 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || '1:102938475610:web:9f8e7d6c5b4a3a2b',
 };
 
+// Check if official Firebase API key has been connected
+export const isFirebaseConfigured = (): boolean => {
+  const key = process.env.NEXT_PUBLIC_FIREBASE_API_KEY || '';
+  return typeof key === 'string' && key.length > 20 && !key.includes('DummyKey');
+};
+
 // Safe Firebase App Initialization (Singleton)
 let app: FirebaseApp;
 if (!getApps().length) {
@@ -47,13 +55,22 @@ export const googleProvider = new GoogleAuthProvider();
 googleProvider.setCustomParameters({ prompt: 'select_account' });
 
 /**
- * Sign in with real Google Account using Firebase Auth Popup
+ * Sign in with genuine Google Account using official Firebase Auth Popup (accounts.google.com)
  */
 export async function signInWithGoogleFirebase(): Promise<{
   success: boolean;
   user?: { email: string; displayName: string; photoURL: string; uid: string };
   error?: string;
+  needConfig?: boolean;
 }> {
+  if (!isFirebaseConfigured()) {
+    return {
+      success: false,
+      needConfig: true,
+      error: 'Cần kết nối khóa Firebase API Key chính thức để kích hoạt đăng nhập Google qua accounts.google.com.',
+    };
+  }
+
   try {
     const result = await signInWithPopup(auth, googleProvider);
     const fbUser = result.user;
@@ -72,18 +89,62 @@ export async function signInWithGoogleFirebase(): Promise<{
     };
   } catch (err: any) {
     console.error('Firebase Google Sign-In Error:', err);
-    // Provide clean, localized error message
     let msg = 'Đăng nhập Google thất bại.';
-    if (err.code === 'auth/popup-closed-by-user') {
+    let needConfig = false;
+
+    if (
+      err.code === 'auth/invalid-api-key' ||
+      err.code === 'auth/api-key-not-valid' ||
+      err.code === 'auth/configuration-not-found'
+    ) {
+      msg = 'Khóa Firebase API Key không hợp lệ hoặc chưa được kích hoạt Google Sign-In trên Firebase Console.';
+      needConfig = true;
+    } else if (err.code === 'auth/popup-closed-by-user') {
       msg = 'Cửa sổ đăng nhập Google đã bị đóng trước khi hoàn tất.';
     } else if (err.code === 'auth/popup-blocked') {
-      msg = 'Trình duyệt đã chặn cửa sổ pop-up. Vui lòng cho phép pop-up để đăng nhập.';
+      msg = 'Trình duyệt đã chặn cửa sổ pop-up. Vui lòng bật cho phép pop-up để đăng nhập.';
     } else if (err.code === 'auth/network-request-failed') {
       msg = 'Lỗi kết nối mạng đến máy chủ Google.';
     } else if (err.message) {
       msg = err.message;
     }
-    return { success: false, error: msg };
+
+    return { success: false, error: msg, needConfig };
+  }
+}
+
+/**
+ * Sign in with Google Redirect (Ideal for Mobile browsers where popups are blocked)
+ */
+export async function signInWithGoogleRedirect() {
+  return await signInWithRedirect(auth, googleProvider);
+}
+
+/**
+ * Handle redirect result after returning from accounts.google.com
+ */
+export async function handleGoogleRedirectResult(): Promise<{
+  success: boolean;
+  user?: { email: string; displayName: string; photoURL: string; uid: string };
+  error?: string;
+}> {
+  try {
+    const result = await getRedirectResult(auth);
+    if (result && result.user && result.user.email) {
+      return {
+        success: true,
+        user: {
+          email: result.user.email,
+          displayName: result.user.displayName || result.user.email.split('@')[0],
+          photoURL: result.user.photoURL || '',
+          uid: result.user.uid,
+        },
+      };
+    }
+    return { success: false };
+  } catch (err: any) {
+    console.error('Redirect Result Error:', err);
+    return { success: false, error: err.message || 'Lỗi nhận diện tài khoản Google sau chuyển trang.' };
   }
 }
 

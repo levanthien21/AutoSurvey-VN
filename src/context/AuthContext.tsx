@@ -298,7 +298,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setFormError(null);
     setSubmitting(true);
     try {
-      // 1. Attempt genuine Google Sign-In with Firebase Auth popup
       const fbRes = await signInWithGoogleFirebase();
       if (fbRes.success && fbRes.user) {
         await loginWithGoogle({
@@ -307,15 +306,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           avatar: fbRes.user.photoURL,
           googleId: fbRes.user.uid,
         });
-        setSubmitting(false);
+        setFormSuccess('Đăng nhập Google thành công! Đang chuyển tiếp...');
+        setTimeout(() => {
+          closeAuthModal();
+        }, 600);
         return;
+      } else {
+        setFormError(fbRes.error || 'Đăng nhập Google không thành công.');
       }
-    } catch (fbErr) {
-      console.warn('Firebase Google Auth popup fallback:', fbErr);
+    } catch (fbErr: any) {
+      console.warn('Firebase Google Auth error:', fbErr);
+      setFormError(fbErr.message || 'Lỗi khi kết nối máy chủ Google.');
+    } finally {
+      setSubmitting(false);
     }
-    setSubmitting(false);
-    // 2. Fast responsive account chooser fallback
-    setIsGoogleChooserOpen(true);
   };
 
   const isEmailAdminWhitelisted = (em: string) => {
@@ -356,121 +360,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
             {/* Modal Body Container */}
             <div className="overflow-y-auto p-6 sm:p-8 flex-1">
-              {/* Google Account Chooser View */}
-              {isGoogleChooserOpen ? (
-                <div className="space-y-4 text-left">
-                  <div className="flex items-center gap-3 pb-3 border-b border-slate-100">
-                    <div className="w-10 h-10 rounded-2xl bg-slate-50 border border-slate-200 p-2 flex items-center justify-center shadow-xs shrink-0">
-                      <GoogleIcon className="w-6 h-6" />
-                    </div>
-                    <div>
-                      <h3 className="text-sm font-extrabold text-slate-900">Đăng nhập tài khoản Google</h3>
-                      <p className="text-[11px] text-slate-500">Chọn tài khoản để đăng nhập nhanh</p>
-                    </div>
-                  </div>
-
-                  <div className="space-y-2.5">
-                    {/* Preset 1: Admin Email */}
-                    <button
-                      type="button"
-                      disabled={submitting}
-                      onClick={() =>
-                        loginWithGoogle({
-                          email: 'thienlv.bbh@gmail.com',
-                          name: 'Lê Văn Thiện',
-                          avatar: 'https://lh3.googleusercontent.com/a/default-user=s96-c',
-                        })
-                      }
-                      className="w-full p-3.5 rounded-2xl border-2 border-purple-200 bg-purple-50/60 hover:border-purple-400 text-left transition-all flex items-center gap-3 group active:scale-[0.99]"
-                    >
-                      <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-purple-600 to-indigo-600 text-white font-black text-xs flex items-center justify-center shrink-0 shadow-sm">
-                        LT
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-1.5">
-                          <span className="font-extrabold text-xs text-slate-900">Lê Văn Thiện</span>
-                          <span className="text-[9px] font-black px-1.5 py-0.2 rounded-full bg-purple-600 text-white">
-                            Quản trị viên
-                          </span>
-                        </div>
-                        <div className="text-[11px] text-slate-600 font-mono truncate mt-0.5 font-medium">
-                          thienlv.bbh@gmail.com
-                        </div>
-                      </div>
-                      <ChevronRight className="w-4 h-4 text-purple-500 group-hover:translate-x-1 transition-transform" />
-                    </button>
-
-                    {/* Preset 2: levanthien21@gmail.com */}
-                    <button
-                      type="button"
-                      disabled={submitting}
-                      onClick={() =>
-                        loginWithGoogle({
-                          email: 'levanthien21@gmail.com',
-                          name: 'Lê Văn Thiện',
-                        })
-                      }
-                      className="w-full p-3 rounded-2xl border border-slate-200 bg-slate-50 hover:bg-blue-50/60 hover:border-blue-300 text-left transition-all flex items-center gap-3 group active:scale-[0.99]"
-                    >
-                      <div className="w-9 h-9 rounded-full bg-blue-600 text-white font-bold text-xs flex items-center justify-center shrink-0">
-                        21
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="text-xs font-bold text-slate-800">levanthien21@gmail.com</div>
-                        <div className="text-[10px] text-purple-600 font-semibold">Tự động nhận quyền Admin</div>
-                      </div>
-                      <ChevronRight className="w-4 h-4 text-slate-400 group-hover:translate-x-1 transition-transform" />
-                    </button>
-                  </div>
-
-                  {/* Custom Gmail Input */}
-                  <div className="pt-2">
-                    <input
-                      type="email"
-                      placeholder="Hoặc nhập Gmail khác của bạn..."
-                      value={customGoogleEmail}
-                      onChange={(e) => setCustomGoogleEmail(e.target.value)}
-                      className="w-full h-11 px-3.5 text-xs rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 mb-2 font-medium"
-                    />
-                    {customGoogleEmail.includes('@') && (
-                      <button
-                        type="button"
-                        disabled={submitting}
-                        onClick={() =>
-                          loginWithGoogle({
-                            email: customGoogleEmail,
-                            name: customGoogleEmail.split('@')[0],
-                          })
-                        }
-                        className="w-full h-10 rounded-xl bg-blue-600 text-white text-xs font-bold transition-all shadow-md shadow-blue-500/20"
-                      >
-                        Xác nhận đăng nhập với {customGoogleEmail}
-                      </button>
-                    )}
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={() => setIsGoogleChooserOpen(false)}
-                    className="w-full py-2 text-center text-xs font-bold text-slate-500 hover:text-slate-900 transition-colors"
-                  >
-                    &larr; Quay lại form đăng nhập
-                  </button>
+              <div className="text-left">
+                {/* Title & Subtitle */}
+                <div className="mb-6">
+                  <h2 className="text-2xl sm:text-[28px] font-black text-slate-900 tracking-tight">
+                    {modalTab === 'login' ? 'Đăng nhập' : 'Đăng ký tài khoản'}
+                  </h2>
+                  <p className="text-xs sm:text-sm text-slate-400 mt-1 font-normal">
+                    {modalTab === 'login'
+                      ? 'Vui lòng đăng nhập để tiếp tục sử dụng dịch vụ'
+                      : 'Vui lòng điền thông tin để tạo tài khoản mới'}
+                  </p>
                 </div>
-              ) : (
-                /* Standard Auth Modal Content */
-                <div className="text-left">
-                  {/* Title & Subtitle */}
-                  <div className="mb-6">
-                    <h2 className="text-2xl sm:text-[28px] font-black text-slate-900 tracking-tight">
-                      {modalTab === 'login' ? 'Đăng nhập' : 'Đăng ký tài khoản'}
-                    </h2>
-                    <p className="text-xs sm:text-sm text-slate-400 mt-1 font-normal">
-                      {modalTab === 'login'
-                        ? 'Vui lòng đăng nhập để tiếp tục sử dụng dịch vụ'
-                        : 'Vui lòng điền thông tin để tạo tài khoản mới'}
-                    </p>
-                  </div>
 
                   {/* Smart Not Registered Helper Card */}
                   {notRegisteredPrompt && modalTab === 'login' && (
@@ -681,7 +582,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                     </div>
                   </form>
                 </div>
-              )}
             </div>
           </div>
         </div>
