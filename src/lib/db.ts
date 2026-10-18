@@ -10,6 +10,8 @@ export interface User {
   salt: string;
   role: 'user' | 'admin';
   credits: number;
+  googleId?: string;
+  avatar?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -236,6 +238,85 @@ class DatabaseManager {
     };
 
     db.users.push(user);
+    this.saveDb();
+    return user;
+  }
+
+  createGoogleUser(params: { email: string; name?: string; avatar?: string; googleId?: string }): User {
+    const db = this.getDb();
+    const cleanEmail = params.email.trim().toLowerCase();
+
+    // Check if user already exists with this email
+    let existing = this.findUserByEmail(cleanEmail);
+    if (existing) {
+      if (params.googleId && !existing.googleId) {
+        existing.googleId = params.googleId;
+      }
+      if (params.avatar && !existing.avatar) {
+        existing.avatar = params.avatar;
+      }
+      this.checkAndPromoteUser(existing);
+      this.saveDb();
+      return existing;
+    }
+
+    // Determine clean username from name or email prefix
+    let baseUsername = (params.name || cleanEmail.split('@')[0])
+      .toLowerCase()
+      .replace(/[^a-z0-9_]/g, '')
+      .slice(0, 20);
+    if (!baseUsername || baseUsername.length < 3) {
+      baseUsername = 'gg_' + crypto.randomBytes(3).toString('hex');
+    }
+
+    // Ensure unique username
+    let finalUsername = baseUsername;
+    let counter = 1;
+    while (db.users.some((u) => u.username.toLowerCase() === finalUsername.toLowerCase())) {
+      finalUsername = `${baseUsername}${counter++}`;
+    }
+
+    const salt = crypto.randomBytes(16).toString('hex');
+    const randomPass = crypto.randomBytes(24).toString('hex');
+    const passwordHash = hashPassword(randomPass, salt);
+
+    const isFirstUser = db.users.length === 0;
+    const isWhitelistedAdmin = this.isAdminEmail(cleanEmail);
+    const finalRole: 'user' | 'admin' = isWhitelistedAdmin || isFirstUser ? 'admin' : 'user';
+    const initialCredits = finalRole === 'admin' ? 1000000 : 50000;
+
+    const user: User = {
+      id: 'usr_' + crypto.randomBytes(6).toString('hex'),
+      username: finalUsername,
+      email: cleanEmail,
+      passwordHash,
+      salt,
+      role: finalRole,
+      credits: initialCredits,
+      googleId: params.googleId,
+      avatar: params.avatar,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    db.users.push(user);
+
+    // Record welcome bonus transaction
+    db.transactions.unshift({
+      id: 'tx_' + crypto.randomBytes(6).toString('hex'),
+      userId: user.id,
+      username: user.username,
+      type: 'bonus',
+      amount: 0,
+      credits: initialCredits,
+      memo:
+        finalRole === 'admin'
+          ? 'Đăng nhập Google: Khởi tạo Quản trị viên (1.000.000 Credits)'
+          : 'Đăng nhập Google: Quà tặng thành viên mới (50.000 Credits)',
+      status: 'completed',
+      createdAt: new Date().toISOString(),
+    });
+
     this.saveDb();
     return user;
   }
