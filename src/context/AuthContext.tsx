@@ -188,7 +188,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fadeIn">
           <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full overflow-hidden border border-slate-100 relative">
             {/* Header */}
-            <div className="bg-gradient-to-tr from-blue-700 via-indigo-700 to-blue-800 p-6 text-white relative">
+            <div className="bg-gradient-to-tr from-slate-950 via-slate-900 to-blue-950 p-6 text-white relative border-b border-white/10">
               <button
                 onClick={closeAuthModal}
                 className="absolute top-5 right-5 w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors"
@@ -196,23 +196,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 <X className="w-4 h-4" />
               </button>
 
-              <div className="flex items-center gap-2 mb-2">
-                <div className="w-8 h-8 rounded-xl bg-white/10 flex items-center justify-center border border-white/20">
-                  <Sparkles className="w-4 h-4 text-amber-300" />
+              <div className="flex items-center gap-3 mb-2">
+                <div className="w-10 h-10 rounded-xl bg-white p-1 border border-white/20 flex items-center justify-center shrink-0">
+                  <img src="/logo.png" alt="AutoSurvey VN" className="w-full h-full object-contain" />
                 </div>
-                <span className="font-bold text-lg tracking-tight">AutoSurvey PRO</span>
+                <div>
+                  <div className="font-extrabold text-base tracking-tight flex items-center gap-1.5">
+                    AutoSurvey <span className="text-orange-400">VN</span>
+                    <span className="text-[9px] bg-blue-500/30 text-blue-300 border border-blue-400/30 px-1 rounded font-bold">PRO</span>
+                  </div>
+                  <div className="text-[10px] text-slate-400">Dịch Vụ Khảo Sát & Số Liệu SPSS</div>
+                </div>
               </div>
-              <h2 className="text-xl font-extrabold">
+
+              <h2 className="text-lg font-extrabold mt-3">
                 {modalTab === 'login' ? 'Đăng nhập hệ thống' : 'Đăng ký tài khoản mới'}
               </h2>
-              <p className="text-xs text-blue-100/90 mt-1">
+              <p className="text-xs text-blue-200/80 mt-1">
                 {modalTab === 'login'
                   ? 'Đăng nhập để quản lý đơn điền form và nạp credits tự động.'
                   : 'Nhận ngay 50.000 Credits miễn phí khi hoàn tất tạo tài khoản.'}
               </p>
 
               {/* Tabs */}
-              <div className="mt-5 flex p-1 bg-black/20 rounded-xl">
+              <div className="mt-4 flex p-1 bg-black/40 rounded-xl border border-white/10">
                 <button
                   type="button"
                   onClick={() => {

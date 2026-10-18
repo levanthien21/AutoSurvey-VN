@@ -7,9 +7,9 @@
       "passwordHash": "9988ca31a76efd35c3234907601c8244d873025b442051955b6f08c4dafad9ff61afe08203336d978d0a0d3fdd12b388b31d77cdc0334cc2d34e60b38fa33a39",
       "salt": "d2dd201aeaf3c39e171d605101ca9094",
       "role": "admin",
-      "credits": 1000000,
+      "credits": 990000,
       "createdAt": "2026-10-18T02:26:13.772Z",
-      "updatedAt": "2026-10-18T02:26:13.772Z"
+      "updatedAt": "2026-10-18T02:55:31.721Z"
     },
     {
       "id": "usr_demo",
@@ -46,6 +46,84 @@
     }
   ],
   "transactions": [
+    {
+      "id": "tx_179dd50969e6",
+      "userId": "usr_admin",
+      "username": "admin",
+      "type": "order_charge",
+      "amount": 10000,
+      "credits": -10000,
+      "memo": "Thanh toán khảo sát: Điền theo tỉ lệ - 📝 Đăng ký thông tin để được tư vấn  (100 phản hồi)",
+      "bankCode": "VCB",
+      "accountNumber": "9349850292",
+      "status": "completed",
+      "createdAt": "2026-10-18T02:55:31.723Z"
+    },
+    {
+      "id": "tx_8c4f402dca14",
+      "userId": "usr_admin",
+      "username": "admin",
+      "type": "deposit",
+      "amount": 100000,
+      "credits": 110000,
+      "memo": "NAP ADMIN",
+      "bankCode": "VCB",
+      "accountNumber": "9349850292",
+      "status": "pending",
+      "createdAt": "2026-10-18T02:52:47.812Z"
+    },
+    {
+      "id": "tx_e975c264160e",
+      "userId": "usr_admin",
+      "username": "admin",
+      "type": "deposit",
+      "amount": 100000,
+      "credits": 110000,
+      "memo": "NAP ADMIN",
+      "bankCode": "VCB",
+      "accountNumber": "9349850292",
+      "status": "pending",
+      "createdAt": "2026-10-18T02:46:22.061Z"
+    },
+    {
+      "id": "tx_37ac1ace0330",
+      "userId": "usr_admin",
+      "username": "admin",
+      "type": "deposit",
+      "amount": 100000,
+      "credits": 110000,
+      "memo": "NAP ADMIN",
+      "bankCode": "MB",
+      "accountNumber": "9999888888",
+      "status": "pending",
+      "createdAt": "2026-10-18T02:41:55.356Z"
+    },
+    {
+      "id": "tx_a60395ffb2ee",
+      "userId": "usr_demo",
+      "username": "demo",
+      "type": "deposit",
+      "amount": 100000,
+      "credits": 110000,
+      "memo": "NAP DEMO",
+      "bankCode": "MB",
+      "accountNumber": "9999888888",
+      "status": "pending",
+      "createdAt": "2026-10-18T02:41:21.804Z"
+    },
+    {
+      "id": "tx_3fe45647fcdf",
+      "userId": "usr_demo",
+      "username": "demo",
+      "type": "deposit",
+      "amount": 100000,
+      "credits": 110000,
+      "memo": "NAP DEMO",
+      "bankCode": "MB",
+      "accountNumber": "9999888888",
+      "status": "pending",
+      "createdAt": "2026-10-18T02:37:58.112Z"
+    },
     {
       "id": "tx_354a4897be12",
       "userId": "usr_8c09e711aab1",
@@ -241,10 +319,10 @@
       "agent": 200
     },
     "bankInfo": {
-      "bankName": "MB Bank (Quân Đội)",
-      "bankCode": "MB",
-      "accountNumber": "9999888888",
-      "accountName": "AUTO SURVEY VIETNAM"
+      "bankName": "VIETCOMBANK",
+      "bankCode": "VCB",
+      "accountNumber": "9349850292",
+      "accountName": "LE VAN THIEN"
     },
     "defaultDelayMin": 1,
     "defaultDelayMax": 2.5

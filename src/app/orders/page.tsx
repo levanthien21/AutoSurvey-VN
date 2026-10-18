@@ -217,21 +217,21 @@ function OrdersContent() {
                     </div>
 
                     {/* Actions buttons */}
-                    <div className="flex flex-wrap items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2.5">
                       {/* Excel Export Button */}
                       <a
                         href={`/api/orders/${activeOrder.id}/export`}
                         download
-                        className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-all shadow-xs"
+                        className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-bold transition-all shadow-md shadow-emerald-600/20 hover:scale-[1.02]"
                       >
-                        <Download className="w-3.5 h-3.5" />
+                        <Download className="w-4 h-4" />
                         <span>Xuất Excel (.xlsx)</span>
                       </a>
 
                       {activeOrder.status === 'running' ? (
                         <button
                           onClick={() => handleAction(activeOrder.id, 'pause')}
-                          className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-800 text-xs font-bold transition-colors"
+                          className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-amber-50 hover:bg-amber-100 border border-amber-200 text-amber-800 text-xs font-bold transition-all shadow-xs"
                         >
                           <Pause className="w-3.5 h-3.5" />
                           <span>Tạm dừng</span>
@@ -239,17 +239,17 @@ function OrdersContent() {
                       ) : activeOrder.status === 'paused' || activeOrder.status === 'pending' ? (
                         <button
                           onClick={() => handleAction(activeOrder.id, 'start')}
-                          className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition-colors"
+                          className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white text-xs font-bold transition-all shadow-md shadow-blue-500/20 hover:scale-[1.02]"
                         >
                           <Play className="w-3.5 h-3.5" />
-                          <span>Tiếp tục</span>
+                          <span>Tiếp tục gửi</span>
                         </button>
                       ) : null}
 
                       {activeOrder.status !== 'completed' && activeOrder.status !== 'cancelled' && (
                         <button
                           onClick={() => handleAction(activeOrder.id, 'cancel')}
-                          className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-slate-200 hover:bg-rose-50 hover:text-rose-700 text-slate-600 text-xs font-bold transition-colors"
+                          className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl border border-rose-200 hover:bg-rose-50 text-rose-700 text-xs font-bold transition-all shadow-xs"
                         >
                           <XCircle className="w-3.5 h-3.5" />
                           <span>Hủy & Hoàn tiền</span>
@@ -259,32 +259,32 @@ function OrdersContent() {
                   </div>
 
                   {/* Progress Stats */}
-                  <div className="grid grid-cols-3 gap-3 p-4 rounded-xl bg-slate-50/80 border border-slate-100 text-center">
+                  <div className="grid grid-cols-3 gap-3 p-4 rounded-2xl bg-slate-50/80 border border-slate-100 text-center">
                     <div>
-                      <div className="text-[11px] font-medium text-slate-500">Mục tiêu</div>
-                      <div className="text-base font-bold text-slate-900 mt-0.5">{activeOrder.totalTarget}</div>
+                      <div className="text-[11px] font-semibold text-slate-500">Mục tiêu</div>
+                      <div className="text-lg font-black text-slate-900 mt-0.5 font-mono">{activeOrder.totalTarget}</div>
                     </div>
                     <div>
-                      <div className="text-[11px] font-medium text-emerald-600">Thành công</div>
-                      <div className="text-base font-bold text-emerald-700 mt-0.5">{activeOrder.successCount}</div>
+                      <div className="text-[11px] font-semibold text-emerald-600">Thành công</div>
+                      <div className="text-lg font-black text-emerald-700 mt-0.5 font-mono">{activeOrder.successCount}</div>
                     </div>
                     <div>
-                      <div className="text-[11px] font-medium text-rose-500">Lỗi / Bị chặn</div>
-                      <div className="text-base font-bold text-rose-600 mt-0.5">{activeOrder.errorCount}</div>
+                      <div className="text-[11px] font-semibold text-rose-500">Lỗi / Bị chặn</div>
+                      <div className="text-lg font-black text-rose-600 mt-0.5 font-mono">{activeOrder.errorCount}</div>
                     </div>
                   </div>
 
                   {/* Progress Bar Large */}
                   <div>
-                    <div className="flex items-center justify-between text-xs font-semibold text-slate-700 mb-1.5">
+                    <div className="flex items-center justify-between text-xs font-bold text-slate-700 mb-1.5">
                       <span>Tiến độ hoàn thành</span>
-                      <span className="font-bold text-blue-700">
+                      <span className="font-extrabold text-blue-700 font-mono">
                         {Math.round((activeOrder.completedCount / activeOrder.totalTarget) * 100) || 0}%
                       </span>
                     </div>
-                    <div className="w-full h-3 rounded-full bg-slate-100 overflow-hidden p-0.5">
+                    <div className="w-full h-3.5 rounded-full bg-slate-100 overflow-hidden p-0.5">
                       <div
-                        className="h-full bg-gradient-to-r from-blue-600 to-indigo-600 rounded-full transition-all duration-300"
+                        className="h-full bg-gradient-to-r from-blue-600 via-indigo-600 to-emerald-500 rounded-full transition-all duration-300"
                         style={{
                           width: `${Math.round((activeOrder.completedCount / activeOrder.totalTarget) * 100) || 0}%`,
                         }}
@@ -294,24 +294,27 @@ function OrdersContent() {
                 </div>
 
                 {/* Real-time Submission Terminal Log */}
-                <div className="bg-slate-950 rounded-2xl border border-slate-800 p-5 text-white shadow-xl space-y-3 font-mono text-xs">
+                <div className="bg-slate-950 rounded-3xl border border-slate-800 p-6 text-white shadow-2xl space-y-3 font-mono text-xs">
                   <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2.5">
+                      <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
                       <Terminal className="w-4 h-4 text-emerald-400" />
-                      <span className="font-bold text-slate-300">Live Submission Logs (SSE)</span>
+                      <span className="font-bold text-slate-200">Real-time Submitter Stream (SSE)</span>
                     </div>
-                    <span className="text-[10px] text-slate-500">50 phản hồi mới nhất</span>
+                    <span className="text-[10px] text-slate-500 bg-slate-900 px-2.5 py-0.5 rounded-md border border-slate-800">
+                      50 phản hồi mới nhất
+                    </span>
                   </div>
 
                   <div className="space-y-1.5 max-h-[350px] overflow-y-auto pr-1">
                     {activeOrder.logs.length === 0 ? (
-                      <div className="text-slate-600 py-6 text-center">Chờ tín hiệu phản hồi từ máy chủ...</div>
+                      <div className="text-slate-600 py-8 text-center">Đang kết nối tín hiệu phản hồi từ máy chủ...</div>
                     ) : (
                       activeOrder.logs.map((log, lIdx) => (
-                        <div key={lIdx} className="flex items-start gap-2.5 text-[11px]">
-                          <span className="text-slate-500 shrink-0">{log.timestamp}</span>
+                        <div key={lIdx} className="flex items-start gap-2.5 text-[11px] hover:bg-white/5 px-2 py-0.5 rounded transition-colors">
+                          <span className="text-slate-500 shrink-0 font-mono">{log.timestamp}</span>
                           <span
-                            className={`font-bold shrink-0 ${
+                            className={`font-black shrink-0 ${
                               log.status === 'success' ? 'text-emerald-400' : 'text-rose-400'
                             }`}
                           >

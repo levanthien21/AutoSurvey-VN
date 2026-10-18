@@ -182,29 +182,43 @@ export default function CreditPage() {
         </p>
       </div>
 
-      {/* Balance Banner */}
-      <div className="bg-gradient-to-r from-blue-700 via-indigo-700 to-blue-900 p-7 rounded-3xl text-white shadow-xl shadow-blue-700/10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-        <div>
-          <div className="text-xs text-blue-200 font-semibold tracking-wide uppercase">Số dư tài khoản khả dụng</div>
-          <div className="text-4xl font-extrabold mt-1 tracking-tight">
-            {user ? user.credits.toLocaleString() : '---'}{' '}
-            <span className="text-base font-normal text-blue-200">Credits</span>
+      {/* Balance Banner with Brand Logo and Midnight Tech Theme */}
+      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-slate-950 via-[#071330] to-slate-950 p-8 text-white shadow-2xl border border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div className="absolute top-0 right-0 w-80 h-80 bg-blue-600/15 rounded-full blur-3xl pointer-events-none"></div>
+        <div className="absolute bottom-0 left-1/3 w-60 h-60 bg-orange-500/10 rounded-full blur-2xl pointer-events-none"></div>
+
+        <div className="relative z-10 flex items-start gap-4">
+          <div className="w-14 h-14 rounded-2xl bg-white p-1.5 shadow-md border border-slate-700 flex items-center justify-center shrink-0">
+            <img src="/logo.png" alt="AutoSurvey VN" className="w-full h-full object-contain" />
           </div>
-          <div className="text-xs text-blue-100 mt-3 flex flex-wrap items-center gap-3">
-            <span className="bg-white/10 px-2 py-0.5 rounded-md font-mono">
-              Tài khoản: <strong>{user ? user.username : 'Khách vãng lai'}</strong>
-            </span>
-            <span>•</span>
-            <span>Tỷ giá chuẩn: <strong>1 VNĐ = 1 Credit</strong></span>
+
+          <div>
+            <div className="text-xs text-slate-400 font-bold tracking-wider uppercase flex items-center gap-2">
+              <span>Số dư tài khoản AutoSurvey VN</span>
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+            </div>
+            <div className="text-4xl font-black mt-1 tracking-tight text-white flex items-baseline gap-1.5 font-mono">
+              {user ? user.credits.toLocaleString() : '---'}
+              <span className="text-sm font-normal text-slate-400">Credits</span>
+            </div>
+            <div className="text-xs text-slate-300 mt-2.5 flex flex-wrap items-center gap-3">
+              <span className="bg-white/10 px-2.5 py-0.5 rounded-lg font-mono text-[11px] border border-white/10">
+                Thành viên: <strong className="text-white">{user ? user.username : 'Khách vãng lai'}</strong>
+              </span>
+              <span>•</span>
+              <span className="text-emerald-400 font-bold">1 VNĐ = 1 Credit</span>
+              <span>•</span>
+              <span className="text-slate-400">Tự động cộng sau 10s</span>
+            </div>
           </div>
         </div>
 
-        <div className="flex flex-col sm:flex-row items-center gap-3 shrink-0">
+        <div className="relative z-10 flex flex-col sm:flex-row items-center gap-3 shrink-0">
           <button
             onClick={handleApproveDeposit}
-            className="w-full sm:w-auto h-11 px-5 rounded-xl bg-white hover:bg-blue-50 text-blue-700 font-bold text-xs shadow-md transition-all hover:scale-[1.02] flex items-center justify-center gap-2"
+            className="w-full sm:w-auto h-11 px-5 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-extrabold text-xs shadow-lg shadow-orange-500/25 transition-all hover:scale-[1.02] flex items-center justify-center gap-2"
           >
-            <Zap className="w-4 h-4 text-amber-500 fill-amber-500" />
+            <Zap className="w-4 h-4 text-white fill-white" />
             <span>Xác nhận nạp nhanh (Demo)</span>
           </button>
         </div>
@@ -323,17 +337,19 @@ export default function CreditPage() {
               </div>
             </div>
 
-            <div className="p-3.5 rounded-xl bg-blue-50/80 border border-blue-200/80 text-blue-900 flex items-center justify-between">
+            <div className="p-3.5 rounded-xl bg-gradient-to-r from-orange-50 to-amber-50 border-2 border-orange-200 text-orange-950 flex items-center justify-between shadow-xs">
               <div>
-                <span className="text-blue-600 block text-[11px] font-bold">Nội dung chuyển khoản (bắt buộc)</span>
-                <strong className="text-blue-800 text-sm font-mono">{pendingTx?.memo || 'NAP DEMO'}</strong>
+                <span className="text-orange-700 block text-[11px] font-extrabold uppercase tracking-wide">
+                  Nội dung chuyển khoản (Bắt buộc chính xác)
+                </span>
+                <strong className="text-orange-900 text-base font-mono font-black">{pendingTx?.memo || 'NAP DEMO'}</strong>
               </div>
               <button
                 onClick={() => copyToClipboard(pendingTx?.memo || 'NAP DEMO', 'memo')}
-                className="text-xs text-blue-700 hover:text-blue-900 font-bold flex items-center gap-1"
+                className="px-3 py-1.5 rounded-lg bg-orange-600 hover:bg-orange-700 text-white text-xs font-extrabold shadow-sm flex items-center gap-1.5 transition-all"
               >
                 <Copy className="w-3.5 h-3.5" />
-                <span>{copiedField === 'memo' ? 'Đã chép' : 'Sao chép'}</span>
+                <span>{copiedField === 'memo' ? 'Đã sao chép!' : 'Sao chép'}</span>
               </button>
             </div>
           </div>
