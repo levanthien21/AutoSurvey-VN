@@ -72,9 +72,6 @@ export default function Navbar() {
           >
             <Calculator className="w-3.5 h-3.5 text-blue-600 group-hover:scale-110 transition-transform" />
             <span>Ước tính ngân sách & TG</span>
-            <span className="text-[9px] bg-blue-200/60 text-blue-800 font-extrabold px-1.5 py-0.2 rounded uppercase">
-              Mới
-            </span>
           </button>
 
           <Link

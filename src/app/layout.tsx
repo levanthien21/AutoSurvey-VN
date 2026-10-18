@@ -12,10 +12,11 @@ export const metadata: Metadata = {
     'Giải cứu deadline luận văn! Dịch vụ tăng lượt điền khảo sát Google/MS Form siêu tốc. Data giả lập người thật, chuẩn SPSS (Alpha > 0.8). Hỗ trợ 24/7 - Uy tín - Bảo hành data.',
   icons: {
     icon: [
+      { url: '/icon.svg?v=6', type: 'image/svg+xml' },
       { url: '/logo-v5.png', type: 'image/png' },
-      { url: '/favicon.ico?v=5', sizes: 'any' },
+      { url: '/favicon.ico?v=6', sizes: 'any' },
     ],
-    shortcut: '/logo-v5.png',
+    shortcut: '/icon.svg?v=6',
     apple: '/logo-v5.png',
   },
 };
@@ -30,8 +31,9 @@ export default function RootLayout({
   return (
     <html lang="vi">
       <head>
+        <link rel="icon" type="image/svg+xml" href="/icon.svg?v=6" />
         <link rel="icon" type="image/png" href="/logo-v5.png" />
-        <link rel="shortcut icon" href="/logo-v5.png" />
+        <link rel="shortcut icon" href="/icon.svg?v=6" />
         <link rel="apple-touch-icon" href="/logo-v5.png" />
         <script
           dangerouslySetInnerHTML={{
