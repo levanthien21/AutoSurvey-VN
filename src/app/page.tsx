@@ -380,11 +380,11 @@ export default function HomePage() {
             </div>
           </div>
           <div className="mt-3 text-3xl font-black text-slate-900 tracking-tight font-mono">
-            {user ? user.credits.toLocaleString() : '50.000'}
+            {user ? (user.role === 'admin' ? '∞ Vô hạn' : user.credits.toLocaleString()) : '0'}
           </div>
           <div className="mt-1 text-xs text-orange-600 font-bold">
             <Link href="/credit" className="hover:underline flex items-center gap-1">
-              <span>+ Nạp thêm qua VietQR 24/7</span>
+              <span>{user ? '+ Nạp thêm qua VietQR 24/7' : 'Đăng ký ngay nhận 50.000đ'}</span>
               <ArrowUpRight className="w-3.5 h-3.5" />
             </Link>
           </div>

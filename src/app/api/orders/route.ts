@@ -43,7 +43,10 @@ export async function POST(req: NextRequest) {
     const user = getUserFromRequest(req);
     if (!user) {
       return NextResponse.json(
-        { success: false, error: 'Vui lòng đăng nhập tài khoản để bắt đầu chạy đơn điền form.' },
+        {
+          success: false,
+          error: 'Vui lòng đăng nhập hoặc đăng ký tài khoản để bắt đầu chạy đơn. Tài khoản chưa đăng ký sẽ có 0 Credits.',
+        },
         { status: 401 }
       );
     }
@@ -55,7 +58,8 @@ export async function POST(req: NextRequest) {
     const totalCost = count * costPerResponse;
 
     // Credit verification
-    if (user) {
+    const isAdmin = user.role === 'admin';
+    if (!isAdmin) {
       if (user.credits < totalCost) {
         return NextResponse.json(
           {
@@ -68,7 +72,7 @@ export async function POST(req: NextRequest) {
         );
       }
 
-      // Deduct credits
+      // Deduct credits for regular users
       db.updateUserCredits(user.id, -totalCost);
 
       // Record transaction
@@ -81,10 +85,21 @@ export async function POST(req: NextRequest) {
         memo: `Thanh toán khảo sát: ${title || 'Google Form'} (${count} phản hồi)`,
         status: 'completed',
       });
+    } else {
+      // Admin privilege: Unlimited credits, 0 charge
+      db.createTransaction({
+        userId: user.id,
+        username: user.username,
+        type: 'order_charge',
+        amount: 0,
+        credits: 0,
+        memo: `[Đặc quyền Admin - Miễn phí] Khảo sát: ${title || 'Google Form'} (${count} phản hồi)`,
+        status: 'completed',
+      });
     }
 
     const order = orderManager.createOrder({
-      userId: user?.id,
+      userId: user.id,
       title: title || 'Đơn điền form tự động',
       formUrl,
       submitUrl,
@@ -92,8 +107,8 @@ export async function POST(req: NextRequest) {
       totalTarget: count,
       delayMin: delayMin ? Number(delayMin) : settings.defaultDelayMin || 1.0,
       delayMax: delayMax ? Number(delayMax) : settings.defaultDelayMax || 2.5,
-      costPerResponse,
-      totalCost,
+      costPerResponse: isAdmin ? 0 : costPerResponse,
+      totalCost: isAdmin ? 0 : totalCost,
       responsesQueue,
       fbzx,
     });
@@ -108,8 +123,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       success: true,
       order,
-      chargedCredits: totalCost,
-      remainingCredits: user ? user.credits - totalCost : undefined,
+      chargedCredits: isAdmin ? 0 : totalCost,
+      remainingCredits: isAdmin ? 999999999 : user.credits - totalCost,
     });
   } catch (err: any) {
     console.error('Error creating order:', err);

@@ -137,7 +137,7 @@ export default function Navbar() {
                 Credits
               </span>
               <span className="font-mono text-xs sm:text-sm font-black text-slate-900">
-                {user.credits.toLocaleString()}
+                {user.role === 'admin' ? '∞ Vô hạn' : user.credits.toLocaleString()}
               </span>
             </div>
             <span className="hidden sm:inline-flex items-center text-[10px] font-extrabold text-orange-700 bg-orange-200/60 px-2 py-0.5 rounded-lg group-hover:bg-orange-500 group-hover:text-white transition-all ml-1">

@@ -119,14 +119,14 @@ export default function SettingsPage() {
               <input
                 type="text"
                 readOnly
-                value={`${user.credits.toLocaleString()} Credits`}
+                value={user.role === 'admin' ? '∞ Vô hạn (Đặc quyền Quản trị viên)' : `${user.credits.toLocaleString()} Credits`}
                 className="w-full h-10 px-3 font-bold font-mono rounded-xl border border-slate-200 bg-slate-50 text-blue-700 cursor-not-allowed"
               />
             </div>
           </div>
         ) : (
           <div className="p-4 rounded-xl bg-blue-50 text-blue-800 text-xs flex items-center justify-between">
-            <span>Bạn đang duyệt web ở chế độ khách vãng lai.</span>
+            <span>Bạn đang duyệt web ở chế độ khách chưa đăng ký (0 Credits).</span>
             <button
               onClick={() => openAuthModal('login')}
               className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg"

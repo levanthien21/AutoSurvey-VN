@@ -19,6 +19,11 @@ import {
   Building2,
   Save,
   AlertTriangle,
+  Trash2,
+  Loader2,
+  Crown,
+  X,
+  Info,
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 
@@ -41,6 +46,17 @@ export default function AdminPage() {
   const [allTransactions, setAllTransactions] = useState<any[]>([]);
   const [settings, setSettings] = useState<any>(null);
   const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  // Settings & Email Management States
+  const [newAdminEmail, setNewAdminEmail] = useState('');
+  const [adminEmailError, setAdminEmailError] = useState<string | null>(null);
+  const [savingSettings, setSavingSettings] = useState(false);
+  const [saveFeedback, setSaveFeedback] = useState<{
+    type: 'success' | 'error';
+    message: string;
+    details?: string[];
+  } | null>(null);
 
   // Credit adjust modal
   const [adjustModalUser, setAdjustModalUser] = useState<any | null>(null);
@@ -78,6 +94,19 @@ export default function AdminPage() {
       console.error(err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Dedicated interactive refresh handler with animation and explicit toast
+  const handleRefreshAdmin = async () => {
+    setIsRefreshing(true);
+    try {
+      await loadAdminData();
+      showToast('success', 'Đã làm mới dữ liệu hệ thống thành công!');
+    } catch (err: any) {
+      showToast('error', 'Lỗi khi làm mới dữ liệu: ' + (err.message || ''));
+    } finally {
+      setIsRefreshing(false);
     }
   };
 
@@ -137,9 +166,108 @@ export default function AdminPage() {
     }
   };
 
-  // Handle settings update
+  // Admin Email Whitelist: Add Email
+  const handleAddAdminEmail = () => {
+    const clean = newAdminEmail.trim().toLowerCase();
+    if (!clean || !clean.includes('@') || !clean.includes('.')) {
+      setAdminEmailError('Email không hợp lệ. Vui lòng nhập đúng định dạng (Ví dụ: admin@gmail.com)');
+      return;
+    }
+    const currentEmails: string[] = settings?.adminEmails || [];
+    if (currentEmails.some((e: string) => e.toLowerCase() === clean)) {
+      setAdminEmailError('Email này đã tồn tại trong danh sách Quản trị viên!');
+      return;
+    }
+    setSettings({
+      ...settings,
+      adminEmails: [...currentEmails, clean],
+    });
+    setNewAdminEmail('');
+    setAdminEmailError(null);
+    showToast('success', `Đã thêm ${clean}. Bấm "Lưu tất cả thay đổi" để áp dụng lên hệ thống.`);
+  };
+
+  // Admin Email Whitelist: Remove individual email
+  const handleRemoveAdminEmail = (emailToRemove: string) => {
+    const currentEmails: string[] = settings?.adminEmails || [];
+    if (currentEmails.length <= 1) {
+      showToast('error', 'Cần giữ lại ít nhất 1 Email Quản trị viên để đăng nhập!');
+      return;
+    }
+    const updated = currentEmails.filter((e: string) => e.toLowerCase() !== emailToRemove.toLowerCase());
+    setSettings({
+      ...settings,
+      adminEmails: updated,
+    });
+    showToast('success', `Đã xóa ${emailToRemove}. Bấm "Lưu tất cả thay đổi" để áp dụng.`);
+  };
+
+  // Admin Email Whitelist: Purge demo emails
+  const handlePurgeDemoEmails = () => {
+    const currentEmails: string[] = settings?.adminEmails || [];
+    const demoList = ['admin@autosurvey.vn', 'levanthien21@gmail.com', 'thienlv.bbh@gmail.com'];
+    const filtered = currentEmails.filter((e: string) => !demoList.includes(e.toLowerCase()));
+    if (filtered.length === 0) {
+      filtered.push('levanthien21052004@gmail.com');
+    }
+    setSettings({
+      ...settings,
+      adminEmails: filtered,
+    });
+    showToast('success', 'Đã xóa tất cả các email demo. Bấm "Lưu tất cả thay đổi" để hoàn tất.');
+  };
+
+  // Handle settings update with strict validation and explicit error reporting
   const handleSaveSettings = async (e: React.FormEvent) => {
     e.preventDefault();
+    setSaveFeedback(null);
+
+    // Validation
+    const errors: string[] = [];
+    const prices = settings?.pricePerResponse || {};
+    if (prices.ratio === undefined || isNaN(Number(prices.ratio)) || Number(prices.ratio) < 0) {
+      errors.push('Đơn giá chế độ Tỉ lệ (Ratio) phải là số không âm.');
+    }
+    if (prices.data === undefined || isNaN(Number(prices.data)) || Number(prices.data) < 0) {
+      errors.push('Đơn giá chế độ Data có sẵn phải là số không âm.');
+    }
+    if (prices.model === undefined || isNaN(Number(prices.model)) || Number(prices.model) < 0) {
+      errors.push('Đơn giá chế độ Mô hình NCKH phải là số không âm.');
+    }
+    if (prices.agent === undefined || isNaN(Number(prices.agent)) || Number(prices.agent) < 0) {
+      errors.push('Đơn giá chế độ AI Agent phải là số không âm.');
+    }
+
+    const bank = settings?.bankInfo || {};
+    if (!bank.bankName || typeof bank.bankName !== 'string' || !bank.bankName.trim()) {
+      errors.push('Tên ngân hàng không được để trống.');
+    }
+    if (!bank.bankCode || typeof bank.bankCode !== 'string' || !bank.bankCode.trim()) {
+      errors.push('Mã ngân hàng (BankCode) không được để trống.');
+    }
+    if (!bank.accountNumber || typeof bank.accountNumber !== 'string' || !bank.accountNumber.trim()) {
+      errors.push('Số tài khoản ngân hàng không được để trống.');
+    }
+    if (!bank.accountName || typeof bank.accountName !== 'string' || !bank.accountName.trim()) {
+      errors.push('Tên chủ tài khoản không được để trống.');
+    }
+
+    const adminEmails = settings?.adminEmails || [];
+    if (!Array.isArray(adminEmails) || adminEmails.length === 0) {
+      errors.push('Danh sách Email Quản trị viên phải có ít nhất 1 email hợp lệ.');
+    }
+
+    if (errors.length > 0) {
+      setSaveFeedback({
+        type: 'error',
+        message: 'Không thể lưu cài đặt do phát hiện các lỗi sau:',
+        details: errors,
+      });
+      showToast('error', 'Có lỗi trong dữ liệu nhập. Vui lòng kiểm tra thông báo bên dưới.');
+      return;
+    }
+
+    setSavingSettings(true);
     try {
       const res = await fetch('/api/admin/settings', {
         method: 'POST',
@@ -148,12 +276,32 @@ export default function AdminPage() {
       });
       const data = await res.json();
       if (data.success) {
-        showToast('success', 'Đã lưu thành công bảng giá và thông tin ngân hàng!');
+        setSaveFeedback({
+          type: 'success',
+          message: 'Lưu tất cả thay đổi thành công!',
+          details: [
+            `Bảng giá mới: Ratio (${prices.ratio}đ) • Data (${prices.data}đ) • Model (${prices.model}đ) • Agent (${prices.agent}đ)`,
+            `Tài khoản thụ hưởng: ${bank.bankName} - ${bank.accountNumber} (${bank.accountName})`,
+            `Whitelist Admin: ${adminEmails.length} Email được cấp quyền Quản trị & Credits vô hạn`,
+          ],
+        });
+        showToast('success', 'Đã lưu thành công bảng giá, tài khoản và danh sách Admin!');
+        loadAdminData();
       } else {
+        setSaveFeedback({
+          type: 'error',
+          message: data.error || 'Máy chủ trả về lỗi khi lưu cấu hình.',
+        });
         showToast('error', data.error || 'Lỗi lưu cấu hình');
       }
     } catch (err: any) {
+      setSaveFeedback({
+        type: 'error',
+        message: 'Lỗi kết nối mạng: ' + (err.message || 'Không thể gửi dữ liệu lên máy chủ.'),
+      });
       showToast('error', err.message);
+    } finally {
+      setSavingSettings(false);
     }
   };
 
@@ -200,11 +348,12 @@ export default function AdminPage() {
         </div>
 
         <button
-          onClick={loadAdminData}
-          className="inline-flex items-center gap-2 h-9 px-3.5 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-600 text-xs font-semibold transition-colors shrink-0"
+          onClick={handleRefreshAdmin}
+          disabled={isRefreshing}
+          className="inline-flex items-center gap-2 h-9 px-3.5 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-600 text-xs font-semibold transition-colors shrink-0 disabled:opacity-50 cursor-pointer"
         >
-          <RefreshCw className="w-3.5 h-3.5" />
-          <span>Làm mới dữ liệu</span>
+          <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin text-purple-600' : ''}`} />
+          <span>{isRefreshing ? 'Đang cập nhật...' : 'Làm mới dữ liệu'}</span>
         </button>
       </div>
 
@@ -467,8 +616,15 @@ export default function AdminPage() {
                         {u.role.toUpperCase()}
                       </span>
                     </td>
-                    <td className="py-3 px-3 font-bold font-mono text-blue-700">
-                      {u.credits.toLocaleString()} Credits
+                    <td className="py-3 px-3 font-bold font-mono">
+                      {u.role === 'admin' ? (
+                        <span className="inline-flex items-center gap-1 text-purple-700 font-extrabold bg-purple-50 px-2 py-0.5 rounded-lg border border-purple-200 text-[11px]">
+                          <Crown className="w-3 h-3 text-purple-600 shrink-0" />
+                          <span>∞ Vô hạn (Admin)</span>
+                        </span>
+                      ) : (
+                        <span className="text-blue-700 font-bold">{u.credits.toLocaleString()} Credits</span>
+                      )}
                     </td>
                     <td className="py-3 px-3 text-slate-400 text-[11px]">
                       {new Date(u.createdAt).toLocaleDateString('vi-VN')}
@@ -633,49 +789,171 @@ export default function AdminPage() {
           </div>
 
           {/* Admin Email Whitelist */}
-          <div className="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-xs space-y-4">
-            <div>
-              <h3 className="text-base font-bold text-slate-900">Danh sách Email Quản trị viên (Admin Whitelist)</h3>
-              <p className="text-xs text-slate-500 mt-0.5">
-                Các tài khoản đăng ký với Email trong danh sách này sẽ tự động được cấp quyền Admin và 1.000.000 Credits.
-              </p>
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
-                Danh sách Email Admin (cách nhau bởi dấu phẩy)
-              </label>
-              <input
-                type="text"
-                value={(settings.adminEmails || []).join(', ')}
-                onChange={(e) =>
-                  setSettings({
-                    ...settings,
-                    adminEmails: e.target.value.split(',').map((s: string) => s.trim()).filter(Boolean),
-                  })
-                }
-                placeholder="admin@autosurvey.vn, levanthien21@gmail.com"
-                className="w-full h-11 px-4 text-xs font-mono font-medium rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-purple-500"
-              />
-              <div className="flex flex-wrap gap-1.5 mt-2">
-                {(settings.adminEmails || []).map((em: string) => (
-                  <span
-                    key={em}
-                    className="inline-flex items-center px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-purple-50 text-purple-700 border border-purple-200"
-                  >
-                    {em}
-                  </span>
-                ))}
+          <div className="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-xs space-y-5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div>
+                <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                  <Crown className="w-4 h-4 text-purple-600" />
+                  <span>Danh sách Email Quản trị viên (Admin Whitelist)</span>
+                </h3>
+                <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                  Tài khoản đăng ký bằng các Email này sẽ được tự động kích hoạt vai trò <strong className="text-purple-700">Quản trị viên</strong> và sở hữu <strong className="text-emerald-600">Credits không giới hạn (∞ Vô hạn)</strong>.
+                </p>
               </div>
+
+              {/* Quick purge demo emails if present */}
+              {(settings.adminEmails || []).some((e: string) =>
+                ['admin@autosurvey.vn', 'levanthien21@gmail.com', 'thienlv.bbh@gmail.com'].includes(e.toLowerCase())
+              ) && (
+                <button
+                  type="button"
+                  onClick={handlePurgeDemoEmails}
+                  className="px-3 py-1.5 rounded-xl border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold transition-colors shrink-0 flex items-center gap-1.5"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>Xóa các email demo mẫu</span>
+                </button>
+              )}
+            </div>
+
+            {/* Existing Admin Emails Badge List with individual Delete buttons */}
+            <div className="space-y-2">
+              <label className="block text-xs font-bold text-slate-700">
+                Các Email Quản trị viên hiện hành ({settings.adminEmails?.length || 0}):
+              </label>
+
+              {(!settings.adminEmails || settings.adminEmails.length === 0) ? (
+                <div className="p-3 text-xs text-rose-600 bg-rose-50 rounded-xl border border-rose-200">
+                  Chưa có email quản trị viên nào. Vui lòng thêm ít nhất 1 email để bảo vệ quyền truy cập.
+                </div>
+              ) : (
+                <div className="flex flex-wrap gap-2.5">
+                  {settings.adminEmails.map((em: string) => {
+                    const isPrimary = em.toLowerCase() === 'levanthien21052004@gmail.com';
+                    return (
+                      <div
+                        key={em}
+                        className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-mono font-bold bg-gradient-to-r from-purple-50 to-indigo-50/70 text-purple-900 border border-purple-200 shadow-2xs group hover:border-purple-300 transition-all"
+                      >
+                        <ShieldAlert className="w-3.5 h-3.5 text-purple-600 shrink-0" />
+                        <span>{em}</span>
+                        {isPrimary && (
+                          <span className="text-[10px] bg-purple-200 text-purple-800 px-1.5 py-0.2 rounded font-sans font-extrabold uppercase">
+                            Chủ sở hữu
+                          </span>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveAdminEmail(em)}
+                          title={`Xóa ${em} khỏi danh sách Admin`}
+                          className="w-5 h-5 rounded-lg bg-white/80 hover:bg-rose-600 text-slate-400 hover:text-white flex items-center justify-center transition-all ml-1 shadow-2xs border border-purple-200 hover:border-rose-600"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* Input to Add New Admin Email */}
+            <div className="pt-2 border-t border-slate-100">
+              <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                Thêm Email Quản trị viên mới:
+              </label>
+              <div className="flex flex-col sm:flex-row gap-2 max-w-xl">
+                <input
+                  type="email"
+                  value={newAdminEmail}
+                  onChange={(e) => {
+                    setNewAdminEmail(e.target.value);
+                    if (adminEmailError) setAdminEmailError(null);
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleAddAdminEmail();
+                    }
+                  }}
+                  placeholder="nhập email mới (ví dụ: partner@gmail.com)..."
+                  className="flex-1 h-10 px-3.5 text-xs font-mono rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-purple-500 bg-slate-50/50"
+                />
+                <button
+                  type="button"
+                  onClick={handleAddAdminEmail}
+                  className="h-10 px-4 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold transition-all shadow-xs flex items-center justify-center gap-1.5 shrink-0"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>+ Thêm Email Admin</span>
+                </button>
+              </div>
+
+              {adminEmailError && (
+                <div className="mt-2 text-xs text-rose-600 font-semibold flex items-center gap-1.5">
+                  <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                  <span>{adminEmailError}</span>
+                </div>
+              )}
             </div>
           </div>
 
-          <button
-            type="submit"
-            className="h-11 px-8 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs shadow-md transition-all flex items-center gap-2"
-          >
-            <Save className="w-4 h-4" />
-            <span>Lưu tất cả thay đổi</span>
-          </button>
+          {/* Explicit Error / Success Notification directly adjacent to the Save button */}
+          {saveFeedback && (
+            <div
+              className={`p-5 rounded-2xl text-xs font-medium border animate-fadeIn transition-all ${
+                saveFeedback.type === 'success'
+                  ? 'bg-emerald-50/90 border-emerald-300 text-emerald-950'
+                  : 'bg-rose-50/90 border-rose-300 text-rose-950'
+              }`}
+            >
+              <div className="flex items-start gap-3">
+                {saveFeedback.type === 'success' ? (
+                  <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
+                ) : (
+                  <AlertTriangle className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
+                )}
+                <div className="space-y-1.5 flex-1">
+                  <div className="font-bold text-sm tracking-tight">{saveFeedback.message}</div>
+                  {saveFeedback.details && saveFeedback.details.length > 0 && (
+                    <ul className="space-y-1 mt-1 pl-1 list-none font-sans text-xs">
+                      {saveFeedback.details.map((item, idx) => (
+                        <li key={idx} className="flex items-center gap-1.5">
+                          <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${saveFeedback.type === 'success' ? 'bg-emerald-500' : 'bg-rose-500'}`}></span>
+                          <span>{item}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Action Row */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-2">
+            <button
+              type="submit"
+              disabled={savingSettings}
+              className="h-11 px-8 rounded-xl bg-purple-600 hover:bg-purple-700 disabled:bg-purple-300 text-white font-bold text-xs shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer shrink-0"
+            >
+              {savingSettings ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>Đang lưu tất cả thay đổi...</span>
+                </>
+              ) : (
+                <>
+                  <Save className="w-4 h-4" />
+                  <span>Lưu tất cả thay đổi</span>
+                </>
+              )}
+            </button>
+
+            <span className="text-[11px] text-slate-400">
+              * Mọi thay đổi về đơn giá và thông tin tài khoản ngân hàng sẽ có hiệu lực ngay lập tức sau khi lưu.
+            </span>
+          </div>
         </form>
       )}
 

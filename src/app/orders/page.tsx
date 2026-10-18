@@ -29,6 +29,8 @@ function OrdersContent() {
   const [orders, setOrders] = useState<SurveyOrder[]>([]);
   const [activeOrder, setActiveOrder] = useState<SurveyOrder | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [refreshToast, setRefreshToast] = useState<string | null>(null);
 
   // Fetch all orders
   const loadOrders = async () => {
@@ -48,6 +50,19 @@ function OrdersContent() {
       console.error(err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      await loadOrders();
+      setRefreshToast('Đã làm mới danh sách đơn hàng thành công!');
+      setTimeout(() => setRefreshToast(null), 3500);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsRefreshing(false);
     }
   };
 
@@ -107,13 +122,21 @@ function OrdersContent() {
         </div>
 
         <button
-          onClick={loadOrders}
-          className="inline-flex items-center gap-2 h-9 px-3.5 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-600 text-xs font-semibold transition-colors"
+          onClick={handleRefresh}
+          disabled={isRefreshing}
+          className="inline-flex items-center gap-2 h-9 px-3.5 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-600 text-xs font-semibold transition-colors disabled:opacity-50 cursor-pointer shadow-2xs"
         >
-          <RefreshCw className="w-3.5 h-3.5" />
-          <span>Làm mới</span>
+          <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin text-blue-600' : ''}`} />
+          <span>{isRefreshing ? 'Đang cập nhật...' : 'Làm mới'}</span>
         </button>
       </div>
+
+      {refreshToast && (
+        <div className="p-3.5 rounded-2xl bg-blue-50 border border-blue-200 text-blue-800 text-xs font-bold flex items-center gap-2 animate-fadeIn shadow-xs">
+          <CheckCircle2 className="w-4 h-4 text-blue-600 shrink-0" />
+          <span>{refreshToast}</span>
+        </div>
+      )}
 
       {loading ? (
         <div className="p-12 text-center text-xs text-slate-400">Đang tải danh sách đơn hàng...</div>

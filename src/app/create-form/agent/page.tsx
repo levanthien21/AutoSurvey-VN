@@ -19,7 +19,7 @@ import { useAuth } from '@/context/AuthContext';
 
 export default function CreateFormAgentPage() {
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, openAuthModal } = useAuth();
   const [formUrl, setFormUrl] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -178,6 +178,13 @@ export default function CreateFormAgentPage() {
         queue.push(payload);
       }
 
+      if (!user) {
+        openAuthModal('login');
+        setError('Vui lòng đăng nhập hoặc đăng ký tài khoản để bắt đầu chạy đơn. Tài khoản chưa đăng ký sẽ có 0 Credits.');
+        setSubmitting(false);
+        return;
+      }
+
       const res = await fetch('/api/orders', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -322,15 +329,24 @@ export default function CreateFormAgentPage() {
           <div className="flex items-center gap-2">
             <span className="text-slate-500">Số dư hiện tại: </span>
             <strong className="text-slate-900 font-mono font-bold">
-              {user ? user.credits.toLocaleString() : '---'} Credits
+              {user ? (user.role === 'admin' ? '∞ Vô hạn (Admin)' : `${user.credits.toLocaleString()} Credits`) : '0 Credits (Chưa đăng nhập)'}
             </strong>
-            {user && user.credits < targetCount * 200 && (
+            {user && user.role !== 'admin' && user.credits < targetCount * 200 && (
               <a
                 href="/credit"
                 className="text-blue-600 font-bold underline hover:text-blue-700 ml-1"
               >
                 + Nạp thêm
               </a>
+            )}
+            {!user && (
+              <button
+                type="button"
+                onClick={() => openAuthModal('login')}
+                className="text-blue-600 font-bold underline hover:text-blue-700 ml-1"
+              >
+                Đăng nhập
+              </button>
             )}
           </div>
         </div>

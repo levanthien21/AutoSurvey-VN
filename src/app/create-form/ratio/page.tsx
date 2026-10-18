@@ -220,6 +220,13 @@ export default function CreateFormRatioPage() {
         queue.push(responseItem);
       }
 
+      if (!user) {
+        openAuthModal('login');
+        setError('Vui lòng đăng nhập hoặc đăng ký tài khoản để bắt đầu chạy đơn. Tài khoản chưa đăng ký sẽ có 0 Credits.');
+        setSubmitting(false);
+        return;
+      }
+
       // Create order in backend
       const res = await fetch('/api/orders', {
         method: 'POST',
@@ -526,15 +533,24 @@ export default function CreateFormRatioPage() {
               <div className="flex items-center gap-2">
                 <span className="text-slate-500">Số dư hiện tại: </span>
                 <strong className="text-slate-900 font-mono font-bold">
-                  {user ? user.credits.toLocaleString() : '---'} Credits
+                  {user ? (user.role === 'admin' ? '∞ Vô hạn (Admin)' : `${user.credits.toLocaleString()} Credits`) : '0 Credits (Chưa đăng nhập)'}
                 </strong>
-                {user && user.credits < targetCount * 100 && (
+                {user && user.role !== 'admin' && user.credits < targetCount * 100 && (
                   <a
                     href="/credit"
                     className="text-amber-700 font-bold underline hover:text-amber-800 ml-1"
                   >
                     + Nạp thêm
                   </a>
+                )}
+                {!user && (
+                  <button
+                    type="button"
+                    onClick={() => openAuthModal('login')}
+                    className="text-blue-600 font-bold underline hover:text-blue-700 ml-1"
+                  >
+                    Đăng nhập
+                  </button>
                 )}
               </div>
             </div>

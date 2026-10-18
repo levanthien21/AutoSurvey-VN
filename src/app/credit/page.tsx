@@ -18,6 +18,7 @@ import {
   Lock,
   LogIn,
   UserPlus,
+  RefreshCw,
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 
@@ -43,6 +44,8 @@ export default function CreditPage() {
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loadingTx, setLoadingTx] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [refreshToast, setRefreshToast] = useState<string | null>(null);
 
   const packs = [
     { price: 50000, credits: 50000, bonus: '0%', popular: false },
@@ -73,6 +76,19 @@ export default function CreditPage() {
       console.error(err);
     } finally {
       setLoadingTx(false);
+    }
+  };
+
+  const handleRefreshCredit = async () => {
+    setIsRefreshing(true);
+    try {
+      await Promise.all([loadTransactions(), refreshUser()]);
+      setRefreshToast('Đã làm mới số dư ví và lịch sử giao dịch thành công!');
+      setTimeout(() => setRefreshToast(null), 3500);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsRefreshing(false);
     }
   };
 
@@ -196,12 +212,12 @@ export default function CreditPage() {
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
             </div>
             <div className="text-3xl sm:text-4xl font-black mt-1 tracking-tight text-white flex items-baseline gap-1.5 font-mono">
-              {user ? user.credits.toLocaleString() : '---'}
+              {user ? (user.role === 'admin' ? '∞ Vô hạn' : user.credits.toLocaleString()) : '0'}
               <span className="text-sm font-normal text-slate-400">Credits</span>
             </div>
             <div className="text-xs text-slate-300 mt-2.5 flex flex-wrap items-center gap-3">
               <span className="bg-white/10 px-2.5 py-0.5 rounded-lg font-mono text-[11px] border border-white/10">
-                Thành viên: <strong className="text-white">{user ? user.username : 'Khách vãng lai'}</strong>
+                Thành viên: <strong className="text-white">{user ? (user.role === 'admin' ? `${user.username} (Quản trị viên)` : user.username) : 'Chưa đăng ký (0 Credits)'}</strong>
               </span>
               <span>•</span>
               <span className="text-emerald-400 font-bold">1 VNĐ = 1 Credit</span>
@@ -505,13 +521,22 @@ export default function CreditPage() {
           </div>
           {user && (
             <button
-              onClick={loadTransactions}
-              className="text-xs text-blue-600 hover:text-blue-700 font-semibold"
+              onClick={handleRefreshCredit}
+              disabled={isRefreshing}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 hover:bg-slate-50 text-xs text-blue-600 hover:text-blue-700 font-bold transition-all disabled:opacity-50 cursor-pointer shadow-2xs"
             >
-              Tải lại
+              <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin text-blue-600' : ''}`} />
+              <span>{isRefreshing ? 'Đang cập nhật...' : 'Làm mới dữ liệu'}</span>
             </button>
           )}
         </div>
+
+        {refreshToast && (
+          <div className="p-3.5 rounded-2xl bg-blue-50 border border-blue-200 text-blue-800 text-xs font-bold flex items-center gap-2 animate-fadeIn shadow-xs">
+            <CheckCircle2 className="w-4 h-4 text-blue-600 shrink-0" />
+            <span>{refreshToast}</span>
+          </div>
+        )}
 
         {!user ? (
           <div className="p-8 text-center text-xs text-slate-500 bg-slate-50/50 rounded-2xl border border-dashed border-slate-200 flex flex-col items-center justify-center gap-2">

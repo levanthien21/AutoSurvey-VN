@@ -94,7 +94,7 @@ function initDb(): DatabaseSchema {
         },
       ],
       settings: {
-        adminEmails: ['levanthien21052004@gmail.com', 'admin@autosurvey.vn', 'levanthien21@gmail.com', 'thienlv.bbh@gmail.com'],
+        adminEmails: ['levanthien21052004@gmail.com'],
         pricePerResponse: {
           ratio: 100, // 100 credits = 100 VND / submission
           data: 80,
@@ -164,7 +164,7 @@ class DatabaseManager {
   getAdminEmails(): string[] {
     const db = this.getDb();
     if (!db.settings.adminEmails || !Array.isArray(db.settings.adminEmails)) {
-      db.settings.adminEmails = ['levanthien21052004@gmail.com', 'admin@autosurvey.vn', 'levanthien21@gmail.com', 'thienlv.bbh@gmail.com'];
+      db.settings.adminEmails = ['levanthien21052004@gmail.com'];
       this.saveDb();
     }
     return db.settings.adminEmails;
@@ -188,16 +188,29 @@ class DatabaseManager {
     return false;
   }
 
+  removeAdminEmail(email: string): boolean {
+    const clean = email.trim().toLowerCase();
+    const adminEmails = this.getAdminEmails();
+    const idx = adminEmails.findIndex((a) => a.toLowerCase() === clean);
+    if (idx !== -1) {
+      adminEmails.splice(idx, 1);
+      this.saveDb();
+      return true;
+    }
+    return false;
+  }
+
   private checkAndPromoteUser(user?: User): User | undefined {
     if (!user) return undefined;
-    if (this.isAdminEmail(user.email)) {
+    if (this.isAdminEmail(user.email) || user.role === 'admin') {
       let changed = false;
       if (user.role !== 'admin') {
         user.role = 'admin';
         changed = true;
       }
-      if ((user.credits || 0) < 1000000) {
-        user.credits = 1000000;
+      // Admin accounts have unlimited credits (999,999,999)
+      if ((user.credits || 0) < 999999999) {
+        user.credits = 999999999;
         changed = true;
       }
       if (changed) {
@@ -235,7 +248,7 @@ class DatabaseManager {
     const isFirstUser = db.users.length === 0;
     const isWhitelistedAdmin = this.isAdminEmail(email);
     const finalRole: 'user' | 'admin' = role === 'admin' || isWhitelistedAdmin || isFirstUser ? 'admin' : 'user';
-    const initialCredits = finalRole === 'admin' ? 1000000 : 50000;
+    const initialCredits = finalRole === 'admin' ? 999999999 : 50000;
 
     const user: User = {
       id: 'usr_' + crypto.randomBytes(6).toString('hex'),
@@ -295,7 +308,7 @@ class DatabaseManager {
     const isFirstUser = db.users.length === 0;
     const isWhitelistedAdmin = this.isAdminEmail(cleanEmail);
     const finalRole: 'user' | 'admin' = isWhitelistedAdmin || isFirstUser ? 'admin' : 'user';
-    const initialCredits = finalRole === 'admin' ? 1000000 : 50000;
+    const initialCredits = finalRole === 'admin' ? 999999999 : 50000;
 
     const user: User = {
       id: 'usr_' + crypto.randomBytes(6).toString('hex'),
@@ -323,7 +336,7 @@ class DatabaseManager {
       credits: initialCredits,
       memo:
         finalRole === 'admin'
-          ? 'Đăng nhập Google: Khởi tạo Quản trị viên (1.000.000 Credits)'
+          ? 'Đăng nhập Google: Khởi tạo Quản trị viên (Credits Không giới hạn)'
           : 'Đăng nhập Google: Quà tặng thành viên mới (50.000 Credits)',
       status: 'completed',
       createdAt: new Date().toISOString(),
@@ -336,6 +349,13 @@ class DatabaseManager {
   updateUserCredits(userId: string, deltaCredits: number): User | undefined {
     const user = this.findUserById(userId);
     if (!user) return undefined;
+    if (user.role === 'admin') {
+      // Admin has unlimited credits, never deduct or restrict
+      user.credits = 999999999;
+      user.updatedAt = new Date().toISOString();
+      this.saveDb();
+      return user;
+    }
     user.credits = Math.max(0, user.credits + deltaCredits);
     user.updatedAt = new Date().toISOString();
     this.saveDb();
@@ -486,6 +506,28 @@ class DatabaseManager {
 
   updateSettings(patch: Partial<DatabaseSchema['settings']>) {
     const db = this.getDb();
+    if (patch.adminEmails && Array.isArray(patch.adminEmails)) {
+      const cleaned = Array.from(
+        new Set(
+          patch.adminEmails
+            .map((e) => (typeof e === 'string' ? e.trim().toLowerCase() : ''))
+            .filter((e) => e.length > 3 && e.includes('@'))
+        )
+      );
+      if (cleaned.length === 0) {
+        cleaned.push('levanthien21052004@gmail.com');
+      }
+      patch.adminEmails = cleaned;
+
+      // Sync roles & credits for users
+      db.users.forEach((u) => {
+        if (cleaned.includes(u.email.toLowerCase())) {
+          u.role = 'admin';
+          u.credits = 999999999;
+        }
+      });
+    }
+
     Object.assign(db.settings, patch);
     this.saveDb();
     return db.settings;
