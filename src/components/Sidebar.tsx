@@ -39,9 +39,9 @@ export default function Sidebar() {
       {/* Brand Header */}
       <div className="p-5 border-b border-slate-200/80 bg-white flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-11 h-11 rounded-2xl bg-white p-1 border border-slate-200 shadow-xs flex items-center justify-center shrink-0 group hover:scale-105 transition-transform">
+          <div className="w-11 h-11 rounded-2xl bg-white p-1 border border-slate-200 shadow-xs flex items-center justify-center shrink-0 group hover:scale-105 transition-transform overflow-hidden">
             <img
-              src="/logo.svg"
+              src="/logo.png"
               alt="AutoSurvey VN"
               className="w-full h-full object-contain"
             />

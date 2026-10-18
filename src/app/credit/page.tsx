@@ -202,8 +202,8 @@ export default function CreditPage() {
         <div className="absolute bottom-0 left-1/3 w-60 h-60 bg-orange-500/10 rounded-full blur-2xl pointer-events-none"></div>
 
         <div className="relative z-10 flex items-start gap-4">
-          <div className="w-14 h-14 rounded-2xl bg-white p-1.5 shadow-md border border-slate-700 flex items-center justify-center shrink-0">
-            <img src="/logo.svg" alt="AutoSurvey VN" className="w-full h-full object-contain" />
+          <div className="w-14 h-14 rounded-2xl bg-white p-1.5 shadow-md border border-slate-700 flex items-center justify-center shrink-0 overflow-hidden">
+            <img src="/logo.png" alt="AutoSurvey VN" className="w-full h-full object-contain" />
           </div>
 
           <div>

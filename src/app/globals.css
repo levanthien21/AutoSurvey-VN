@@ -92,8 +92,21 @@ body {
   animation: slideRight 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
+@keyframes mascotFloat {
+  0%, 100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-8px) rotate(1.5deg);
+  }
+}
+
 .animate-float {
   animation: floatSlow 4s ease-in-out infinite;
+}
+
+.animate-mascot-float {
+  animation: mascotFloat 3.2s ease-in-out infinite;
 }
 
 .animate-pulse-glow {
