@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import {
   Calculator,
@@ -21,10 +22,26 @@ interface CostEstimatorModalProps {
 
 export default function CostEstimatorModal({ isOpen, onClose }: CostEstimatorModalProps) {
   const router = useRouter();
+  const [mounted, setMounted] = useState(false);
   const [sampleCount, setSampleCount] = useState<number>(250);
   const [engineMode, setEngineMode] = useState<'model' | 'ratio' | 'data' | 'agent'>('model');
 
-  if (!isOpen) return null;
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Prevent background scrolling when modal is active
+  useEffect(() => {
+    if (isOpen) {
+      const originalOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      return () => {
+        document.body.style.overflow = originalOverflow;
+      };
+    }
+  }, [isOpen]);
+
+  if (!isOpen || !mounted) return null;
 
   const priceRates = {
     data: 180,
@@ -42,8 +59,8 @@ export default function CostEstimatorModal({ isOpen, onClose }: CostEstimatorMod
     router.push(`/create-form/${engineMode}`);
   };
 
-  return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/70 backdrop-blur-sm p-3 sm:p-5 flex items-start sm:items-center justify-center animate-fadeIn">
+  const modalContent = (
+    <div className="fixed inset-0 z-[99999] overflow-y-auto bg-slate-950/75 backdrop-blur-md p-3 sm:p-5 flex items-start sm:items-center justify-center animate-fadeIn">
       {/* Backdrop click area */}
       <div
         className="fixed inset-0"
@@ -254,4 +271,6 @@ export default function CostEstimatorModal({ isOpen, onClose }: CostEstimatorMod
       </div>
     </div>
   );
+
+  return createPortal(modalContent, document.body);
 }
