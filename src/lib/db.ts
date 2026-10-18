@@ -184,7 +184,17 @@ class DatabaseManager {
 
   private saveDb() {
     if (!this.cache) return;
-    fs.writeFileSync(DB_FILE, JSON.stringify(this.cache, null, 2), 'utf8');
+    try {
+      fs.writeFileSync(DB_FILE, JSON.stringify(this.cache, null, 2), 'utf8');
+    } catch (err) {
+      // In serverless environments like Vercel, write to /tmp
+      try {
+        const tmpFile = path.join('/tmp', 'database.json');
+        fs.writeFileSync(tmpFile, JSON.stringify(this.cache, null, 2), 'utf8');
+      } catch (tmpErr) {
+        // In-memory cache continues serving read/write operations seamlessly
+      }
+    }
   }
 
   // --- Users ---

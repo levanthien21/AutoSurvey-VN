@@ -18,9 +18,9 @@
       "passwordHash": "0ab58d7e972107ddd485bcd4bcdc5bc73752b83b90a07e1da5da49d4cd5f57227ea021e7940763d33740e9207cd5e778b08606f9dcb817a10c01841a473e7b59",
       "salt": "0a9d21e0ae160db235c3f5c350427023",
       "role": "user",
-      "credits": 408250,
+      "credits": 407750,
       "createdAt": "2026-10-18T02:26:13.772Z",
-      "updatedAt": "2026-10-18T02:31:42.213Z"
+      "updatedAt": "2026-10-18T04:34:21.079Z"
     },
     {
       "id": "usr_6001cdbb01f1",
@@ -46,6 +46,58 @@
     }
   ],
   "transactions": [
+    {
+      "id": "tx_7d985af5f116",
+      "userId": "usr_demo",
+      "username": "demo",
+      "type": "deposit",
+      "amount": 100000,
+      "credits": 110000,
+      "memo": "NAP DEMO",
+      "bankCode": "VCB",
+      "accountNumber": "9349850292",
+      "status": "pending",
+      "createdAt": "2026-10-18T04:57:08.343Z"
+    },
+    {
+      "id": "tx_d0f0aa9f945f",
+      "userId": "usr_demo",
+      "username": "demo",
+      "type": "deposit",
+      "amount": 100000,
+      "credits": 110000,
+      "memo": "NAP DEMO",
+      "bankCode": "VCB",
+      "accountNumber": "9349850292",
+      "status": "pending",
+      "createdAt": "2026-10-18T04:51:44.027Z"
+    },
+    {
+      "id": "tx_461b5024a45c",
+      "userId": "usr_demo",
+      "username": "demo",
+      "type": "deposit",
+      "amount": 100000,
+      "credits": 110000,
+      "memo": "NAP DEMO",
+      "bankCode": "VCB",
+      "accountNumber": "9349850292",
+      "status": "pending",
+      "createdAt": "2026-10-18T04:37:45.229Z"
+    },
+    {
+      "id": "tx_5a8675c7bbbe",
+      "userId": "usr_demo",
+      "username": "demo",
+      "type": "order_charge",
+      "amount": 500,
+      "credits": -500,
+      "memo": "Thanh toán khảo sát: Test Chien Dich Mau (5 phản hồi)",
+      "bankCode": "VCB",
+      "accountNumber": "9349850292",
+      "status": "completed",
+      "createdAt": "2026-10-18T04:34:21.081Z"
+    },
     {
       "id": "tx_ba32513609fd",
       "userId": "usr_demo",
