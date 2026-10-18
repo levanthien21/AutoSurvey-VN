@@ -317,16 +317,23 @@ export default function Sidebar() {
             <p className="text-[10px] text-slate-600 leading-relaxed">
               Tạo tài khoản để nhận ngay <strong className="text-orange-600 font-bold">50.000 Credits</strong> chạy thử nghiệm!
             </p>
-            <button
-              onClick={() => {
-                if (isMobile) closeMobileDrawer();
-                openAuthModal('register');
-              }}
-              className="w-full py-2 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white rounded-xl text-xs font-extrabold transition-all shadow-sm flex items-center justify-center gap-1.5"
-            >
-              <LogIn className="w-3.5 h-3.5" />
-              <span>Đăng ký nhận 50K Free</span>
-            </button>
+            <div className="flex gap-2 pt-1">
+              <Link
+                href="/login"
+                onClick={isMobile ? closeMobileDrawer : undefined}
+                className="flex-1 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-all shadow-sm flex items-center justify-center gap-1.5 text-center"
+              >
+                <LogIn className="w-3.5 h-3.5" />
+                <span>Đăng nhập</span>
+              </Link>
+              <Link
+                href="/login?tab=register"
+                onClick={isMobile ? closeMobileDrawer : undefined}
+                className="flex-1 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1 text-center"
+              >
+                <span>Đăng ký (+50K)</span>
+              </Link>
+            </div>
           </div>
         )}
 

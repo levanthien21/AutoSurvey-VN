@@ -18,6 +18,7 @@ import {
   Globe,
   UserCheck,
   Zap,
+  LogIn,
 } from 'lucide-react';
 import {
   signInWithGoogleFirebase,
@@ -337,46 +338,39 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     >
       {children}
 
-      {/* Responsive & World-Class SaaS Auth Modal */}
+      {/* Pixel-Perfect Clean Auth Modal matching uploaded design */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-slate-950/75 backdrop-blur-xl overflow-y-auto animate-fadeIn">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-slate-950/60 backdrop-blur-md overflow-y-auto animate-fadeIn">
           <div
-            style={{ maxWidth: '440px' }}
-            className="w-full my-auto bg-white rounded-3xl sm:rounded-[32px] shadow-[0_25px_80px_-15px_rgba(15,23,42,0.4),0_0_0_1px_rgba(255,255,255,0.9)] border border-slate-200/90 overflow-hidden relative transition-all max-h-[92vh] flex flex-col"
+            style={{ maxWidth: '450px' }}
+            className="w-full my-auto bg-white rounded-3xl sm:rounded-[32px] shadow-2xl border border-slate-100 overflow-hidden relative transition-all max-h-[92vh] flex flex-col"
           >
-            {/* Top Accent Gradient Bar */}
-            <div className="h-1.5 w-full bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 shrink-0" />
-
             {/* Close Button */}
             <button
               onClick={closeAuthModal}
-              className="absolute top-4 right-4 w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-900 flex items-center justify-center transition-colors z-20 active:scale-95"
+              className="absolute top-5 right-5 w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-400 hover:text-slate-800 flex items-center justify-center transition-colors z-20 active:scale-95"
               title="Đóng"
             >
               <X className="w-4 h-4" />
             </button>
 
             {/* Modal Body Container */}
-            <div className="overflow-y-auto p-5 sm:p-7 flex-1">
+            <div className="overflow-y-auto p-6 sm:p-8 flex-1">
               {/* Google Account Chooser View */}
               {isGoogleChooserOpen ? (
-                <div className="space-y-4">
+                <div className="space-y-4 text-left">
                   <div className="flex items-center gap-3 pb-3 border-b border-slate-100">
                     <div className="w-10 h-10 rounded-2xl bg-slate-50 border border-slate-200 p-2 flex items-center justify-center shadow-xs shrink-0">
                       <GoogleIcon className="w-6 h-6" />
                     </div>
                     <div>
                       <h3 className="text-sm font-extrabold text-slate-900">Đăng nhập tài khoản Google</h3>
-                      <p className="text-[11px] text-slate-500">Chọn tài khoản để đăng nhập nhanh vào AutoSurvey VN</p>
+                      <p className="text-[11px] text-slate-500">Chọn tài khoản để đăng nhập nhanh</p>
                     </div>
                   </div>
 
                   <div className="space-y-2.5">
-                    <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-                      Tài khoản Google đề xuất:
-                    </div>
-
-                    {/* Preset 1: User's Actual Email */}
+                    {/* Preset 1: Admin Email */}
                     <button
                       type="button"
                       disabled={submitting}
@@ -387,17 +381,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                           avatar: 'https://lh3.googleusercontent.com/a/default-user=s96-c',
                         })
                       }
-                      className="w-full p-3.5 rounded-2xl border-2 border-purple-200/90 bg-gradient-to-r from-purple-50/80 to-indigo-50/50 hover:border-purple-400 text-left transition-all flex items-center gap-3 group shadow-xs active:scale-[0.99]"
+                      className="w-full p-3.5 rounded-2xl border-2 border-purple-200 bg-purple-50/60 hover:border-purple-400 text-left transition-all flex items-center gap-3 group active:scale-[0.99]"
                     >
-                      <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-purple-600 to-indigo-600 text-white font-black text-xs flex items-center justify-center shrink-0 shadow-sm ring-2 ring-purple-200">
+                      <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-purple-600 to-indigo-600 text-white font-black text-xs flex items-center justify-center shrink-0 shadow-sm">
                         LT
                       </div>
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-1.5">
-                          <span className="font-extrabold text-xs text-slate-900 group-hover:text-purple-900">
-                            Lê Văn Thiện
-                          </span>
-                          <span className="text-[9px] font-extrabold px-2 py-0.5 rounded-full bg-purple-600 text-white shadow-2xs">
+                          <span className="font-extrabold text-xs text-slate-900">Lê Văn Thiện</span>
+                          <span className="text-[9px] font-black px-1.5 py-0.2 rounded-full bg-purple-600 text-white">
                             Quản trị viên
                           </span>
                         </div>
@@ -415,7 +407,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                       onClick={() =>
                         loginWithGoogle({
                           email: 'levanthien21@gmail.com',
-                          name: 'Lê Văn Thiện 21',
+                          name: 'Lê Văn Thiện',
                         })
                       }
                       className="w-full p-3 rounded-2xl border border-slate-200 bg-slate-50 hover:bg-blue-50/60 hover:border-blue-300 text-left transition-all flex items-center gap-3 group active:scale-[0.99]"
@@ -429,145 +421,55 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                       </div>
                       <ChevronRight className="w-4 h-4 text-slate-400 group-hover:translate-x-1 transition-transform" />
                     </button>
-
-                    {/* Preset 3: Root Admin */}
-                    <button
-                      type="button"
-                      disabled={submitting}
-                      onClick={() =>
-                        loginWithGoogle({
-                          email: 'admin@autosurvey.vn',
-                          name: 'AutoSurvey Admin',
-                        })
-                      }
-                      className="w-full p-3 rounded-2xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-left transition-all flex items-center gap-3 group active:scale-[0.99]"
-                    >
-                      <div className="w-9 h-9 rounded-full bg-slate-900 text-white font-bold text-xs flex items-center justify-center shrink-0">
-                        AS
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="text-xs font-bold text-slate-800">admin@autosurvey.vn</div>
-                        <div className="text-[10px] text-slate-400">Tài khoản Quản trị hệ thống</div>
-                      </div>
-                      <ChevronRight className="w-4 h-4 text-slate-400 group-hover:translate-x-1 transition-transform" />
-                    </button>
                   </div>
 
                   {/* Custom Gmail Input */}
-                  <div className="pt-3 border-t border-slate-100">
-                    <label className="block text-[11px] font-bold text-slate-700 mb-1.5">
-                      Hoặc nhập địa chỉ Gmail khác của bạn:
-                    </label>
-                    <div className="flex gap-2">
-                      <input
-                        type="email"
-                        placeholder="ten_ban@gmail.com"
-                        value={customGoogleEmail}
-                        onChange={(e) => setCustomGoogleEmail(e.target.value)}
-                        className="flex-1 h-11 px-3.5 text-xs rounded-xl border border-slate-200 bg-slate-50/70 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 font-medium"
-                      />
+                  <div className="pt-2">
+                    <input
+                      type="email"
+                      placeholder="Hoặc nhập Gmail khác của bạn..."
+                      value={customGoogleEmail}
+                      onChange={(e) => setCustomGoogleEmail(e.target.value)}
+                      className="w-full h-11 px-3.5 text-xs rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 mb-2 font-medium"
+                    />
+                    {customGoogleEmail.includes('@') && (
                       <button
                         type="button"
-                        disabled={!customGoogleEmail.includes('@') || submitting}
+                        disabled={submitting}
                         onClick={() =>
                           loginWithGoogle({
                             email: customGoogleEmail,
                             name: customGoogleEmail.split('@')[0],
                           })
                         }
-                        className="h-11 px-5 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-xs font-bold transition-all shadow-md shadow-blue-500/20 shrink-0 flex items-center gap-1.5"
+                        className="w-full h-10 rounded-xl bg-blue-600 text-white text-xs font-bold transition-all shadow-md shadow-blue-500/20"
                       >
-                        {submitting ? 'Đang vào...' : 'Đăng nhập'}
+                        Xác nhận đăng nhập với {customGoogleEmail}
                       </button>
-                    </div>
+                    )}
                   </div>
 
                   <button
                     type="button"
                     onClick={() => setIsGoogleChooserOpen(false)}
-                    className="w-full py-2.5 text-center text-xs font-bold text-slate-500 hover:text-slate-900 transition-colors"
+                    className="w-full py-2 text-center text-xs font-bold text-slate-500 hover:text-slate-900 transition-colors"
                   >
-                    &larr; Quay lại đăng nhập tài khoản / mật khẩu
+                    &larr; Quay lại form đăng nhập
                   </button>
                 </div>
               ) : (
                 /* Standard Auth Modal Content */
-                <div>
-                  {/* Brand Header */}
-                  <div className="text-center mb-5">
-                    <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-purple-600 p-[1.5px] shadow-lg shadow-blue-500/25 mx-auto flex items-center justify-center mb-2.5">
-                      <div className="w-full h-full bg-slate-950 rounded-[14px] flex items-center justify-center text-white font-black text-sm tracking-widest">
-                        AS<span className="text-orange-400">VN</span>
-                      </div>
-                    </div>
-
-                    <h2 className="text-xl font-black text-slate-900 tracking-tight flex items-center justify-center gap-1.5">
-                      AutoSurvey <span className="text-orange-500">VN</span>
-                      <span className="text-[10px] uppercase font-black px-1.5 py-0.2 rounded bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-2xs">
-                        PRO
-                      </span>
+                <div className="text-left">
+                  {/* Title & Subtitle */}
+                  <div className="mb-6">
+                    <h2 className="text-2xl sm:text-[28px] font-black text-slate-900 tracking-tight">
+                      {modalTab === 'login' ? 'Đăng nhập' : 'Đăng ký tài khoản'}
                     </h2>
-                    <p className="text-xs text-slate-500 mt-1 font-medium">
+                    <p className="text-xs sm:text-sm text-slate-400 mt-1 font-normal">
                       {modalTab === 'login'
-                        ? 'Đăng nhập để khởi tạo chiến dịch & quản trị số dư'
-                        : 'Đăng ký nhận ngay 50.000 Credits điền khảo sát miễn phí'}
+                        ? 'Vui lòng đăng nhập để tiếp tục sử dụng dịch vụ'
+                        : 'Vui lòng điền thông tin để tạo tài khoản mới'}
                     </p>
-                  </div>
-
-                  {/* Primary Google 1-Click Button */}
-                  <button
-                    type="button"
-                    onClick={handleGoogleClick}
-                    disabled={submitting}
-                    className="w-full h-12 px-4 bg-white hover:bg-slate-50 active:bg-slate-100 border border-slate-200 hover:border-slate-300 rounded-2xl font-extrabold text-slate-800 text-xs shadow-xs hover:shadow-sm active:scale-[0.99] transition-all flex items-center justify-center gap-3 relative group"
-                  >
-                    <GoogleIcon className="w-5 h-5 shrink-0" />
-                    <span>Tiếp tục với tài khoản Google</span>
-                    <span className="ml-auto text-[10px] font-black text-blue-700 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-full">
-                      1 Click
-                    </span>
-                  </button>
-
-                  {/* Responsive Divider */}
-                  <div className="relative flex items-center justify-center my-4.5">
-                    <div className="border-t border-slate-200/90 w-full" />
-                    <span className="bg-white px-3 text-[11px] font-bold text-slate-400 uppercase tracking-wider absolute">
-                      hoặc qua tài khoản
-                    </span>
-                  </div>
-
-                  {/* High Contrast Segmented Tab Switcher */}
-                  <div className="grid grid-cols-2 p-1 bg-slate-100/90 rounded-2xl border border-slate-200/70 mb-4">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setModalTab('login');
-                        setFormError(null);
-                        setNotRegisteredPrompt(false);
-                      }}
-                      className={`py-2 text-xs font-bold rounded-xl transition-all ${
-                        modalTab === 'login'
-                          ? 'bg-white text-blue-700 shadow-sm font-extrabold'
-                          : 'text-slate-500 hover:text-slate-900'
-                      }`}
-                    >
-                      Đăng nhập
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setModalTab('register');
-                        setFormError(null);
-                        setNotRegisteredPrompt(false);
-                      }}
-                      className={`py-2 text-xs font-bold rounded-xl transition-all ${
-                        modalTab === 'register'
-                          ? 'bg-white text-blue-700 shadow-sm font-extrabold'
-                          : 'text-slate-500 hover:text-slate-900'
-                      }`}
-                    >
-                      Đăng ký mới <span className="text-[10px] text-emerald-600 font-black">(+50K)</span>
-                    </button>
                   </div>
 
                   {/* Smart Not Registered Helper Card */}
@@ -575,7 +477,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                     <div className="mb-4 p-3.5 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 text-xs space-y-2 animate-fadeIn">
                       <div className="flex items-center gap-2 font-bold">
                         <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
-                        <span>Tài khoản này chưa tồn tại trên hệ thống!</span>
+                        <span>Tài khoản này chưa tồn tại!</span>
                       </div>
                       <p className="text-[11px] text-amber-800 leading-relaxed">
                         Bạn chưa đăng ký tài khoản cho <strong>{username}</strong>. Hãy bấm nút dưới đây để tạo tài khoản mới ngay (nhận 50.000 Credits)!
@@ -601,146 +503,152 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
                   {/* Notifications */}
                   {formError && !notRegisteredPrompt && (
-                    <div className="mb-3.5 p-3 rounded-2xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center gap-2 font-medium animate-fadeIn">
+                    <div className="mb-3.5 p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center gap-2 font-medium animate-fadeIn">
                       <AlertCircle className="w-4 h-4 shrink-0 text-rose-500" />
                       <span>{formError}</span>
                     </div>
                   )}
 
                   {formSuccess && (
-                    <div className="mb-3.5 p-3 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex items-center gap-2 font-medium animate-fadeIn">
+                    <div className="mb-3.5 p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex items-center gap-2 font-medium animate-fadeIn">
                       <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-600" />
                       <span>{formSuccess}</span>
                     </div>
                   )}
 
-                  {/* Input Form */}
-                  <form onSubmit={handleModalSubmit} className="space-y-3">
-                    <div>
-                      <label className="block text-[11px] font-bold text-slate-700 mb-1">
-                        {modalTab === 'login' ? 'Tên đăng nhập hoặc Email' : 'Tên đăng nhập mới'}
-                      </label>
-                      <div className="relative">
-                        <User className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
+                  {/* Main Form Inputs */}
+                  <form onSubmit={handleModalSubmit} className="space-y-4">
+                    {/* Register Name */}
+                    {modalTab === 'register' && (
+                      <div className="relative rounded-xl border border-slate-200 bg-white hover:border-slate-300 focus-within:border-blue-600 focus-within:ring-4 focus-within:ring-blue-500/10 transition-all">
+                        <User className="w-5 h-5 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                         <input
                           type="text"
                           required
-                          placeholder={modalTab === 'login' ? 'Nhập username hoặc email...' : 'ví dụ: thienlv'}
+                          placeholder="Họ và tên hoặc Tên hiển thị"
                           value={username}
                           onChange={(e) => setUsername(e.target.value)}
-                          className="w-full h-11 pl-10 pr-3 text-xs font-medium rounded-xl border border-slate-200 bg-slate-50/50 hover:bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition-all placeholder:text-slate-400"
+                          className="w-full h-12 pl-11 pr-4 text-sm font-medium text-slate-900 placeholder:text-slate-400 bg-transparent focus:outline-none"
                         />
-                      </div>
-                    </div>
-
-                    {modalTab === 'register' && (
-                      <div>
-                        <div className="flex items-center justify-between mb-1">
-                          <label className="block text-[11px] font-bold text-slate-700">Email xác thực</label>
-                          {isEmailAdminWhitelisted(email) ? (
-                            <span className="text-[10px] text-purple-700 font-extrabold bg-purple-100 border border-purple-200 px-2 py-0.2 rounded-full">
-                              🛡️ Quản trị viên (Admin)
-                            </span>
-                          ) : (
-                            <span className="text-[10px] text-slate-400 font-medium">Bảo mật tài khoản</span>
-                          )}
-                        </div>
-                        <div className="relative">
-                          <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
-                          <input
-                            type="email"
-                            required
-                            placeholder="ví dụ: thienlv.bbh@gmail.com"
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            className={`w-full h-11 pl-10 pr-3 text-xs font-medium rounded-xl border ${
-                              isEmailAdminWhitelisted(email)
-                                ? 'border-purple-300 bg-purple-50/40 ring-1 ring-purple-300'
-                                : 'border-slate-200 bg-slate-50/50'
-                            } hover:bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition-all placeholder:text-slate-400`}
-                          />
-                        </div>
-                        {isEmailAdminWhitelisted(email) && (
-                          <p className="text-[10px] text-purple-700 font-bold mt-1">
-                            ✨ Email hợp lệ: Hệ thống sẽ tự động cấp quyền Quản trị viên & 1.000.000 Credits!
-                          </p>
-                        )}
                       </div>
                     )}
 
-                    <div>
-                      <div className="flex items-center justify-between mb-1">
-                        <label className="block text-[11px] font-bold text-slate-700">Mật khẩu</label>
-                        {modalTab === 'register' && (
-                          <span className="text-[10px] text-slate-400">Tối thiểu 6 ký tự</span>
-                        )}
-                      </div>
-                      <div className="relative">
-                        <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
+                    {/* Email / Username */}
+                    <div className="relative rounded-xl border border-slate-200 bg-white hover:border-slate-300 focus-within:border-blue-600 focus-within:ring-4 focus-within:ring-blue-500/10 transition-all">
+                      <Mail className="w-5 h-5 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                      <input
+                        type={modalTab === 'register' ? 'email' : 'text'}
+                        required
+                        placeholder={modalTab === 'login' ? 'Email hoặc số điện thoại' : 'Email của bạn'}
+                        value={modalTab === 'register' ? email : username}
+                        onChange={(e) => {
+                          if (modalTab === 'register') {
+                            setEmail(e.target.value);
+                          } else {
+                            setUsername(e.target.value);
+                          }
+                        }}
+                        className="w-full h-12 pl-11 pr-4 text-sm font-medium text-slate-900 placeholder:text-slate-400 bg-transparent focus:outline-none"
+                      />
+                    </div>
+
+                    {/* Password */}
+                    <div className="relative rounded-xl border border-slate-200 bg-white hover:border-slate-300 focus-within:border-blue-600 focus-within:ring-4 focus-within:ring-blue-500/10 transition-all">
+                      <Lock className="w-5 h-5 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                      <input
+                        type={showPassword ? 'text' : 'password'}
+                        required
+                        placeholder="Mật khẩu"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        className="w-full h-12 pl-11 pr-11 text-sm font-medium text-slate-900 placeholder:text-slate-400 bg-transparent focus:outline-none"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors p-1"
+                        title={showPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
+                      >
+                        {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                      </button>
+                    </div>
+
+                    {/* Confirm Password (Register Only) */}
+                    {modalTab === 'register' && (
+                      <div className="relative rounded-xl border border-slate-200 bg-white hover:border-slate-300 focus-within:border-blue-600 focus-within:ring-4 focus-within:ring-blue-500/10 transition-all">
+                        <Lock className="w-5 h-5 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                         <input
                           type={showPassword ? 'text' : 'password'}
                           required
-                          placeholder="••••••••"
-                          value={password}
-                          onChange={(e) => setPassword(e.target.value)}
-                          className="w-full h-11 pl-10 pr-10 text-xs font-medium rounded-xl border border-slate-200 bg-slate-50/50 hover:bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition-all placeholder:text-slate-400"
+                          placeholder="Xác nhận mật khẩu"
+                          value={confirmPassword}
+                          onChange={(e) => setConfirmPassword(e.target.value)}
+                          className="w-full h-12 pl-11 pr-4 text-sm font-medium text-slate-900 placeholder:text-slate-400 bg-transparent focus:outline-none"
                         />
-                        <button
-                          type="button"
-                          onClick={() => setShowPassword(!showPassword)}
-                          className="absolute right-3.5 top-3.5 text-slate-400 hover:text-slate-700 transition-colors p-0.5"
-                          title={showPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
-                        >
-                          {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                        </button>
-                      </div>
-                    </div>
-
-                    {modalTab === 'register' && (
-                      <div>
-                        <label className="block text-[11px] font-bold text-slate-700 mb-1">Xác nhận lại mật khẩu</label>
-                        <div className="relative">
-                          <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
-                          <input
-                            type={showPassword ? 'text' : 'password'}
-                            required
-                            placeholder="Nhập lại mật khẩu giống bên trên"
-                            value={confirmPassword}
-                            onChange={(e) => setConfirmPassword(e.target.value)}
-                            className="w-full h-11 pl-10 pr-3 text-xs font-medium rounded-xl border border-slate-200 bg-slate-50/50 hover:bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition-all placeholder:text-slate-400"
-                          />
-                          {confirmPassword && password === confirmPassword && (
-                            <Check className="w-4 h-4 text-emerald-600 absolute right-3.5 top-3.5" />
-                          )}
-                        </div>
                       </div>
                     )}
 
+                    {/* Remember me & Forgot Password */}
+                    {modalTab === 'login' && (
+                      <div className="flex items-center justify-between text-xs sm:text-sm pt-0.5">
+                        <label className="flex items-center gap-2 text-slate-600 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            defaultChecked
+                            className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                          />
+                          <span>Ghi nhớ đăng nhập</span>
+                        </label>
+
+                        <a
+                          href="/login"
+                          onClick={() => closeAuthModal()}
+                          className="text-blue-600 hover:text-blue-700 font-medium hover:underline transition-colors"
+                        >
+                          Quên mật khẩu?
+                        </a>
+                      </div>
+                    )}
+
+                    {/* Primary Button */}
                     <button
                       type="submit"
                       disabled={submitting}
-                      className="w-full h-12 mt-1.5 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-700 hover:to-indigo-700 disabled:opacity-60 text-white text-xs font-extrabold rounded-2xl transition-all shadow-md shadow-blue-500/25 flex items-center justify-center gap-2 active:scale-[0.98]"
+                      className="w-full h-12 rounded-xl bg-blue-600 hover:bg-blue-700 active:bg-blue-800 disabled:opacity-60 text-white font-semibold text-sm sm:text-base flex items-center justify-center gap-2 shadow-md shadow-blue-500/20 active:scale-[0.99] transition-all mt-1"
                     >
                       {submitting ? (
                         <span>Đang xử lý...</span>
                       ) : (
                         <>
-                          <span>
-                            {modalTab === 'login'
-                              ? 'Đăng nhập vào hệ thống'
-                              : isEmailAdminWhitelisted(email)
-                              ? 'Kích hoạt tài khoản Quản trị viên'
-                              : 'Hoàn tất đăng ký & Nhận 50.000 Credits'}
-                          </span>
-                          <ArrowRight className="w-4 h-4" />
+                          <LogIn className="w-5 h-5" />
+                          <span>{modalTab === 'login' ? 'Đăng nhập' : 'Đăng ký tài khoản'}</span>
                         </>
                       )}
                     </button>
 
-                    {/* Footer Switcher */}
-                    <div className="pt-2 text-center">
+                    {/* Divider: "Hoặc" */}
+                    <div className="relative flex items-center justify-center my-4">
+                      <div className="border-t border-slate-200 w-full" />
+                      <span className="bg-white px-3 text-xs text-slate-400 font-normal absolute">
+                        Hoặc
+                      </span>
+                    </div>
+
+                    {/* Google Login Button */}
+                    <button
+                      type="button"
+                      disabled={submitting}
+                      onClick={handleGoogleClick}
+                      className="w-full h-12 rounded-xl bg-white hover:bg-slate-50 active:bg-slate-100 border border-slate-200 flex items-center justify-center gap-3 text-sm font-medium text-slate-700 shadow-xs transition-all active:scale-[0.99]"
+                    >
+                      <GoogleIcon className="w-5 h-5 shrink-0" />
+                      <span>{modalTab === 'login' ? 'Đăng nhập bằng Google' : 'Đăng ký nhanh bằng Google'}</span>
+                    </button>
+
+                    {/* Switcher */}
+                    <div className="pt-2 text-center text-xs sm:text-sm text-slate-500">
                       {modalTab === 'login' ? (
-                        <p className="text-xs text-slate-500">
+                        <p>
                           Chưa có tài khoản?{' '}
                           <button
                             type="button"
@@ -749,13 +657,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                               setFormError(null);
                               setNotRegisteredPrompt(false);
                             }}
-                            className="font-extrabold text-blue-600 hover:underline"
+                            className="text-blue-600 font-semibold hover:underline"
                           >
-                            Đăng ký nhận ngay 50.000đ &rarr;
+                            Đăng ký ngay
                           </button>
                         </p>
                       ) : (
-                        <p className="text-xs text-slate-500">
+                        <p>
                           Đã có tài khoản?{' '}
                           <button
                             type="button"
@@ -764,19 +672,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                               setFormError(null);
                               setNotRegisteredPrompt(false);
                             }}
-                            className="font-extrabold text-blue-600 hover:underline"
+                            className="text-blue-600 font-semibold hover:underline"
                           >
-                            Đăng nhập ngay &rarr;
+                            Đăng nhập ngay
                           </button>
                         </p>
                       )}
-                    </div>
-
-                    <div className="pt-2 text-center">
-                      <div className="text-[10px] text-slate-400 flex items-center justify-center gap-1 font-medium">
-                        <ShieldCheck className="w-3.5 h-3.5 text-blue-500 shrink-0" />
-                        <span>Bảo mật 256-bit SSL &bull; Chuẩn Responsive Mọi Thiết Bị</span>
-                      </div>
                     </div>
                   </form>
                 </div>

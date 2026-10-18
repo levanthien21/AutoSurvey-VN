@@ -95,13 +95,15 @@ export default function MobileBottomNav() {
           </Link>
         )
       ) : (
-        <button
-          onClick={() => openAuthModal('login')}
-          className="flex flex-col items-center justify-center gap-1 flex-1 py-1 text-slate-400 hover:text-blue-600 transition-all"
+        <Link
+          href="/login"
+          className={`flex flex-col items-center justify-center gap-1 flex-1 py-1 transition-all ${
+            pathname === '/login' ? 'text-blue-600 font-extrabold' : 'text-slate-400 hover:text-blue-600'
+          }`}
         >
           <UserIcon className="w-5 h-5" />
           <span className="text-[10px]">Đăng nhập</span>
-        </button>
+        </Link>
       )}
     </nav>
   );

@@ -16,6 +16,8 @@ export const metadata: Metadata = {
   },
 };
 
+import AppLayoutShell from '@/components/AppLayoutShell';
+
 export default function RootLayout({
   children,
 }: {
@@ -68,17 +70,12 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body className="flex min-h-screen bg-slate-50 text-slate-800 antialiased selection:bg-blue-600 selection:text-white">
+      <body className="min-h-screen bg-slate-50 text-slate-800 antialiased selection:bg-blue-600 selection:text-white overflow-x-hidden">
         <AuthProvider>
           <MobileNavProvider>
-            <Sidebar />
-            <div className="flex-1 flex flex-col min-w-0">
-              <Navbar />
-              <main className="flex-1 p-3.5 sm:p-6 lg:p-8 pb-24 lg:pb-8 overflow-y-auto min-w-0">
-                {children}
-              </main>
-              <MobileBottomNav />
-            </div>
+            <AppLayoutShell>
+              {children}
+            </AppLayoutShell>
           </MobileNavProvider>
         </AuthProvider>
       </body>

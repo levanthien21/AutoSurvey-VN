@@ -136,21 +136,21 @@ export default function Navbar() {
           </>
         ) : (
           <div className="flex items-center gap-2 pl-2 border-l border-slate-200">
-            <button
-              onClick={() => openAuthModal('login')}
+            <Link
+              href="/login"
               className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-700 hover:text-blue-600 px-3 py-2 rounded-xl hover:bg-slate-100 transition-colors"
             >
               <LogIn className="w-3.5 h-3.5" />
               <span>Đăng nhập</span>
-            </button>
+            </Link>
 
-            <button
-              onClick={() => openAuthModal('register')}
-              className="inline-flex items-center gap-1.5 text-xs font-extrabold text-white bg-slate-900 hover:bg-slate-800 px-3.5 py-2 rounded-xl transition-all shadow-md shadow-slate-900/10"
+            <Link
+              href="/login?tab=register"
+              className="inline-flex items-center gap-1.5 text-xs font-extrabold text-white bg-blue-600 hover:bg-blue-700 px-3.5 py-2 rounded-xl transition-all shadow-md shadow-blue-500/20"
             >
-              <UserPlus className="w-3.5 h-3.5 text-orange-400" />
-              <span>Đăng ký (+50K)</span>
-            </button>
+              <UserPlus className="w-3.5 h-3.5 text-blue-200" />
+              <span>Đăng ký</span>
+            </Link>
           </div>
         )}
       </div>
