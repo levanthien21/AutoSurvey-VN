@@ -79,15 +79,15 @@ function initDb(): DatabaseSchema {
       transactions: [],
       coupons: [
         {
-          code: 'WELCOME50K',
-          creditBonus: 50000,
+          code: 'WELCOME10K',
+          creditBonus: 10000,
           maxUses: 1000,
           usedCount: 0,
           expiresAt: '2027-12-31T23:59:59.000Z',
         },
         {
           code: 'NCKH2026',
-          creditBonus: 100000,
+          creditBonus: 20000,
           maxUses: 500,
           usedCount: 0,
           expiresAt: '2027-12-31T23:59:59.000Z',
@@ -96,10 +96,10 @@ function initDb(): DatabaseSchema {
       settings: {
         adminEmails: ['levanthien21052004@gmail.com'],
         pricePerResponse: {
-          ratio: 100, // 100 credits = 100 VND / submission
-          data: 80,
-          model: 150,
-          agent: 200,
+          ratio: 250, // 250 credits = 250 VND / submission
+          data: 180,
+          model: 350,
+          agent: 500,
         },
         bankInfo: {
           bankName: 'VIETCOMBANK',
@@ -248,7 +248,7 @@ class DatabaseManager {
     const isFirstUser = db.users.length === 0;
     const isWhitelistedAdmin = this.isAdminEmail(email);
     const finalRole: 'user' | 'admin' = role === 'admin' || isWhitelistedAdmin || isFirstUser ? 'admin' : 'user';
-    const initialCredits = finalRole === 'admin' ? 999999999 : 50000;
+    const initialCredits = finalRole === 'admin' ? 999999999 : 5000;
 
     const user: User = {
       id: 'usr_' + crypto.randomBytes(6).toString('hex'),
@@ -308,7 +308,7 @@ class DatabaseManager {
     const isFirstUser = db.users.length === 0;
     const isWhitelistedAdmin = this.isAdminEmail(cleanEmail);
     const finalRole: 'user' | 'admin' = isWhitelistedAdmin || isFirstUser ? 'admin' : 'user';
-    const initialCredits = finalRole === 'admin' ? 999999999 : 50000;
+    const initialCredits = finalRole === 'admin' ? 999999999 : 5000;
 
     const user: User = {
       id: 'usr_' + crypto.randomBytes(6).toString('hex'),
@@ -337,7 +337,7 @@ class DatabaseManager {
       memo:
         finalRole === 'admin'
           ? 'Đăng nhập Google: Khởi tạo Quản trị viên (Credits Không giới hạn)'
-          : 'Đăng nhập Google: Quà tặng thành viên mới (50.000 Credits)',
+          : 'Đăng nhập Google: Quà tặng thành viên mới (5.000 Credits)',
       status: 'completed',
       createdAt: new Date().toISOString(),
     });

@@ -419,7 +419,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                         <span>Tài khoản này chưa tồn tại!</span>
                       </div>
                       <p className="text-[11px] text-amber-800 leading-relaxed">
-                        Bạn chưa đăng ký tài khoản cho <strong>{username}</strong>. Hãy bấm nút dưới đây để tạo tài khoản mới ngay (nhận 50.000 Credits)!
+                        Bạn chưa đăng ký tài khoản cho <strong>{username}</strong>. Hãy bấm nút dưới đây để tạo tài khoản mới ngay (nhận 5.000 Credits)!
                       </p>
                       <button
                         type="button"

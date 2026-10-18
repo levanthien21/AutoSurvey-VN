@@ -458,15 +458,15 @@ export default function CreateFormModelPage() {
               <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
                 <div>
                   <span className="text-slate-500">Chi phí nộp tự động: </span>
-                  <strong className="text-amber-700 font-bold">{(sampleSize * 150).toLocaleString()} Credits</strong>
-                  <span className="text-slate-400"> (150đ / mẫu chuẩn NCKH)</span>
+                  <strong className="text-amber-700 font-bold">{(sampleSize * 350).toLocaleString()} Credits</strong>
+                  <span className="text-slate-400"> (350đ / mẫu chuẩn NCKH)</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="text-slate-500">Số dư hiện tại: </span>
                   <strong className="text-slate-900 font-mono font-bold">
                     {user ? (user.role === 'admin' ? '∞ Vô hạn (Admin)' : `${user.credits.toLocaleString()} Credits`) : '0 Credits (Chưa đăng nhập)'}
                   </strong>
-                  {user && user.role !== 'admin' && user.credits < sampleSize * 150 && (
+                  {user && user.role !== 'admin' && user.credits < sampleSize * 350 && (
                     <a
                       href="/credit"
                       className="text-blue-600 font-bold underline hover:text-blue-700 ml-1"

@@ -151,7 +151,7 @@ function LoginFormContent() {
         if (registerEmail.includes('@')) {
           registerWithEmailFirebase(registerEmail, password).catch(() => {});
         }
-        setSuccessMsg('Đăng ký tài khoản thành công! Tặng ngay 50.000 Credits.');
+        setSuccessMsg('Đăng ký tài khoản thành công! Tặng ngay 5.000 Credits.');
         setTimeout(() => {
           router.push('/');
         }, 800);
@@ -443,7 +443,7 @@ function LoginFormContent() {
                   {mode === 'login'
                     ? 'Nhập tài khoản và mật khẩu của bạn để tiếp tục'
                     : mode === 'register'
-                    ? 'Điền thông tin bên dưới để tạo tài khoản nhận 50.000 Credits'
+                    ? 'Điền thông tin bên dưới để tạo tài khoản nhận 5.000 Credits'
                     : forgotSent
                     ? 'Liên kết bảo mật đã được gửi an toàn về Gmail của bạn'
                     : 'Nhập email hoặc tên đăng nhập để nhận link đổi mật khẩu'}
@@ -473,7 +473,7 @@ function LoginFormContent() {
                     <span>Tài khoản chưa tồn tại!</span>
                   </div>
                   <p className="text-[11px] text-amber-800 leading-relaxed">
-                    Bạn chưa đăng ký tài khoản cho <strong>{username}</strong>. Hãy bấm nút dưới đây để tạo tài khoản mới ngay (nhận 50.000 Credits)!
+                    Bạn chưa đăng ký tài khoản cho <strong>{username}</strong>. Hãy bấm nút dưới đây để tạo tài khoản mới ngay (nhận 5.000 Credits)!
                   </p>
                   <button
                     type="button"
@@ -756,7 +756,7 @@ function LoginFormContent() {
                           {mode === 'login'
                             ? 'Đăng nhập hệ thống'
                             : mode === 'register'
-                            ? 'Đăng ký tài khoản (Tặng 50.000đ)'
+                            ? 'Đăng ký tài khoản (Tặng 5.000đ)'
                             : 'Gửi liên kết khôi phục về Gmail'}
                         </span>
                       </>

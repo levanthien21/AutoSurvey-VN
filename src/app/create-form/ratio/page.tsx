@@ -527,15 +527,15 @@ export default function CreateFormRatioPage() {
             <div className="p-4 rounded-xl bg-slate-50 border border-slate-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
               <div>
                 <span className="text-slate-500">Chi phí dự tính: </span>
-                <strong className="text-blue-700 font-bold">{(targetCount * 100).toLocaleString()} Credits</strong>
-                <span className="text-slate-400"> (100đ / câu)</span>
+                <strong className="text-blue-700 font-bold">{(targetCount * 250).toLocaleString()} Credits</strong>
+                <span className="text-slate-400"> (250đ / câu)</span>
               </div>
               <div className="flex items-center gap-2">
                 <span className="text-slate-500">Số dư hiện tại: </span>
                 <strong className="text-slate-900 font-mono font-bold">
                   {user ? (user.role === 'admin' ? '∞ Vô hạn (Admin)' : `${user.credits.toLocaleString()} Credits`) : '0 Credits (Chưa đăng nhập)'}
                 </strong>
-                {user && user.role !== 'admin' && user.credits < targetCount * 100 && (
+                {user && user.role !== 'admin' && user.credits < targetCount * 250 && (
                   <a
                     href="/credit"
                     className="text-amber-700 font-bold underline hover:text-amber-800 ml-1"

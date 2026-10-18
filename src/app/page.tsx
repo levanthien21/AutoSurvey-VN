@@ -130,10 +130,10 @@ export default function HomePage() {
   const [openFaq, setOpenFaq] = useState<number | null>(0);
 
   const priceRates = {
-    ratio: 100,
-    data: 80,
-    model: 150,
-    agent: 200,
+    ratio: 250,
+    data: 180,
+    model: 350,
+    agent: 500,
   };
 
   const estimatedCost = calcCount * priceRates[calcMode];
@@ -438,7 +438,7 @@ export default function HomePage() {
           </div>
           <div className="mt-1 text-xs text-orange-600 font-bold">
             <Link href="/credit" className="hover:underline flex items-center gap-1">
-              <span>{user ? '+ Nạp thêm qua VietQR 24/7' : 'Đăng ký ngay nhận 50.000đ'}</span>
+              <span>{user ? '+ Nạp thêm qua VietQR 24/7' : 'Đăng ký ngay nhận 5.000đ'}</span>
               <ArrowUpRight className="w-3.5 h-3.5" />
             </Link>
           </div>

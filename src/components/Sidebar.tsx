@@ -315,7 +315,7 @@ export default function Sidebar() {
               <span>Chưa đăng nhập</span>
             </div>
             <p className="text-[10px] text-slate-600 leading-relaxed">
-              Tạo tài khoản để nhận ngay <strong className="text-orange-600 font-bold">50.000 Credits</strong> chạy thử nghiệm!
+              Tạo tài khoản để nhận ngay <strong className="text-orange-600 font-bold">5.000 Credits</strong> chạy thử nghiệm!
             </p>
             <div className="flex gap-2 pt-1">
               <Link
@@ -331,7 +331,7 @@ export default function Sidebar() {
                 onClick={isMobile ? closeMobileDrawer : undefined}
                 className="flex-1 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1 text-center"
               >
-                <span>Đăng ký (+50K)</span>
+                <span>Đăng ký (+5K)</span>
               </Link>
             </div>
           </div>

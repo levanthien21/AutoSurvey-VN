@@ -48,10 +48,10 @@
       "levanthien21052004@gmail.com"
     ],
     "pricePerResponse": {
-      "ratio": 100,
-      "data": 80,
-      "model": 150,
-      "agent": 200
+      "ratio": 250,
+      "data": 180,
+      "model": 350,
+      "agent": 500
     },
     "bankInfo": {
       "bankName": "VIETCOMBANK",

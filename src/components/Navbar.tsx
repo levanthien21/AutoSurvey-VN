@@ -124,7 +124,7 @@ export default function Navbar() {
             <Coins className="w-3.5 h-3.5 text-amber-100" />
             <span>Nạp tiền</span>
             <span className="text-[9px] bg-white/25 px-1 py-0.2 rounded font-extrabold uppercase">
-              +30%
+              +15%
             </span>
           </Link>
         )}

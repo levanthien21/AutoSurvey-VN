@@ -43,7 +43,7 @@ export async function POST(req: NextRequest) {
       memo:
         user.role === 'admin'
           ? 'Khởi tạo tài khoản Quản trị viên (1.000.000 Credits)'
-          : 'Quà tặng chào mừng thành viên mới (50.000 Credits)',
+          : 'Quà tặng chào mừng thành viên mới (5.000 Credits)',
       status: 'completed',
     });
 
@@ -64,7 +64,7 @@ export async function POST(req: NextRequest) {
       message:
         user.role === 'admin'
           ? 'Đăng ký tài khoản Quản trị viên thành công! Cấp quyền Admin & 1.000.000 Credits.'
-          : 'Đăng ký tài khoản thành công! Tặng bạn 50.000 Credits trải nghiệm.',
+          : 'Đăng ký tài khoản thành công! Tặng bạn 5.000 Credits trải nghiệm.',
       user: safeUser,
       token,
     });

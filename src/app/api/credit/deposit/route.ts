@@ -22,16 +22,16 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Calculate bonus
+    // Calculate bonus (reduced giveaway)
     let credits = numAmount;
     if (numAmount >= 1000000) {
-      credits = Math.round(numAmount * 1.35); // +35%
-    } else if (numAmount >= 500000) {
-      credits = Math.round(numAmount * 1.30); // +30%
-    } else if (numAmount >= 200000) {
       credits = Math.round(numAmount * 1.20); // +20%
-    } else if (numAmount >= 100000) {
+    } else if (numAmount >= 500000) {
+      credits = Math.round(numAmount * 1.15); // +15%
+    } else if (numAmount >= 200000) {
       credits = Math.round(numAmount * 1.10); // +10%
+    } else if (numAmount >= 100000) {
+      credits = Math.round(numAmount * 1.05); // +5%
     }
 
     const settings = db.getSettings();

@@ -49,16 +49,16 @@ export default function CreditPage() {
 
   const packs = [
     { price: 50000, credits: 50000, bonus: '0%', popular: false },
-    { price: 100000, credits: 110000, bonus: '+10%', popular: true },
-    { price: 200000, credits: 240000, bonus: '+20%', popular: false },
-    { price: 500000, credits: 650000, bonus: '+30%', popular: false },
+    { price: 100000, credits: 105000, bonus: '+5%', popular: true },
+    { price: 200000, credits: 220000, bonus: '+10%', popular: false },
+    { price: 500000, credits: 575000, bonus: '+15%', popular: false },
   ];
 
   const getPackCredits = (price: number) => {
-    if (price >= 1000000) return Math.round(price * 1.35);
-    if (price >= 500000) return Math.round(price * 1.30);
-    if (price >= 200000) return Math.round(price * 1.20);
-    if (price >= 100000) return Math.round(price * 1.10);
+    if (price >= 1000000) return Math.round(price * 1.20);
+    if (price >= 500000) return Math.round(price * 1.15);
+    if (price >= 200000) return Math.round(price * 1.10);
+    if (price >= 100000) return Math.round(price * 1.05);
     return price;
   };
 
@@ -497,17 +497,17 @@ export default function CreditPage() {
           <span className="text-xs text-slate-400">Mã hot dùng thử:</span>
           <button
             type="button"
-            onClick={() => handleRedeemCoupon('WELCOME50K')}
+            onClick={() => handleRedeemCoupon('WELCOME10K')}
             className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-blue-50 hover:text-blue-700 text-slate-700 text-xs font-mono font-bold transition-colors border border-slate-200"
           >
-            WELCOME50K (+50.000đ)
+            WELCOME10K (+10.000đ)
           </button>
           <button
             type="button"
             onClick={() => handleRedeemCoupon('NCKH2026')}
             className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-blue-50 hover:text-blue-700 text-slate-700 text-xs font-mono font-bold transition-colors border border-slate-200"
           >
-            NCKH2026 (+100.000đ)
+            NCKH2026 (+20.000đ)
           </button>
         </div>
       </div>
