@@ -62,7 +62,21 @@ export default function Navbar() {
         </Link>
 
         {/* Quick Nav Links (Desktop) */}
-        <nav className="hidden lg:flex items-center gap-1 text-xs">
+        <nav className="hidden lg:flex items-center gap-1.5 text-xs">
+          {/* Ước tính ngân sách & TG Button */}
+          <button
+            type="button"
+            onClick={() => setIsEstimatorOpen(true)}
+            className="px-3 py-1.5 rounded-xl font-bold transition-all flex items-center gap-1.5 text-blue-700 bg-blue-50/90 hover:bg-blue-100 border border-blue-200/80 shadow-2xs active:scale-95 group shrink-0"
+            title="Ước tính ngân sách & thời gian chạy khảo sát"
+          >
+            <Calculator className="w-3.5 h-3.5 text-blue-600 group-hover:scale-110 transition-transform" />
+            <span>Ước tính ngân sách & TG</span>
+            <span className="text-[9px] bg-blue-200/60 text-blue-800 font-extrabold px-1.5 py-0.2 rounded uppercase">
+              Mới
+            </span>
+          </button>
+
           <Link
             href="/create-form"
             className={`px-3 py-1.5 rounded-xl font-bold transition-all flex items-center gap-1.5 ${
@@ -103,25 +117,24 @@ export default function Navbar() {
 
       {/* Right: Harmonious, Clean & Balanced Action Header */}
       <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
-        {/* 0. Ước tính ngân sách & TG Button */}
+        {/* Mobile / Tablet Estimator Button (lg:hidden) */}
         <button
           type="button"
           onClick={() => setIsEstimatorOpen(true)}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-blue-200/90 hover:border-blue-500 bg-blue-50/70 hover:bg-blue-100/70 text-blue-800 text-xs font-bold shadow-2xs transition-all active:scale-95 shrink-0 group"
+          className="lg:hidden inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border border-blue-200/90 hover:border-blue-400 bg-blue-50 hover:bg-blue-100 text-blue-800 text-xs font-bold shadow-2xs transition-all active:scale-95 shrink-0"
           title="Ước tính ngân sách & thời gian chạy khảo sát"
         >
-          <Calculator className="w-3.5 h-3.5 text-blue-600 group-hover:scale-110 transition-transform" />
-          <span className="hidden sm:inline">Ước tính ngân sách & TG</span>
-          <span className="sm:hidden">Ước tính</span>
+          <Calculator className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+          <span className="hidden sm:inline">Ước tính</span>
         </button>
 
-        {/* 1. Facebook Fanpage Pill (Sleek, subtle) */}
+        {/* Facebook Fanpage Pill (Sleek, subtle - shown on large screens) */}
         <a
           href="https://www.facebook.com/profile.php?id=61592111095108"
           target="_blank"
           rel="noopener noreferrer"
           title="Truy cập Fanpage AutoSurvey VN"
-          className="hidden md:inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border border-slate-200/90 hover:border-blue-300 bg-white hover:bg-blue-50/50 text-slate-700 hover:text-blue-600 text-xs font-semibold shadow-2xs transition-all active:scale-95 shrink-0"
+          className="hidden xl:inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border border-slate-200/90 hover:border-blue-300 bg-white hover:bg-blue-50/50 text-slate-700 hover:text-blue-600 text-xs font-semibold shadow-2xs transition-all active:scale-95 shrink-0"
         >
           <svg className="w-3.5 h-3.5 fill-[#1877F2]" viewBox="0 0 24 24">
             <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
@@ -129,11 +142,11 @@ export default function Navbar() {
           <span>Fanpage</span>
         </a>
 
-        {/* 2. Nạp tiền button (Elegant amber pill, cohesive height) */}
+        {/* Nạp tiền button (Guest) */}
         {!user && !loading && (
           <Link
             href="/credit"
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white text-xs font-bold shadow-xs transition-all active:scale-95 shrink-0"
+            className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white text-xs font-bold shadow-xs transition-all active:scale-95 shrink-0"
             title="Bảng giá nạp credits"
           >
             <Coins className="w-3.5 h-3.5 text-amber-100" />
@@ -144,7 +157,7 @@ export default function Navbar() {
           </Link>
         )}
 
-        {/* 3. Logged-in User Balance Pill */}
+        {/* Logged-in User Balance Pill */}
         {user && (
           <Link
             href="/credit"
@@ -163,10 +176,10 @@ export default function Navbar() {
           </Link>
         )}
 
-        {/* 4. Primary CTA: Khởi tạo */}
+        {/* Primary CTA: Khởi tạo (shown on medium+ screens) */}
         <Link
           href="/create-form"
-          className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-xs hover:shadow transition-all active:scale-95 shrink-0"
+          className="hidden md:inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-xs hover:shadow transition-all active:scale-95 shrink-0"
         >
           <Sparkles className="w-3.5 h-3.5 text-amber-300 fill-amber-300" />
           <span>Khởi tạo</span>
@@ -175,7 +188,7 @@ export default function Navbar() {
         {/* Subtle Vertical Divider */}
         <div className="h-5 w-px bg-slate-200/90 mx-0.5 hidden sm:block"></div>
 
-        {/* 5. User Profile or Auth Group */}
+        {/* User Profile or Auth Group */}
         {loading ? (
           <div className="w-8 h-8 rounded-xl bg-slate-100 animate-pulse"></div>
         ) : user ? (
