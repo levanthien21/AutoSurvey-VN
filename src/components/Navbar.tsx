@@ -2,6 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import {
   Sparkles,
   ShieldCheck,
@@ -10,119 +11,192 @@ import {
   LogIn,
   UserPlus,
   Menu,
+  Coins,
+  Layers,
+  Database,
+  ClipboardList,
+  Crown,
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useMobileNav } from '@/context/MobileNavContext';
 
 export default function Navbar() {
+  const pathname = usePathname();
   const { user, loading, logout } = useAuth();
   const { openMobileDrawer } = useMobileNav();
 
+  const isNavActive = (path: string) => {
+    if (path === '/') return pathname === '/';
+    return pathname.startsWith(path);
+  };
+
   return (
-    <header className="h-16 bg-white/95 backdrop-blur-xl border-b border-slate-200/80 px-4 sm:px-8 flex items-center justify-between sticky top-0 z-20 shadow-xs">
-      {/* Left: Mobile Drawer Button & Platform Brand Info */}
-      <div className="flex items-center gap-2 sm:gap-3">
+    <header className="sticky top-0 z-30 h-[70px] bg-white/85 backdrop-blur-2xl border-b border-slate-200/70 shadow-[0_4px_24px_-4px_rgba(15,23,42,0.04)] px-4 sm:px-8 flex items-center justify-between transition-all">
+      {/* Left: Mobile Drawer Button & Desktop Brand / Navigation Hub */}
+      <div className="flex items-center gap-3 sm:gap-6 min-w-0">
         <button
           type="button"
           onClick={openMobileDrawer}
-          className="lg:hidden p-2 rounded-xl text-slate-700 hover:text-slate-900 hover:bg-slate-100 transition-colors border border-slate-200/80 shrink-0"
-          title="Mở menu"
+          className="lg:hidden p-2.5 rounded-2xl text-slate-700 hover:text-slate-900 bg-slate-100/90 hover:bg-slate-200/90 transition-all border border-slate-200/80 shrink-0 shadow-2xs active:scale-95"
+          title="Mở bảng điều hướng"
         >
           <Menu className="w-5 h-5" />
         </button>
 
-        <div className="flex items-center gap-2">
-          <div className="hidden sm:flex items-center gap-2 text-slate-700">
-            <span className="text-[11px] font-extrabold tracking-wider uppercase text-slate-400">Hệ thống</span>
-            <span className="text-xs font-black text-slate-900 bg-slate-100/80 px-2.5 py-1 rounded-lg border border-slate-200/80 flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-blue-600"></span>
-              AutoSurvey VN
-            </span>
+        {/* Brand identity mark */}
+        <Link href="/" className="flex items-center gap-2.5 group shrink-0">
+          <div className="w-9 h-9 rounded-xl bg-white p-1 border border-slate-200/90 shadow-2xs flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+            <img src="/logo.png" alt="AutoSurvey VN" className="w-full h-full object-contain" />
           </div>
-          <div className="sm:hidden font-black text-xs text-slate-800">
-            AutoSurvey VN
+          <div className="hidden sm:block">
+            <div className="flex items-center gap-1.5">
+              <span className="font-black text-sm tracking-tight text-slate-900 group-hover:text-blue-600 transition-colors">
+                AutoSurvey <span className="text-orange-500">VN</span>
+              </span>
+              <span className="text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-md bg-blue-50 text-blue-700 border border-blue-200/70">
+                AI 2.5
+              </span>
+            </div>
+            <div className="flex items-center gap-1.5 text-[10px] text-slate-400 font-medium">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+              <span>Hệ thống sẵn sàng</span>
+            </div>
           </div>
-        </div>
+        </Link>
+
+        {/* Quick Nav Links (Desktop) */}
+        <nav className="hidden xl:flex items-center gap-1 pl-4 border-l border-slate-200/80">
+          <Link
+            href="/create-form"
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
+              isNavActive('/create-form')
+                ? 'bg-blue-50 text-blue-700 shadow-2xs font-extrabold'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/80'
+            }`}
+          >
+            <Layers className="w-3.5 h-3.5 text-blue-600" />
+            <span>Chiến dịch</span>
+          </Link>
+
+          <Link
+            href="/data-builder"
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
+              isNavActive('/data-builder')
+                ? 'bg-blue-50 text-blue-700 shadow-2xs font-extrabold'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/80'
+            }`}
+          >
+            <Database className="w-3.5 h-3.5 text-indigo-600" />
+            <span>SPSS Data</span>
+          </Link>
+
+          <Link
+            href="/orders"
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
+              isNavActive('/orders')
+                ? 'bg-blue-50 text-blue-700 shadow-2xs font-extrabold'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/80'
+            }`}
+          >
+            <ClipboardList className="w-3.5 h-3.5 text-slate-500" />
+            <span>Đơn hàng</span>
+          </Link>
+        </nav>
       </div>
 
-      {/* Right Actions: Deposit Button, Create Campaign, and Auth */}
-      <div className="flex items-center gap-2 sm:gap-3">
-        {/* Prominent "Nạp tiền" button (visible for both guests and members) */}
+      {/* Right: High-Converting Deposit Button, Primary Action & User Profile */}
+      <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+        {/* NẠP TIỀN BUTTON (BẮT BUỘC, NỔI BẬT VỚI HIỆU ỨNG FINTECH SHINE) */}
         {!user && !loading && (
           <Link
             href="/credit"
-            className="inline-flex items-center gap-1.5 sm:gap-2 bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:from-amber-600 hover:to-orange-700 text-white text-xs font-black px-3 sm:px-3.5 py-2 rounded-xl shadow-md shadow-orange-500/25 hover:scale-[1.02] active:scale-[0.98] transition-all"
-            title="Xem bảng giá & Nạp tiền Credits"
+            className="group relative inline-flex items-center gap-2 bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:from-amber-600 hover:to-orange-700 text-white text-xs font-black px-3.5 sm:px-4 py-2.5 rounded-2xl shadow-[0_4px_16px_rgba(245,158,11,0.35)] hover:shadow-[0_6px_22px_rgba(245,158,11,0.45)] hover:scale-[1.02] active:scale-[0.98] transition-all overflow-hidden"
+            title="Xem bảng giá dịch vụ & nạp credits"
           >
-            <Wallet className="w-3.5 h-3.5 text-white shrink-0" />
-            <span>Nạp tiền</span>
-            <span className="hidden md:inline text-[9px] bg-white/25 px-1.5 py-0.5 rounded font-extrabold uppercase">
-              Ưu đãi
+            <span className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></span>
+            <Coins className="w-4 h-4 text-amber-200 fill-amber-200 shrink-0" />
+            <span className="tracking-tight">Nạp tiền</span>
+            <span className="text-[10px] bg-white/25 text-white font-extrabold px-1.5 py-0.5 rounded-md uppercase tracking-wider shadow-2xs">
+              +30%
             </span>
           </Link>
         )}
 
+        {/* LOGGED IN USER BALANCE BADGE + DEPOSIT SHORTCUT */}
         {user && (
           <Link
             href="/credit"
-            className="inline-flex items-center gap-2 bg-gradient-to-r from-orange-50 to-amber-50 hover:from-orange-100 hover:to-amber-100 border border-orange-200/80 text-orange-950 text-xs font-black px-2.5 sm:px-3 py-1.5 rounded-xl transition-all shadow-xs group"
-            title="Xem số dư & Nạp tiền"
+            className="group inline-flex items-center gap-2.5 bg-gradient-to-r from-orange-50/90 via-amber-50/70 to-orange-50/90 hover:from-orange-100 hover:to-amber-100 border border-orange-200/90 text-orange-950 px-3 sm:px-3.5 py-1.5 rounded-2xl shadow-xs transition-all hover:scale-[1.01]"
+            title="Số dư hiện tại - Bấm để nạp thêm"
           >
-            <div className="w-5 h-5 rounded-lg bg-orange-500 text-white flex items-center justify-center shadow-xs">
-              <Wallet className="w-3 h-3" />
+            <div className="w-6 h-6 rounded-xl bg-gradient-to-tr from-orange-500 to-amber-500 text-white flex items-center justify-center shadow-xs shrink-0">
+              <Wallet className="w-3.5 h-3.5" />
             </div>
-            <span className="font-mono text-xs sm:text-sm">{user.credits.toLocaleString()}</span>
-            <span className="text-[10px] uppercase font-bold text-orange-600 group-hover:translate-x-0.5 transition-transform hidden sm:inline">
-              + Nạp tiền
+            <div className="flex flex-col text-left leading-tight">
+              <span className="text-[9px] font-extrabold uppercase text-orange-600 tracking-wider">
+                Credits Ví
+              </span>
+              <span className="font-mono text-xs sm:text-sm font-black text-slate-900">
+                {user.credits.toLocaleString()}
+              </span>
+            </div>
+            <span className="hidden sm:inline-flex items-center text-[10px] font-extrabold text-orange-700 bg-orange-200/60 px-2 py-0.5 rounded-lg group-hover:bg-orange-500 group-hover:text-white transition-all ml-1">
+              + Nạp
             </span>
           </Link>
         )}
 
-        {/* Quick Launch Studio Button */}
+        {/* PRIMARY CTA: KHỞI TẠO CHIẾN DỊCH */}
         <Link
           href="/create-form"
-          className="inline-flex items-center gap-1.5 sm:gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white text-xs font-extrabold px-3 sm:px-4 py-2 rounded-xl shadow-md shadow-blue-500/20 hover:scale-[1.02] active:scale-[0.98] transition-all shrink-0"
+          className="inline-flex items-center gap-2 bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 hover:from-blue-700 hover:to-indigo-700 text-white text-xs font-black px-3.5 sm:px-4 py-2.5 rounded-2xl shadow-[0_4px_16px_rgba(37,99,235,0.25)] hover:shadow-[0_6px_22px_rgba(37,99,235,0.35)] hover:scale-[1.02] active:scale-[0.98] transition-all shrink-0"
         >
-          <Sparkles className="w-3.5 h-3.5 text-amber-300 shrink-0" />
+          <Sparkles className="w-3.5 h-3.5 text-amber-300 fill-amber-300 shrink-0" />
           <span className="hidden sm:inline">Khởi tạo chiến dịch</span>
           <span className="sm:hidden">Tạo form</span>
         </Link>
 
+        {/* USER PROFILE OR AUTH BUTTONS */}
         {loading ? (
-          <div className="w-8 h-8 rounded-full bg-slate-100 animate-pulse"></div>
+          <div className="w-9 h-9 rounded-2xl bg-slate-100 animate-pulse"></div>
         ) : user ? (
-          /* User Profile */
-          <div className="flex items-center gap-2 sm:gap-2.5 pl-2 border-l border-slate-200">
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-slate-900 to-blue-950 flex items-center justify-center text-white font-black text-xs shadow-xs border border-slate-700">
+          /* Logged In User Capsule */
+          <div className="flex items-center gap-2 sm:gap-2.5 pl-2 sm:pl-3 border-l border-slate-200/80">
+            <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-slate-900 via-slate-800 to-blue-950 flex items-center justify-center text-white font-black text-xs shadow-xs border border-slate-700/80 shrink-0">
               {user.username.charAt(0).toUpperCase()}
             </div>
-            <div className="hidden md:block text-left">
-              <div className="text-xs font-bold text-slate-900 flex items-center gap-1">
-                <span>{user.username}</span>
+            <div className="hidden lg:block text-left max-w-[120px] truncate">
+              <div className="text-xs font-black text-slate-900 flex items-center gap-1.5 truncate">
+                <span className="truncate">{user.username}</span>
                 {user.role === 'admin' ? (
-                  <span className="text-[9px] bg-purple-100 text-purple-700 px-1.5 py-0.2 rounded font-extrabold">ADMIN</span>
+                  <span className="inline-flex items-center gap-0.5 text-[9px] bg-purple-100 text-purple-700 px-1.5 py-0.2 rounded-md font-black border border-purple-200">
+                    <Crown className="w-2.5 h-2.5 text-purple-600" />
+                    <span>ADMIN</span>
+                  </span>
                 ) : (
-                  <ShieldCheck className="w-3.5 h-3.5 text-blue-600" />
+                  <ShieldCheck className="w-3.5 h-3.5 text-blue-600 shrink-0" />
                 )}
               </div>
-              <div className="text-[10px] text-slate-400 font-mono">ID: {user.id.replace('usr_', '')}</div>
+              <div className="text-[10px] text-slate-400 font-mono truncate">
+                ID: {user.id.replace('usr_', '')}
+              </div>
             </div>
 
             {/* Logout button */}
             <button
               onClick={logout}
-              title="Đăng xuất"
-              className="w-8 h-8 rounded-xl border border-slate-200 text-slate-400 hover:text-rose-600 hover:bg-rose-50 flex items-center justify-center transition-colors ml-1"
+              title="Đăng xuất khỏi hệ thống"
+              className="w-8 h-8 rounded-xl border border-slate-200 text-slate-400 hover:text-rose-600 hover:bg-rose-50 hover:border-rose-200 flex items-center justify-center transition-all ml-0.5 shrink-0"
             >
               <LogOut className="w-3.5 h-3.5" />
             </button>
           </div>
         ) : (
-          /* Guest Auth Actions */
-          <div className="flex items-center gap-1.5 sm:gap-2 pl-2 border-l border-slate-200">
+          /* Guest Actions */
+          <div className="flex items-center gap-1 sm:gap-2 pl-2 border-l border-slate-200/80">
             <Link
               href="/login"
-              className="inline-flex items-center gap-1 text-xs font-bold text-slate-700 hover:text-blue-600 px-2 sm:px-3 py-2 rounded-xl hover:bg-slate-100 transition-colors"
+              className="inline-flex items-center gap-1 text-xs font-bold text-slate-700 hover:text-blue-600 px-2.5 sm:px-3 py-2 rounded-xl hover:bg-slate-100/90 transition-colors"
             >
               <LogIn className="w-3.5 h-3.5" />
               <span>Đăng nhập</span>
@@ -130,9 +204,9 @@ export default function Navbar() {
 
             <Link
               href="/login?tab=register"
-              className="inline-flex items-center gap-1 text-xs font-extrabold text-white bg-blue-600 hover:bg-blue-700 px-3 py-2 rounded-xl transition-all shadow-md shadow-blue-500/20"
+              className="inline-flex items-center gap-1 text-xs font-black text-white bg-slate-900 hover:bg-slate-800 px-3 sm:px-3.5 py-2 rounded-xl shadow-xs transition-all hover:scale-[1.02] active:scale-[0.98]"
             >
-              <UserPlus className="w-3.5 h-3.5 text-blue-200" />
+              <UserPlus className="w-3.5 h-3.5 text-blue-300" />
               <span className="hidden sm:inline">Đăng ký</span>
             </Link>
           </div>

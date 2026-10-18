@@ -7,6 +7,7 @@ import {
   getRedirectResult,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
+  sendPasswordResetEmail,
   signOut,
   Auth,
   User as FirebaseUser,
@@ -243,3 +244,25 @@ export async function saveUserToFirestore(userData: {
     console.warn('Firestore sync note (local fallback active):', err);
   }
 }
+
+/**
+ * Send password reset email via official Firebase Auth
+ */
+export async function sendPasswordResetEmailFirebase(email: string): Promise<{ success: boolean; error?: string }> {
+  try {
+    await sendPasswordResetEmail(auth, email.trim());
+    return { success: true };
+  } catch (err: any) {
+    console.error('Firebase sendPasswordResetEmail Error:', err);
+    let msg = 'Không thể gửi email đặt lại mật khẩu qua Firebase.';
+    if (err.code === 'auth/user-not-found') {
+      msg = 'Email chưa được đăng ký trong hệ thống Firebase Auth.';
+    } else if (err.code === 'auth/invalid-email') {
+      msg = 'Địa chỉ Email không đúng định dạng.';
+    } else if (err.code === 'auth/too-many-requests') {
+      msg = 'Bạn đã gửi yêu cầu quá nhiều lần. Vui lòng thử lại sau vài phút.';
+    }
+    return { success: false, error: msg };
+  }
+}
+

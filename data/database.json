@@ -4,12 +4,12 @@
       "id": "usr_4294ed152e09",
       "username": "thienlv",
       "email": "thienlv.bbh@gmail.com",
-      "passwordHash": "c3e6c59007842aecc9971991fb1b5ea0b0275021f333e2f9891909e48b2f24d1f412ac663e3f8532763fbeb23e728f1bb6f6e5927d490b0494c43a99eccb9104",
-      "salt": "46f228149b1a709eb06ca598d285741a",
+      "passwordHash": "806819bd237fa4c02f22a4f626354a98d7e888b973e96048a63477f9513d65ae25e59b0c97ffe9119a67d63f5508c3c3003539e7b456a3b53ff27a221f79ae07",
+      "salt": "ebb9b235f85dc21a234a852d7368a175",
       "role": "admin",
       "credits": 1000000,
       "createdAt": "2026-10-18T05:53:30.315Z",
-      "updatedAt": "2026-10-18T05:53:30.315Z"
+      "updatedAt": "2026-10-18T11:54:02.222Z"
     }
   ],
   "transactions": [

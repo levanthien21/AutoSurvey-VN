@@ -12,6 +12,8 @@ export interface User {
   credits: number;
   googleId?: string;
   avatar?: string;
+  resetOtp?: string;
+  resetOtpExpiry?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -338,6 +340,46 @@ class DatabaseManager {
     user.updatedAt = new Date().toISOString();
     this.saveDb();
     return user;
+  }
+
+  setResetOtp(userId: string, otp: string, expiry: string): boolean {
+    const db = this.getDb();
+    const user = db.users.find((u) => u.id === userId);
+    if (!user) return false;
+    user.resetOtp = otp;
+    user.resetOtpExpiry = expiry;
+    this.saveDb();
+    return true;
+  }
+
+  verifyAndResetPassword(
+    emailOrUsername: string,
+    otp: string,
+    newPassword: string
+  ): { success: boolean; error?: string; user?: User } {
+    const db = this.getDb();
+    const clean = emailOrUsername.trim().toLowerCase();
+    const user = db.users.find(
+      (u) => u.email.toLowerCase() === clean || u.username.toLowerCase() === clean
+    );
+    if (!user) {
+      return { success: false, error: 'Không tìm thấy tài khoản người dùng.' };
+    }
+    if (!user.resetOtp || user.resetOtp !== otp.trim()) {
+      return { success: false, error: 'Mã xác thực khôi phục mật khẩu không chính xác.' };
+    }
+    if (user.resetOtpExpiry && new Date(user.resetOtpExpiry).getTime() < Date.now()) {
+      return { success: false, error: 'Mã xác thực đã hết hạn. Vui lòng bấm gửi lại mã mới.' };
+    }
+
+    const salt = crypto.randomBytes(16).toString('hex');
+    user.passwordHash = hashPassword(newPassword, salt);
+    user.salt = salt;
+    user.resetOtp = undefined;
+    user.resetOtpExpiry = undefined;
+    user.updatedAt = new Date().toISOString();
+    this.saveDb();
+    return { success: true, user };
   }
 
   getAllUsers(): User[] {
