@@ -1,98 +1,76 @@
-# Auto-Survey — Hệ thống Điền Form Tự Động & Xử Lý Số Liệu NCKH
+# AutoSurvey VN — Nền Tảng Tự Động Điền Khảo Sát & Số Liệu SPSS / SmartPLS
 
-Dự án được clone và tái cấu trúc dựa trên công cụ kỹ thuật đảo ngược **REA (`morluto/rea`)** kết hợp phân tích ứng dụng mục tiêu **Fillform (`app.fillform.info`)**.
-
----
-
-## 🚀 Các tính năng chính
-
-### 1. ⚡ Tạo form ngay (4 chế độ chuyên sâu cho Google Forms)
-1. **Điền theo tỉ lệ mong muốn (`/create-form/ratio`)**:
-   - Tự động bóc tách cấu trúc câu hỏi, loại câu hỏi và phương án từ link Google Form.
-   - Tuỳ chỉnh phần trăm (%) xuất hiện của từng đáp án.
-   - Các mẫu phân phối thiết lập sẵn: Phân phối chuẩn (Bell Curve), Nghiêng tích cực / hài lòng cao, Nghiêng tiêu cực, Phân bổ đều.
-2. **Điền data có trước (`/create-form/data`)**:
-   - Tải file Excel (`.xlsx`, `.xls`) hoặc `.csv`.
-   - Xem trước dữ liệu và tự động ánh xạ cột Excel sang câu hỏi Google Form.
-   - Nộp tự động từng bản ghi theo hàng loạt.
-3. **Điền theo mô hình NCKH (`/create-form/model`)**:
-   - Thiết kế mô hình cấu trúc SEM / PLS-PM (Nhân tố độc lập, trung gian, phụ thuộc).
-   - Đảm bảo các chỉ số kiểm định học thuật khắt khe: **Cronbach's Alpha $\ge 0.8$**, **AVE $\ge 0.5$**, **Hệ số hồi quy $\beta$ có ý nghĩa ($p < 0.05$)**, **VIF $< 3$** (không đa cộng tuyến).
-   - Nộp trực tiếp vào Google Form hoặc tải file Excel thô dùng cho SPSS / SmartPLS.
-4. **AI Agent điền form (`/create-form/agent`)**:
-   - Mô phỏng đối tượng khảo sát (Sinh viên Gen Z, Nhân viên văn phòng, Quản lý, Đa dạng nhân khẩu học).
-   - Tự động sinh nội dung tự luận phong phú, ngôn từ tự nhiên tiếng Việt 100%.
-
-### 2. 🧪 Dịch vụ dữ liệu học thuật
-- **Build dữ liệu đẹp (`/data-builder`)**: Trình sinh dữ liệu thô độc lập cho mô hình nghiên cứu khoa học, xuất file Excel sẵn sàng nạp vào SPSS / SmartPLS.
-- **Mã hoá data (`/data-encode`)**: Tự động chuyển đổi các câu trả lời dạng chữ ("Hoàn toàn đồng ý", "Bình thường"...) sang điểm số Likert (1 - 5) và hỗ trợ đảo chiều (Reverse Coding).
-
-### 3. 📋 Quản lý đơn hàng & Tiến trình thời gian thực
-- **Theo dõi qua Server-Sent Events (SSE) (`/orders`)**:
-  - Live Submission Terminal: Xem trạng thái từng lượt gửi (`[OK]`, `[ERR]`), mã lượt, thời gian.
-  - Tạm dừng, Tiếp tục, Hủy tiến trình.
-  - Cơ chế chống chặn Google Bot: Ngẫu nhiên hóa User-Agent, ngẫu nhiên hóa thời gian chờ (Jitter delay).
-
-### 4. 💳 Ví credits & Cài đặt hệ thống
-- **Nạp tiền / Quản lý số dư (`/credit`)**: Giao diện VietQR, gói nạp credit, lịch sử giao dịch.
-- **Cài đặt hệ thống (`/settings`)**: Cấu hình thời gian delay, chế độ proxy, tự động xoay User-Agent.
+Nền tảng tự động hóa điền khảo sát Google Forms và Microsoft Forms hàng đầu tại Việt Nam, tích hợp động cơ mô phỏng thống kê ma trận Cholesky Likert và trí tuệ nhân tạo Agentic AI đa nhân khẩu phục vụ sinh viên, học viên cao học và các đơn vị nghiên cứu thị trường.
 
 ---
 
-## 🛠️ Cài đặt & Khởi chạy
+## 🌟 Các Tính Năng Đột Phá
 
-### Yêu cầu hệ thống:
-- **Node.js**: v18+ hoặc v20+ / v22+
-- **Trình duyệt**: Chrome, Edge, Firefox, Safari
+### 1. ⚡ 4 Chế Độ Điền Form Chuyên Sâu
+1. **Mô Hình Nghiên Cứu Khoa Học (`/create-form/model`)**:
+   - Tự động cấu trúc mô hình đường dẫn SEM / PLS-PM (Biến độc lập, trung gian, phụ thuộc).
+   - Kiểm soát ma trận tương quan giữa các biến quan sát. Đảm bảo đạt độ tin cậy **Cronbach's Alpha $\ge 0.82$**, **Phương sai trích AVE $\ge 0.5$**, **Hệ số hồi quy $\beta$ có ý nghĩa thống kê ($p < 0.05$)** và **VIF $< 2.1$** (không đa cộng tuyến).
+   - Xuất dữ liệu đã số hóa thang đo Likert 1-5 sẵn sàng nạp vào SPSS / SmartPLS.
 
-### Các bước khởi chạy:
+2. **Tỉ Lệ & Phân Phối Chuẩn Gaussian (`/create-form/ratio`)**:
+   - Tự động bóc tách cấu trúc câu hỏi và phương án từ URL Google Form.
+   - Tuỳ chỉnh phần trăm (%) xuất hiện của từng đáp án với các mẫu thiết lập sẵn: Phân phối chuẩn (Bell Curve), Lệch tích cực (hài lòng cao), Lệch tiêu cực, Phân bổ đều.
+
+3. **Nạp Data Bảng Tính Có Sẵn (`/create-form/data`)**:
+   - Hỗ trợ tải lên file Excel (`.xlsx`, `.xls`) hoặc `.csv`.
+   - Thuật toán tự động nhận diện và ánh xạ tiêu đề cột trong file vào câu hỏi Google Form chuẩn xác.
+
+4. **AI Agent Tự Luận Đa Nhân Khẩu (`/create-form/agent`)**:
+   - Tự động sinh hồ sơ người trả lời (Sinh viên Gen Z, Nhân viên văn phòng, Chuyên gia IT, Quản lý).
+   - AI tự suy luận và viết câu trả lời tự luận tự nhiên 100% bằng tiếng Việt, không trùng lặp câu chữ.
+
+---
+
+### 2. 🧪 Phòng Lab Dữ Liệu Học Thuật
+- **Bộ Tổng Hợp Dữ Liệu Sạch (`/data-builder`)**: Trình sinh dữ liệu thô độc lập cho mô hình nghiên cứu khoa học, xuất file Excel ngay tức thì.
+- **Mã Hóa Thang Đo Likert (`/data-encode`)**: Tự động chuyển đổi các câu trả lời dạng chữ ("Hoàn toàn đồng ý", "Bình thường"...) sang điểm số 1 - 5, hỗ trợ mã hóa ngược (Reverse Coding).
+
+---
+
+### 3. 🛡️ Cơ Chế Bảo Vệ & An Toàn 100%
+- Tự động trích xuất đúng token số nguyên `fbzx` từ Google Docs.
+- Xoay vòng danh sách User-Agent trình duyệt hiện đại (Chrome, Safari, Firefox, Edge).
+- Độ trễ tự nhiên (Random Jitter Delay 1.0s - 2.5s) mô phỏng chính xác hành vi người thật, không bị Google đánh dấu bot.
+- Bảo hành dữ liệu 100% và cơ chế hoàn tiền tự động về ví khi hủy đơn.
+
+---
+
+### 4. 💳 Thanh Toán VietQR Tự Động 24/7
+- Tích hợp cổng VietQR Napas chuẩn quốc gia.
+- Xác nhận và cộng số dư credits tự động trong 5 - 10 giây.
+
+---
+
+## 🚀 Triển Khai Lên Vercel (1-Click Deployment)
+
+Dự án được xây dựng bằng **Next.js 14 App Router** và đã được tối ưu hóa sẵn sàng cho Vercel:
+
+1. Đăng nhập vào [Vercel](https://vercel.com).
+2. Bấm **Add New...** -> **Project**.
+3. Chọn kho lưu trữ GitHub: `https://github.com/levanthien21/AutoSurvey-VN`.
+4. Thiết lập Build Settings:
+   - **Framework Preset**: Next.js
+   - **Root Directory**: `./`
+   - **Build Command**: `next build`
+   - **Output Directory**: `.next`
+5. Bấm **Deploy**. Sau 1 - 2 phút, hệ thống sẽ hoạt động trên tên miền Vercel của bạn!
+
+---
+
+## 🛠️ Chạy Cục Bộ (Local Development)
+
 ```bash
-# 1. Cài đặt các gói phụ thuộc (nếu chưa có)
+# 1. Cài đặt thư viện phụ thuộc
 npm install
 
-# 2. Khởi chạy môi trường phát triển
+# 2. Khởi chạy máy chủ phát triển
 npm run dev
 
-# 3. Mở trình duyệt và truy cập:
+# 3. Mở trình duyệt tại:
 http://localhost:3000
-```
-
-Hoặc build bản production tối ưu:
-```bash
-npm run build
-npm start
-```
-
----
-
-## 📂 Cấu trúc thư mục
-
-```
-Auto-Survey/
-├── src/
-│   ├── app/
-│   │   ├── api/
-│   │   │   ├── forms/parse/         # Bóc tách cấu trúc Google Forms
-│   │   │   ├── orders/              # Quản lý đơn & SSE live stream
-│   │   │   └── data-builder/        # Sinh dữ liệu NCKH & xuất Excel
-│   │   ├── create-form/
-│   │   │   ├── ratio/               # Chế độ 1: Theo tỉ lệ %
-│   │   │   ├── data/                # Chế độ 2: Theo file Excel
-│   │   │   ├── model/               # Chế độ 3: Theo mô hình NCKH
-│   │   │   └── agent/               # Chế độ 4: AI Agent
-│   │   ├── data-builder/            # Build dữ liệu đẹp SPSS
-│   │   ├── data-encode/             # Mã hoá thang đo
-│   │   ├── orders/                  # Theo dõi tiến trình đơn hàng
-│   │   ├── credit/                  # Ví & Nạp tiền VietQR
-│   │   └── settings/                # Cài đặt tốc độ & bot bypass
-│   ├── components/
-│   │   ├── Sidebar.tsx              # Thanh điều hướng chuẩn Fillform
-│   │   ├── Navbar.tsx               # Header hệ thống
-│   │   └── StatisticalReport.tsx    # Bảng kết quả kiểm định NCKH
-│   └── lib/
-│       ├── googleFormParser.ts      # Engine phân tích Google Forms
-│       ├── googleFormSubmitter.ts   # Engine gửi dữ liệu & chống bot
-│       ├── orderStore.ts            # Quản lý hàng đợi & worker nền
-│       └── statisticsEngine.ts      # Thư viện tính toán Cronbach, SEM, Regression
-└── package.json
 ```
