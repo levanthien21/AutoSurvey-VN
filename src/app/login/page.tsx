@@ -28,6 +28,7 @@ import {
   isFirebaseConfigured,
   saveUserToFirestore,
   sendPasswordResetEmailFirebase,
+  registerWithEmailFirebase,
 } from '@/lib/firebase';
 
 // Google 4-Color SVG Icon
@@ -76,13 +77,9 @@ function LoginFormContent() {
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [notRegistered, setNotRegistered] = useState(false);
 
-  // Forgot Password Detailed Flow States
-  const [forgotStep, setForgotStep] = useState<'request' | 'verify' | 'google'>('request');
-  const [forgotOtp, setForgotOtp] = useState('');
-  const [enteredOtp, setEnteredOtp] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmNewPassword, setConfirmNewPassword] = useState('');
-  const [googleInfoMsg, setGoogleInfoMsg] = useState<string | null>(null);
+  // Firebase Password Reset State (100% Secure via Google Firebase)
+  const [forgotSent, setForgotSent] = useState(false);
+  const [forgotSentEmail, setForgotSentEmail] = useState('');
 
   // Firebase Official Config Setup Modal State
   const [showConfigModal, setShowConfigModal] = useState(false);
@@ -90,6 +87,13 @@ function LoginFormContent() {
   const [cfgProjectId, setCfgProjectId] = useState('');
   const [cfgAuthDomain, setCfgAuthDomain] = useState('');
   const [savingConfig, setSavingConfig] = useState(false);
+
+  // Check query params on mount
+  useEffect(() => {
+    if (searchParams.get('reset') === 'success') {
+      setSuccessMsg('Mật khẩu tài khoản đã được đặt lại thành công qua Google Firebase! Vui lòng đăng nhập với mật khẩu mới.');
+    }
+  }, [searchParams]);
 
   // Check redirect result on mount (for mobile flow)
   useEffect(() => {
@@ -142,6 +146,10 @@ function LoginFormContent() {
       const registerEmail = email.trim() || (username.includes('@') ? username : `${username}@autosurvey.vn`);
       const res = await register(username, registerEmail, password);
       if (res.success) {
+        // Also register with Firebase Auth so Firebase password reset is enabled
+        if (registerEmail.includes('@')) {
+          registerWithEmailFirebase(registerEmail, password).catch(() => {});
+        }
         setSuccessMsg('Đăng ký tài khoản thành công! Tặng ngay 50.000 Credits.');
         setTimeout(() => {
           router.push('/');
@@ -150,99 +158,30 @@ function LoginFormContent() {
         setErrorMsg(res.error || 'Đăng ký không thành công');
       }
     } else if (mode === 'forgot') {
-      if (forgotStep === 'request') {
-        const targetAccount = (email || username).trim();
-        if (!targetAccount) {
-          setErrorMsg('Vui lòng nhập Email hoặc Tên đăng nhập của bạn.');
-          setLoading(false);
-          return;
+      const targetEmail = (email || username).trim();
+      if (!targetEmail) {
+        setErrorMsg('Vui lòng nhập địa chỉ Email tài khoản của bạn.');
+        setLoading(false);
+        return;
+      }
+
+      if (!targetEmail.includes('@')) {
+        setErrorMsg('Vui lòng nhập đúng định dạng Email (ví dụ: name@gmail.com).');
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const fbRes = await sendPasswordResetEmailFirebase(targetEmail);
+        if (fbRes.success) {
+          setForgotSentEmail(targetEmail);
+          setForgotSent(true);
+          setErrorMsg(null);
+        } else {
+          setErrorMsg(fbRes.error || 'Không thể gửi email đặt lại mật khẩu qua Firebase.');
         }
-
-        try {
-          const res = await fetch('/api/auth/forgot-password', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ account: targetAccount }),
-          });
-          const data = await res.json();
-
-          if (!data.success) {
-            setErrorMsg(data.error || 'Không tìm thấy tài khoản tương ứng.');
-            setLoading(false);
-            return;
-          }
-
-          if (data.isGoogle) {
-            setGoogleInfoMsg(data.message);
-            setForgotStep('google');
-            setLoading(false);
-            return;
-          }
-
-          // If target is email, also trigger Firebase reset email if possible
-          if (targetAccount.includes('@')) {
-            sendPasswordResetEmailFirebase(targetAccount).catch(() => {});
-          }
-
-          // Has OTP
-          setForgotOtp(data.otp);
-          setEnteredOtp(data.otp);
-          setSuccessMsg(
-            `Hệ thống đã tạo mã xác thực khôi phục mật khẩu cho tài khoản ${data.username || targetAccount}!`
-          );
-          setForgotStep('verify');
-        } catch (err: any) {
-          setErrorMsg(err.message || 'Lỗi khi gửi yêu cầu khôi phục mật khẩu.');
-        }
-      } else if (forgotStep === 'verify') {
-        if (!enteredOtp.trim()) {
-          setErrorMsg('Vui lòng nhập mã xác thực OTP 6 số.');
-          setLoading(false);
-          return;
-        }
-        if (!newPassword || newPassword.length < 6) {
-          setErrorMsg('Mật khẩu mới phải có tối thiểu 6 ký tự.');
-          setLoading(false);
-          return;
-        }
-        if (newPassword !== confirmNewPassword) {
-          setErrorMsg('Mật khẩu xác nhận không khớp.');
-          setLoading(false);
-          return;
-        }
-
-        try {
-          const targetAccount = (email || username).trim();
-          const res = await fetch('/api/auth/reset-password', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              account: targetAccount,
-              otp: enteredOtp,
-              newPassword,
-            }),
-          });
-          const data = await res.json();
-
-          if (!data.success) {
-            setErrorMsg(data.error || 'Cập nhật mật khẩu thất bại.');
-            setLoading(false);
-            return;
-          }
-
-          setSuccessMsg('Đổi mật khẩu thành công! Vui lòng đăng nhập với mật khẩu mới.');
-          setTimeout(() => {
-            setMode('login');
-            setForgotStep('request');
-            setPassword('');
-            setConfirmPassword('');
-            if (data.username) {
-              setUsername(data.username);
-            }
-          }, 1200);
-        } catch (err: any) {
-          setErrorMsg(err.message || 'Lỗi khi cập nhật mật khẩu mới.');
-        }
+      } catch (err: any) {
+        setErrorMsg(err.message || 'Lỗi khi gửi yêu cầu khôi phục mật khẩu qua Firebase.');
       }
     }
     setLoading(false);
@@ -421,22 +360,18 @@ function LoginFormContent() {
                     ? 'Đăng nhập'
                     : mode === 'register'
                     ? 'Đăng ký tài khoản'
-                    : forgotStep === 'verify'
-                    ? 'Đặt lại mật khẩu'
-                    : forgotStep === 'google'
-                    ? 'Tài khoản Google'
-                    : 'Khôi phục mật khẩu'}
+                    : forgotSent
+                    ? 'Kiểm tra hộp thư'
+                    : 'Khôi phục mật khẩu qua Firebase'}
                 </h2>
                 <p className="text-xs sm:text-sm text-slate-400 mt-1 font-normal">
                   {mode === 'login'
                     ? 'Vui lòng đăng nhập để tiếp tục sử dụng dịch vụ'
                     : mode === 'register'
                     ? 'Vui lòng điền thông tin để tạo tài khoản mới'
-                    : forgotStep === 'verify'
-                    ? 'Nhập mã xác thực OTP 6 số và đặt mật khẩu mới cho tài khoản'
-                    : forgotStep === 'google'
-                    ? 'Tài khoản này được xác thực trực tiếp qua Google'
-                    : 'Nhập email hoặc tên đăng nhập để nhận thông báo và mã khôi phục'}
+                    : forgotSent
+                    ? 'Liên kết khôi phục an toàn đã được gửi trực tiếp từ Google Firebase'
+                    : 'Nhập địa chỉ email của bạn để nhận liên kết đặt lại mật khẩu từ Firebase'}
                 </p>
               </div>
 
@@ -484,133 +419,62 @@ function LoginFormContent() {
                 </div>
               )}
 
-              {/* FORGOT PASSWORD: STEP GOOGLE */}
-              {mode === 'forgot' && forgotStep === 'google' ? (
-                <div className="space-y-4">
-                  <div className="p-4 rounded-2xl bg-blue-50/80 border border-blue-200 text-blue-900 text-xs space-y-2">
-                    <div className="flex items-center gap-2 font-bold text-sm">
-                      <GoogleIcon className="w-5 h-5 shrink-0" />
-                      <span>Tài khoản liên kết Google</span>
+              {/* FORGOT PASSWORD: SUCCESS CONFIRMATION CARD */}
+              {mode === 'forgot' && forgotSent ? (
+                <div className="space-y-5 animate-fadeIn">
+                  <div className="p-5 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-950 text-xs space-y-3 text-left">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-9 h-9 rounded-xl bg-emerald-500 text-white flex items-center justify-center shrink-0 shadow-sm">
+                        <CheckCircle2 className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <h4 className="font-extrabold text-sm text-emerald-900">
+                          Đã gửi email khôi phục thành công!
+                        </h4>
+                        <span className="text-[11px] text-emerald-700">Google Firebase Authentication</span>
+                      </div>
                     </div>
-                    <p className="text-slate-600 leading-relaxed">
-                      {googleInfoMsg ||
-                        'Tài khoản này đã được liên kết với Google. Bạn có thể đăng nhập ngay mà không cần mật khẩu.'}
-                    </p>
-                  </div>
 
-                  <button
-                    type="button"
-                    onClick={handleGoogleSignIn}
-                    className="w-full h-12 rounded-xl bg-white hover:bg-slate-50 border border-slate-200 flex items-center justify-center gap-3 text-sm font-semibold text-slate-800 shadow-xs transition-all"
-                  >
-                    <GoogleIcon className="w-5 h-5 shrink-0" />
-                    <span>Đăng nhập tiếp tục với Google</span>
-                  </button>
+                    <p className="text-slate-700 leading-relaxed text-xs">
+                      Hệ thống bảo mật Firebase đã gửi thư chứa liên kết đặt lại mật khẩu an toàn trực tiếp đến:
+                      <br />
+                      <strong className="text-emerald-900 font-mono text-sm block mt-1">{forgotSentEmail}</strong>
+                    </p>
+
+                    <div className="pt-2 border-t border-emerald-200/80 space-y-1.5 text-[11px] text-slate-600">
+                      <p className="font-bold text-slate-800">Các bước tiếp theo:</p>
+                      <p>1. Mở ứng dụng Gmail hoặc hòm thư của bạn.</p>
+                      <p>2. Tìm thư có tiêu đề <strong>"Reset your password for AutoSurvey VN"</strong> (kiểm tra cả mục Spam / Thư rác nếu cần).</p>
+                      <p>3. Bấm vào liên kết trong email để đặt lại mật khẩu mới bảo mật.</p>
+                    </div>
+                  </div>
 
                   <button
                     type="button"
                     onClick={() => {
                       setMode('login');
-                      setForgotStep('request');
+                      setForgotSent(false);
                       setErrorMsg(null);
                     }}
-                    className="w-full h-10 text-xs font-semibold text-slate-500 hover:text-slate-800 transition-colors"
+                    className="w-full h-12 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-black text-sm shadow-md shadow-blue-500/20 active:scale-95 transition-all flex items-center justify-center gap-2"
                   >
-                    ← Quay lại trang Đăng nhập
+                    <LogIn className="w-4 h-4" />
+                    <span>Quay lại trang Đăng nhập</span>
                   </button>
+
+                  <div className="text-center pt-1">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setForgotSent(false);
+                        setErrorMsg(null);
+                      }}
+                      className="text-xs text-slate-500 hover:text-blue-600 font-medium transition-colors"
+                    >
+                      ← Nhập lại địa chỉ email khác
+                    </button>
+                  </div>
                 </div>
-              ) : mode === 'forgot' && forgotStep === 'verify' ? (
-                /* FORGOT PASSWORD: STEP VERIFY OTP & SET NEW PASSWORD */
-                <form onSubmit={handleSubmit} className="space-y-4">
-                  <div className="p-3.5 rounded-2xl bg-amber-50 border border-amber-200 text-amber-950 text-xs space-y-1 text-left">
-                    <div className="flex items-center justify-between">
-                      <span className="font-extrabold text-amber-900 uppercase tracking-wide text-[10px]">
-                        Mã xác thực OTP của bạn
-                      </span>
-                      <span className="text-[10px] bg-amber-200/60 text-amber-800 font-bold px-1.5 py-0.5 rounded">
-                        Có hiệu lực 15 phút
-                      </span>
-                    </div>
-                    <div className="text-xl font-mono font-black text-amber-900 tracking-wider">
-                      {forgotOtp}
-                    </div>
-                    <p className="text-[11px] text-amber-800">
-                      Hệ thống đã tự động điền mã bảo mật. Vui lòng nhập mật khẩu mới bên dưới:
-                    </p>
-                  </div>
-
-                  {/* OTP Input */}
-                  <div className="relative rounded-xl border border-slate-200 bg-white hover:border-slate-300 focus-within:border-blue-600 focus-within:ring-4 focus-within:ring-blue-500/10 transition-all">
-                    <KeyRound className="w-5 h-5 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                    <input
-                      type="text"
-                      required
-                      placeholder="Mã xác thực OTP"
-                      value={enteredOtp}
-                      onChange={(e) => setEnteredOtp(e.target.value)}
-                      className="w-full h-12 pl-11 pr-4 text-sm font-mono font-bold text-slate-900 placeholder:text-slate-400 bg-transparent focus:outline-none tracking-widest"
-                      maxLength={6}
-                    />
-                  </div>
-
-                  {/* New Password */}
-                  <div className="relative rounded-xl border border-slate-200 bg-white hover:border-slate-300 focus-within:border-blue-600 focus-within:ring-4 focus-within:ring-blue-500/10 transition-all">
-                    <Lock className="w-5 h-5 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                    <input
-                      type={showPassword ? 'text' : 'password'}
-                      required
-                      placeholder="Mật khẩu mới (tối thiểu 6 ký tự)"
-                      value={newPassword}
-                      onChange={(e) => setNewPassword(e.target.value)}
-                      className="w-full h-12 pl-11 pr-11 text-sm font-medium text-slate-900 placeholder:text-slate-400 bg-transparent focus:outline-none"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors p-1"
-                    >
-                      {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                    </button>
-                  </div>
-
-                  {/* Confirm New Password */}
-                  <div className="relative rounded-xl border border-slate-200 bg-white hover:border-slate-300 focus-within:border-blue-600 focus-within:ring-4 focus-within:ring-blue-500/10 transition-all">
-                    <Lock className="w-5 h-5 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                    <input
-                      type={showConfirmPassword ? 'text' : 'password'}
-                      required
-                      placeholder="Xác nhận mật khẩu mới"
-                      value={confirmNewPassword}
-                      onChange={(e) => setConfirmNewPassword(e.target.value)}
-                      className="w-full h-12 pl-11 pr-11 text-sm font-medium text-slate-900 placeholder:text-slate-400 bg-transparent focus:outline-none"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                      className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors p-1"
-                    >
-                      {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                    </button>
-                  </div>
-
-                  <button
-                    type="submit"
-                    disabled={loading}
-                    className="w-full h-12 rounded-xl bg-blue-600 hover:bg-blue-700 active:bg-blue-800 disabled:opacity-60 text-white font-semibold text-sm sm:text-base flex items-center justify-center gap-2 shadow-md shadow-blue-500/20 active:scale-[0.99] transition-all"
-                  >
-                    {loading ? <span>Đang xử lý...</span> : <span>Cập nhật mật khẩu mới</span>}
-                  </button>
-
-                  <div className="pt-2 text-center">
-                    <button
-                      type="button"
-                      onClick={() => setForgotStep('request')}
-                      className="text-xs text-slate-500 hover:text-slate-800 font-medium transition-colors"
-                    >
-                      ← Gửi lại mã hoặc đổi tài khoản
-                    </button>
-                  </div>
-                </form>
               ) : (
                 /* MAIN FORM: LOGIN / REGISTER / FORGOT REQUEST */
                 <form onSubmit={handleSubmit} className="space-y-4">
@@ -629,22 +493,22 @@ function LoginFormContent() {
                     </div>
                   )}
 
-                  {/* Email / Username / Phone Field */}
+                  {/* Email / Username Field */}
                   <div className="relative rounded-xl border border-slate-200 bg-white hover:border-slate-300 focus-within:border-blue-600 focus-within:ring-4 focus-within:ring-blue-500/10 transition-all">
                     <Mail className="w-5 h-5 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                     <input
-                      type={mode === 'forgot' ? 'text' : mode === 'register' ? 'email' : 'text'}
+                      type={mode === 'forgot' ? 'email' : mode === 'register' ? 'email' : 'text'}
                       required
                       placeholder={
                         mode === 'login'
                           ? 'Email hoặc tên đăng nhập'
                           : mode === 'register'
                           ? 'Email của bạn'
-                          : 'Nhập email hoặc tên đăng nhập tài khoản'
+                          : 'Nhập địa chỉ Email tài khoản (ví dụ: name@gmail.com)'
                       }
-                      value={mode === 'register' ? email : username}
+                      value={mode === 'register' || mode === 'forgot' ? email : username}
                       onChange={(e) => {
-                        if (mode === 'register') {
+                        if (mode === 'register' || mode === 'forgot') {
                           setEmail(e.target.value);
                         } else {
                           setUsername(e.target.value);
@@ -717,7 +581,7 @@ function LoginFormContent() {
                         type="button"
                         onClick={() => {
                           setMode('forgot');
-                          setForgotStep('request');
+                          setForgotSent(false);
                           setErrorMsg(null);
                           setSuccessMsg(null);
                         }}
@@ -744,7 +608,7 @@ function LoginFormContent() {
                             ? 'Đăng nhập'
                             : mode === 'register'
                             ? 'Đăng ký tài khoản'
-                            : 'Gửi yêu cầu khôi phục'}
+                            : 'Gửi email đặt lại mật khẩu'}
                         </span>
                       </>
                     )}
@@ -816,7 +680,7 @@ function LoginFormContent() {
                           type="button"
                           onClick={() => {
                             setMode('login');
-                            setForgotStep('request');
+                            setForgotSent(false);
                             setErrorMsg(null);
                           }}
                           className="text-blue-600 font-semibold hover:underline transition-colors"

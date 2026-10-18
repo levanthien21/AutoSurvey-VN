@@ -192,21 +192,25 @@ export default function Navbar() {
             </button>
           </div>
         ) : (
-          /* Guest Actions */
-          <div className="flex items-center gap-1 sm:gap-2 pl-2 border-l border-slate-200/80">
+          /* Guest Actions: High-contrast, bold, prominent buttons */
+          <div className="flex items-center gap-2 pl-2 sm:pl-3 border-l border-slate-200/80">
+            {/* Đăng nhập button: Solid white surface, 2px border, rich dark text, vibrant blue icon */}
             <Link
               href="/login"
-              className="inline-flex items-center gap-1 text-xs font-bold text-slate-700 hover:text-blue-600 px-2.5 sm:px-3 py-2 rounded-xl hover:bg-slate-100/90 transition-colors"
+              className="inline-flex items-center gap-1.5 sm:gap-2 bg-white hover:bg-blue-50/70 text-slate-900 hover:text-blue-700 text-xs font-black px-3 sm:px-4 py-2 rounded-2xl border-2 border-slate-300 hover:border-blue-600 shadow-xs hover:shadow-md transition-all active:scale-95 shrink-0"
+              title="Đăng nhập tài khoản"
             >
-              <LogIn className="w-3.5 h-3.5" />
+              <LogIn className="w-3.5 h-3.5 text-blue-600 shrink-0" />
               <span>Đăng nhập</span>
             </Link>
 
+            {/* Đăng ký button: Premium gradient with shadow */}
             <Link
               href="/login?tab=register"
-              className="inline-flex items-center gap-1 text-xs font-black text-white bg-slate-900 hover:bg-slate-800 px-3 sm:px-3.5 py-2 rounded-xl shadow-xs transition-all hover:scale-[1.02] active:scale-[0.98]"
+              className="inline-flex items-center gap-1.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white text-xs font-black px-3.5 sm:px-4 py-2 rounded-2xl shadow-md shadow-blue-500/20 hover:scale-[1.02] active:scale-95 transition-all shrink-0"
+              title="Đăng ký tài khoản mới"
             >
-              <UserPlus className="w-3.5 h-3.5 text-blue-300" />
+              <UserPlus className="w-3.5 h-3.5 text-blue-200 shrink-0" />
               <span className="hidden sm:inline">Đăng ký</span>
             </Link>
           </div>

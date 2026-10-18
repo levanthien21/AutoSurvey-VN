@@ -250,19 +250,35 @@ export async function saveUserToFirestore(userData: {
  */
 export async function sendPasswordResetEmailFirebase(email: string): Promise<{ success: boolean; error?: string }> {
   try {
-    await sendPasswordResetEmail(auth, email.trim());
+    const actionCodeSettings = {
+      url: typeof window !== 'undefined' ? `${window.location.origin}/login?reset=success` : 'https://auto-survey-vn.vercel.app/login?reset=success',
+      handleCodeInApp: false,
+    };
+    await sendPasswordResetEmail(auth, email.trim(), actionCodeSettings);
     return { success: true };
   } catch (err: any) {
     console.error('Firebase sendPasswordResetEmail Error:', err);
     let msg = 'Không thể gửi email đặt lại mật khẩu qua Firebase.';
     if (err.code === 'auth/user-not-found') {
-      msg = 'Email chưa được đăng ký trong hệ thống Firebase Auth.';
+      msg = 'Email này chưa được đăng ký trong hệ thống Firebase Auth. Vui lòng kiểm tra lại địa chỉ email hoặc đăng ký tài khoản mới.';
     } else if (err.code === 'auth/invalid-email') {
-      msg = 'Địa chỉ Email không đúng định dạng.';
+      msg = 'Địa chỉ Email không đúng định dạng. Vui lòng nhập đúng định dạng email (ví dụ: name@gmail.com).';
     } else if (err.code === 'auth/too-many-requests') {
-      msg = 'Bạn đã gửi yêu cầu quá nhiều lần. Vui lòng thử lại sau vài phút.';
+      msg = 'Bạn đã gửi yêu cầu quá nhiều lần. Vui lòng đợi vài phút rồi thử lại để đảm bảo an toàn.';
     }
     return { success: false, error: msg };
+  }
+}
+
+/**
+ * Register account with Email and Password directly on Firebase Auth
+ */
+export async function registerWithEmailFirebase(email: string, password: string): Promise<{ success: boolean; error?: string }> {
+  try {
+    await createUserWithEmailAndPassword(auth, email.trim(), password);
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err.message };
   }
 }
 
