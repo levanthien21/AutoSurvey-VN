@@ -298,7 +298,7 @@ function LoginFormContent() {
         <div className="lg:hidden w-full text-center mb-1">
           <Link href="/" className="inline-flex items-center gap-2.5 group">
             <div className="w-10 h-10 min-w-[40px] max-w-[40px] h-[40px] max-h-[40px] rounded-xl bg-white p-1 border border-slate-200/90 shadow-2xs flex items-center justify-center shrink-0 overflow-hidden">
-              <img src="/logo.png" alt="AutoSurvey VN Logo" width={32} height={32} className="w-8 h-8 max-w-full max-h-full object-contain" />
+              <img src="/logo.svg" alt="AutoSurvey VN Logo" width={32} height={32} className="w-8 h-8 max-w-full max-h-full object-contain" />
             </div>
             <span className="font-black text-2xl text-slate-900 tracking-tight">
               AutoSurvey <span className="text-blue-600">VN</span>
@@ -317,7 +317,7 @@ function LoginFormContent() {
           <Link href="/" className="inline-flex items-center gap-3.5 group">
             <div className="w-12 h-12 min-w-[48px] max-w-[48px] h-[48px] max-h-[48px] rounded-2xl bg-white p-1.5 shadow-sm border border-slate-200/90 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform overflow-hidden">
               <img
-                src="/logo.png"
+                src="/logo.svg"
                 alt="AutoSurvey VN Logo"
                 width={36}
                 height={36}

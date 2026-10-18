@@ -1,0 +1,82 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none" shape-rendering="geometricPrecision" text-rendering="geometricPrecision">
+  <defs>
+    <linearGradient id="orangeGrad" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stopColor="#f97316"/>
+      <stop offset="100%" stopColor="#ea580c"/>
+    </linearGradient>
+    <linearGradient id="greenGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stopColor="#22c55e"/>
+      <stop offset="100%" stopColor="#16a34a"/>
+    </linearGradient>
+    <linearGradient id="blueBarGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stopColor="#1e3a8a"/>
+      <stop offset="100%" stopColor="#0f172a"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Left Orbit Swoosh Arc with Node -->
+  <path d="M 125 190 C 70 240, 55 330, 95 390 C 115 420, 145 440, 190 445" 
+        stroke="#102a45" stroke-width="8" stroke-linecap="round" fill="none"/>
+  <circle cx="85" cy="350" r="14" fill="#102a45"/>
+
+  <!-- Top Right Orbit Accent Swooshes -->
+  <path d="M 305 60 C 370 65, 425 105, 440 145" 
+        stroke="#f97316" stroke-width="7" stroke-linecap="round" fill="none"/>
+  <path d="M 320 85 C 380 95, 425 130, 440 170" 
+        stroke="#102a45" stroke-width="8" stroke-linecap="round" fill="none"/>
+
+  <!-- Main Clipboard Body Base (Navy Blue) -->
+  <rect x="115" y="75" width="250" height="365" rx="36" fill="#102a45"/>
+
+  <!-- Top Clip Base -->
+  <path d="M 175 75 L 175 60 C 175 42, 190 28, 210 28 L 270 28 C 290 28, 305 42, 305 60 L 305 75 Z" fill="#102a45"/>
+  <!-- Top Clip Ring Handle -->
+  <circle cx="240" cy="50" r="15" fill="white"/>
+
+  <!-- Paper Sheet (Clean Crisp Surface) -->
+  <rect x="135" y="95" width="210" height="325" rx="20" fill="#ffffff"/>
+
+  <!-- Paper Header Clip Shadow Line -->
+  <rect x="175" y="75" width="130" height="28" rx="10" fill="#102a45"/>
+
+  <!-- Document Line 1 with Dark Dot -->
+  <circle cx="165" cy="145" r="12" fill="#102a45"/>
+  <rect x="190" y="140" width="65" height="10" rx="5" fill="#102a45"/>
+
+  <!-- Document Line 2 with Dark Dot -->
+  <circle cx="165" cy="190" r="12" fill="#102a45"/>
+  <rect x="190" y="185" width="48" height="10" rx="5" fill="#102a45"/>
+
+  <!-- Document Line 3 with Vibrant Orange Dot -->
+  <circle cx="165" cy="235" r="12" fill="#f97316"/>
+  <rect x="190" y="230" width="52" height="10" rx="5" fill="#102a45"/>
+
+  <!-- Bar Chart: Ascending Heights at bottom right -->
+  <!-- Bar 1 (Shortest Navy) -->
+  <rect x="200" y="380" width="40" height="50" rx="4" fill="url(#blueBarGrad)"/>
+  <!-- Bar 2 (Medium Navy) -->
+  <rect x="250" y="355" width="40" height="75" rx="4" fill="url(#blueBarGrad)"/>
+  <!-- Bar 3 (Tall Navy) -->
+  <rect x="305" y="325" width="40" height="105" rx="4" fill="url(#blueBarGrad)"/>
+  <!-- Bar 4 (Tallest Vibrant Orange Hero Bar) -->
+  <rect x="360" y="275" width="40" height="155" rx="4" fill="url(#orangeGrad)"/>
+  <!-- Base Ground Line -->
+  <rect x="170" y="425" width="245" height="10" rx="4" fill="#102a45"/>
+
+  <!-- Large Vibrant Green Verification Checkmark Badge -->
+  <g transform="translate(315, 205)">
+    <!-- White outer background glow to separate from paper -->
+    <circle cx="0" cy="0" r="68" fill="#ffffff"/>
+    <!-- Crisp Green Circle Border -->
+    <circle cx="0" cy="0" r="62" stroke="url(#greenGrad)" stroke-width="15" fill="#ffffff"/>
+    <!-- Inner Bold Green Checkmark -->
+    <path d="M -26 2 L -7 22 L 28 -18" 
+          stroke="url(#greenGrad)" stroke-width="18" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  </g>
+
+  <!-- Dynamic Sweeping Growth Arrow (Orange Swoosh Across Chart) -->
+  <path d="M 140 375 Q 260 345, 400 240" 
+        stroke="url(#orangeGrad)" stroke-width="11" stroke-linecap="round" fill="none"/>
+  <!-- Arrowhead at (425, 220) pointing up-right -->
+  <polygon points="432,220 395,232 408,262" fill="url(#orangeGrad)"/>
+</svg>

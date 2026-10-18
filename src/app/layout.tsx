@@ -11,7 +11,10 @@ export const metadata: Metadata = {
   description:
     'Giải cứu deadline luận văn! Dịch vụ tăng lượt điền khảo sát Google/MS Form siêu tốc. Data giả lập người thật, chuẩn SPSS (Alpha > 0.8). Hỗ trợ 24/7 - Uy tín - Bảo hành data.',
   icons: {
-    icon: '/logo.png',
+    icon: [
+      { url: '/logo.svg', type: 'image/svg+xml' },
+      { url: '/logo.png', type: 'image/png' },
+    ],
     apple: '/logo.png',
   },
 };

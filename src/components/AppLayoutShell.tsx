@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import Sidebar from '@/components/Sidebar';
 import Navbar from '@/components/Navbar';
 import MobileBottomNav from '@/components/MobileBottomNav';
+import FloatingFanpageWidget from '@/components/FloatingFanpageWidget';
 
 export default function AppLayoutShell({
   children,
@@ -18,6 +19,7 @@ export default function AppLayoutShell({
     return (
       <div className="min-h-screen w-full flex flex-col bg-[#f8fbff] text-slate-800 antialiased">
         {children}
+        <FloatingFanpageWidget />
       </div>
     );
   }
@@ -31,6 +33,7 @@ export default function AppLayoutShell({
           {children}
         </main>
         <MobileBottomNav />
+        <FloatingFanpageWidget />
       </div>
     </div>
   );

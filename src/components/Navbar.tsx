@@ -43,29 +43,23 @@ export default function Navbar() {
           <Menu className="w-5 h-5" />
         </button>
 
-        {/* Brand identity mark */}
-        <Link href="/" className="flex items-center gap-2.5 group shrink-0">
-          <div className="w-9 h-9 rounded-xl bg-white p-1 border border-slate-200/90 shadow-2xs flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
-            <img src="/logo.png" alt="AutoSurvey VN" className="w-full h-full object-contain" />
+        {/* Brand identity mark (visible ONLY on mobile/tablet when sidebar is hidden - avoids desktop duplicate) */}
+        <Link href="/" className="flex lg:hidden items-center gap-2 group shrink-0">
+          <div className="w-8 h-8 rounded-xl bg-white p-1 border border-slate-200/90 shadow-2xs flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+            <img src="/logo.svg" alt="AutoSurvey VN" className="w-full h-full object-contain" />
           </div>
-          <div className="hidden sm:block">
-            <div className="flex items-center gap-1.5">
-              <span className="font-black text-sm tracking-tight text-slate-900 group-hover:text-blue-600 transition-colors">
-                AutoSurvey <span className="text-orange-500">VN</span>
-              </span>
-              <span className="text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-md bg-blue-50 text-blue-700 border border-blue-200/70">
-                AI 2.5
-              </span>
-            </div>
-            <div className="flex items-center gap-1.5 text-[10px] text-slate-400 font-medium">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-              <span>Hệ thống sẵn sàng</span>
-            </div>
+          <div className="flex items-center gap-1.5">
+            <span className="font-black text-xs sm:text-sm tracking-tight text-slate-900 group-hover:text-blue-600 transition-colors">
+              AutoSurvey <span className="text-orange-500">VN</span>
+            </span>
+            <span className="text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-md bg-blue-50 text-blue-700 border border-blue-200/70">
+              AI 2.5
+            </span>
           </div>
         </Link>
 
         {/* Quick Nav Links (Desktop) */}
-        <nav className="hidden xl:flex items-center gap-1 pl-4 border-l border-slate-200/80">
+        <nav className="hidden lg:flex items-center gap-1">
           <Link
             href="/create-form"
             className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
@@ -104,8 +98,21 @@ export default function Navbar() {
         </nav>
       </div>
 
-      {/* Right: High-Converting Deposit Button, Primary Action & User Profile */}
+      {/* Right: Fanpage Link, Deposit Button, Primary Action & User Profile */}
       <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+        {/* FACEBOOK FANPAGE LINK */}
+        <a
+          href="https://www.facebook.com/profile.php?id=61592111095108"
+          target="_blank"
+          rel="noopener noreferrer"
+          title="Truy cập Fanpage AutoSurvey VN trên Facebook"
+          className="inline-flex items-center gap-1.5 bg-[#1877F2]/10 hover:bg-[#1877F2]/15 text-[#1877F2] text-xs font-bold px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-xl sm:rounded-2xl border border-[#1877F2]/30 hover:border-[#1877F2] transition-all hover:scale-[1.02] active:scale-95 shrink-0"
+        >
+          <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4 fill-[#1877F2] shrink-0" viewBox="0 0 24 24">
+            <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
+          </svg>
+          <span className="hidden md:inline font-bold">Fanpage</span>
+        </a>
         {/* NẠP TIỀN BUTTON (BẮT BUỘC, NỔI BẬT VỚI HIỆU ỨNG FINTECH SHINE) */}
         {!user && !loading && (
           <Link

@@ -55,6 +55,60 @@ interface OrderItem {
   createdAt: string;
 }
 
+const BELL_CURVE_DATA = {
+  positive: {
+    name: 'Lệch dương 70% (Tích cực)',
+    mean: 'μ = 4.22',
+    sd: 'σ = 0.74',
+    skew: 'Lệch phải (Skew < 0)',
+    desc: 'Tập trung chủ yếu mức 4 (Hài lòng) và 5 (Rất hài lòng)',
+    peakX: 148,
+    pathD: 'M 10 70 Q 70 68 100 52 Q 125 36 148 12 Q 170 34 184 56 Q 192 68 195 70',
+    fillD: 'M 10 70 Q 70 68 100 52 Q 125 36 148 12 Q 170 34 184 56 Q 192 68 195 70 L 195 75 L 10 75 Z',
+    bars: [
+      { level: '1', pct: 4, label: 'Rất kém', color: 'from-rose-400 to-rose-500' },
+      { level: '2', pct: 8, label: 'Kém', color: 'from-amber-400 to-amber-500' },
+      { level: '3', pct: 18, label: 'Bình thường', color: 'from-blue-400 to-blue-500' },
+      { level: '4', pct: 46, label: 'Hài lòng', color: 'from-cyan-500 to-blue-600' },
+      { level: '5', pct: 24, label: 'Rất hài lòng', color: 'from-emerald-500 to-teal-600' },
+    ],
+  },
+  normal: {
+    name: 'Chuẩn Gauss (Đối xứng)',
+    mean: 'μ = 3.00',
+    sd: 'σ = 0.85',
+    skew: 'Đối xứng (Skew = 0)',
+    desc: 'Phân bố hình chuông hoàn hảo quanh mức 3 (Trung lập)',
+    peakX: 100,
+    pathD: 'M 10 70 Q 45 68 70 48 Q 100 12 130 48 Q 155 68 190 70',
+    fillD: 'M 10 70 Q 45 68 70 48 Q 100 12 130 48 Q 155 68 190 70 L 190 75 L 10 75 Z',
+    bars: [
+      { level: '1', pct: 10, label: 'Rất kém', color: 'from-rose-400 to-rose-500' },
+      { level: '2', pct: 22, label: 'Kém', color: 'from-amber-400 to-amber-500' },
+      { level: '3', pct: 36, label: 'Bình thường', color: 'from-blue-500 to-indigo-600' },
+      { level: '4', pct: 22, label: 'Hài lòng', color: 'from-cyan-500 to-blue-600' },
+      { level: '5', pct: 10, label: 'Rất hài lòng', color: 'from-emerald-500 to-teal-600' },
+    ],
+  },
+  balanced: {
+    name: 'Phân bổ đều (Uniform)',
+    mean: 'μ = 3.00',
+    sd: 'σ = 1.41',
+    skew: 'Cân bằng phẳng',
+    desc: 'Tỉ lệ 20% chia đều cho tất cả 5 mức trả lời Likert',
+    peakX: 100,
+    pathD: 'M 10 70 Q 25 40 45 38 L 155 38 Q 175 40 190 70',
+    fillD: 'M 10 70 Q 25 40 45 38 L 155 38 Q 175 40 190 70 L 190 75 L 10 75 Z',
+    bars: [
+      { level: '1', pct: 20, label: 'Rất kém', color: 'from-rose-400 to-rose-500' },
+      { level: '2', pct: 20, label: 'Kém', color: 'from-amber-400 to-amber-500' },
+      { level: '3', pct: 20, label: 'Bình thường', color: 'from-blue-400 to-blue-500' },
+      { level: '4', pct: 20, label: 'Hài lòng', color: 'from-cyan-500 to-blue-600' },
+      { level: '5', pct: 20, label: 'Rất hài lòng', color: 'from-emerald-500 to-teal-600' },
+    ],
+  },
+};
+
 export default function HomePage() {
   const router = useRouter();
   const { user, openAuthModal } = useAuth();
@@ -176,16 +230,16 @@ export default function HomePage() {
             {/* Top Multi-Colored Tech Badge Row */}
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="inline-flex items-center gap-2.5 px-3.5 py-1.5 rounded-full bg-slate-900 text-white text-xs font-semibold shadow-md">
-                <div className="w-5 h-5 rounded-full bg-white p-0.5 flex items-center justify-center shrink-0">
-                  <img src="/logo.png" alt="AutoSurvey VN" className="w-full h-full object-contain" />
-                </div>
-                <span className="font-extrabold tracking-tight">
-                  AutoSurvey <span className="text-orange-400">VN</span>
+                <span className="flex h-2 w-2 relative">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                </span>
+                <span className="text-emerald-400 font-extrabold tracking-wide">
+                  Engine Core AI 2.5 Online
                 </span>
                 <span className="text-white/30">•</span>
-                <span className="text-emerald-400 flex items-center gap-1.5 font-bold">
-                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                  Engine Core v2.5 Online
+                <span className="text-slate-300 font-medium">
+                  Bảo vệ đa luồng Stealth Bot
                 </span>
               </div>
 
@@ -546,35 +600,86 @@ export default function HomePage() {
                 </p>
               </div>
 
-              {/* Interactive Curve SVG */}
+              {/* Interactive Curve SVG & Dynamic Likert Histogram */}
               <div className="p-4 rounded-2xl bg-white border border-blue-200 shadow-xs space-y-3">
                 <div className="flex items-center justify-between text-[11px] font-bold text-slate-700">
-                  <span>Mô phỏng đường cong Gauss</span>
-                  <span className="text-blue-600 font-mono font-bold">μ = 4.2 • σ = 0.8</span>
+                  <span className="flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-blue-600 animate-pulse"></span>
+                    <span>{BELL_CURVE_DATA[bellCurvePreset].name}</span>
+                  </span>
+                  <span className="text-blue-600 font-mono font-bold bg-blue-50 px-2 py-0.5 rounded border border-blue-200">
+                    {BELL_CURVE_DATA[bellCurvePreset].mean} • {BELL_CURVE_DATA[bellCurvePreset].sd}
+                  </span>
                 </div>
 
-                {/* SVG Curve Illustration */}
-                <div className="h-20 w-full relative">
-                  <svg viewBox="0 0 200 80" className="w-full h-full overflow-visible">
+                {/* SVG Curve Illustration - Dynamically Re-renders path & peak line */}
+                <div className="h-20 w-full relative bg-slate-50/50 rounded-xl p-1 overflow-hidden border border-slate-100">
+                  <svg viewBox="0 0 200 80" className="w-full h-full overflow-visible transition-all duration-500 ease-out">
+                    <defs>
+                      <linearGradient id="bellGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                        <stop offset="0%" stopColor="#06b6d4" stopOpacity="0.8" />
+                        <stop offset="60%" stopColor="#3b82f6" stopOpacity="0.3" />
+                        <stop offset="100%" stopColor="#2563eb" stopOpacity="0.05" />
+                      </linearGradient>
+                    </defs>
                     <path
-                      d="M 10 70 Q 60 70 80 40 Q 100 10 120 40 Q 140 70 190 70"
+                      d={BELL_CURVE_DATA[bellCurvePreset].fillD}
+                      fill="url(#bellGrad)"
+                      className="transition-all duration-500 ease-out"
+                    />
+                    <path
+                      d={BELL_CURVE_DATA[bellCurvePreset].pathD}
                       fill="none"
                       stroke="#2563eb"
                       strokeWidth="3.5"
+                      strokeLinecap="round"
+                      className="transition-all duration-500 ease-out"
                     />
-                    <path
-                      d="M 10 70 Q 60 70 80 40 Q 100 10 120 40 Q 140 70 190 70 L 190 75 L 10 75 Z"
-                      fill="url(#blueGrad)"
-                      opacity="0.35"
+                    {/* Dynamic Mean / Mode Vertical Marker */}
+                    <line
+                      x1={BELL_CURVE_DATA[bellCurvePreset].peakX}
+                      y1="10"
+                      x2={BELL_CURVE_DATA[bellCurvePreset].peakX}
+                      y2="75"
+                      stroke="#f97316"
+                      strokeWidth="2"
+                      strokeDasharray="3 3"
+                      className="transition-all duration-500 ease-out"
                     />
-                    <defs>
-                      <linearGradient id="blueGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-                        <stop offset="0%" stopColor="#06b6d4" />
-                        <stop offset="100%" stopColor="#2563eb" stopOpacity="0" />
-                      </linearGradient>
-                    </defs>
-                    <line x1="100" y1="10" x2="100" y2="75" stroke="#f97316" strokeWidth="2" strokeDasharray="3 3" />
+                    <circle
+                      cx={BELL_CURVE_DATA[bellCurvePreset].peakX}
+                      cy="12"
+                      r="3.5"
+                      fill="#f97316"
+                      className="transition-all duration-500 ease-out"
+                    />
                   </svg>
+                </div>
+
+                {/* Dynamic 5-Bar Likert Histogram (1 to 5) */}
+                <div className="space-y-1.5 pt-1">
+                  <div className="flex items-center justify-between text-[10px] text-slate-500 font-semibold px-0.5">
+                    <span>Phân bổ 5 mức Likert:</span>
+                    <span className="text-blue-700 font-mono font-bold text-[10px]">{BELL_CURVE_DATA[bellCurvePreset].skew}</span>
+                  </div>
+                  <div className="grid grid-cols-5 gap-1.5 items-end h-14 pt-1 pb-1 px-1 bg-slate-50/80 rounded-xl border border-slate-200/70">
+                    {BELL_CURVE_DATA[bellCurvePreset].bars.map((bar) => (
+                      <div key={bar.level} className="flex flex-col items-center h-full justify-end group">
+                        <span className="text-[9px] font-mono font-bold text-slate-700 leading-none mb-1 transition-all">
+                          {bar.pct}%
+                        </span>
+                        <div className="w-full bg-slate-200/80 rounded-t-md h-8 relative flex items-end overflow-hidden">
+                          <div
+                            className={`w-full bg-gradient-to-t ${bar.color} rounded-t-md transition-all duration-500 ease-out shadow-xs`}
+                            style={{ height: `${Math.min(100, Math.max(12, (bar.pct / 50) * 100))}%` }}
+                          />
+                        </div>
+                        <span className="text-[10px] font-black text-slate-600 mt-1">
+                          {bar.level}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
 
                 {/* Preset Chips */}
@@ -584,7 +689,7 @@ export default function HomePage() {
                     onClick={() => setBellCurvePreset('positive')}
                     className={`py-1.5 rounded-lg font-bold border transition-all text-center shadow-2xs ${
                       bellCurvePreset === 'positive'
-                        ? 'bg-gradient-to-r from-blue-600 to-cyan-600 text-white border-transparent'
+                        ? 'bg-gradient-to-r from-blue-600 to-cyan-600 text-white border-transparent ring-2 ring-blue-300'
                         : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
                     }`}
                   >
@@ -595,7 +700,7 @@ export default function HomePage() {
                     onClick={() => setBellCurvePreset('normal')}
                     className={`py-1.5 rounded-lg font-bold border transition-all text-center shadow-2xs ${
                       bellCurvePreset === 'normal'
-                        ? 'bg-gradient-to-r from-blue-600 to-cyan-600 text-white border-transparent'
+                        ? 'bg-gradient-to-r from-blue-600 to-cyan-600 text-white border-transparent ring-2 ring-blue-300'
                         : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
                     }`}
                   >
@@ -606,7 +711,7 @@ export default function HomePage() {
                     onClick={() => setBellCurvePreset('balanced')}
                     className={`py-1.5 rounded-lg font-bold border transition-all text-center shadow-2xs ${
                       bellCurvePreset === 'balanced'
-                        ? 'bg-gradient-to-r from-blue-600 to-cyan-600 text-white border-transparent'
+                        ? 'bg-gradient-to-r from-blue-600 to-cyan-600 text-white border-transparent ring-2 ring-blue-300'
                         : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
                     }`}
                   >

@@ -203,7 +203,7 @@ export default function CreditPage() {
 
         <div className="relative z-10 flex items-start gap-4">
           <div className="w-14 h-14 rounded-2xl bg-white p-1.5 shadow-md border border-slate-700 flex items-center justify-center shrink-0">
-            <img src="/logo.png" alt="AutoSurvey VN" className="w-full h-full object-contain" />
+            <img src="/logo.svg" alt="AutoSurvey VN" className="w-full h-full object-contain" />
           </div>
 
           <div>
