@@ -33,6 +33,16 @@ export default function CreateFormAgentPage() {
   const [delayMax, setDelayMax] = useState<number>(3.5);
   const [submitting, setSubmitting] = useState(false);
 
+  React.useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const url = params.get('url');
+      if (url) {
+        setFormUrl(url);
+      }
+    }
+  }, []);
+
   const personas = [
     {
       id: 'student',

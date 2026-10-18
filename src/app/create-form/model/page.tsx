@@ -49,6 +49,16 @@ export default function CreateFormModelPage() {
   const [simulating, setSimulating] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
+  React.useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const url = params.get('url');
+      if (url) {
+        setFormUrl(url);
+      }
+    }
+  }, []);
+
   // Parse Form
   const handleParseForm = async () => {
     if (!formUrl.trim()) {

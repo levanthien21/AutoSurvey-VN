@@ -22,12 +22,20 @@ import {
   LogIn,
   ArrowUpRight,
   Sparkles,
+  Layers,
+  FlaskConical,
+  Activity,
+  Zap,
+  CheckCircle2,
+  Sliders,
+  ExternalLink,
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 
 export default function Sidebar() {
   const pathname = usePathname();
-  const [createFormOpen, setCreateFormOpen] = useState(true);
+  const [studioOpen, setStudioOpen] = useState(true);
+  const [labOpen, setLabOpen] = useState(true);
   const { user, openAuthModal } = useAuth();
 
   const isActive = (path: string) => {
@@ -36,273 +44,271 @@ export default function Sidebar() {
   };
 
   return (
-    <aside className="w-64 bg-white/95 backdrop-blur-md border-r border-slate-200/80 flex flex-col h-screen sticky top-0 shrink-0 z-30 select-none shadow-[2px_0_15px_rgba(0,0,0,0.02)]">
-      {/* Brand Header with Official Logo */}
-      <div className="h-20 flex items-center px-5 border-b border-slate-100 gap-3">
-        <div className="w-11 h-11 rounded-2xl bg-white p-1 border border-slate-200/80 shadow-sm flex items-center justify-center shrink-0 group hover:scale-105 transition-transform">
-          <img
-            src="/logo.png"
-            alt="AutoSurvey VN"
-            className="w-full h-full object-contain"
-          />
+    <aside className="w-68 bg-[#0D1527] text-slate-300 flex flex-col h-screen sticky top-0 shrink-0 z-30 select-none border-r border-slate-800/80 shadow-2xl">
+      {/* Brand Header */}
+      <div className="p-5 border-b border-slate-800/80">
+        <div className="flex items-center gap-3">
+          <div className="w-11 h-11 rounded-2xl bg-white p-1 border border-slate-700 shadow-md flex items-center justify-center shrink-0 group hover:scale-105 transition-transform">
+            <img
+              src="/logo.png"
+              alt="AutoSurvey VN"
+              className="w-full h-full object-contain"
+            />
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-1.5">
+              <span className="font-black text-base text-white tracking-tight">
+                AutoSurvey <span className="text-orange-400">VN</span>
+              </span>
+              <span className="text-[9px] uppercase font-black tracking-wider px-1.5 py-0.2 rounded bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-xs">
+                PRO
+              </span>
+            </div>
+            <p className="text-[10px] text-slate-400 font-medium truncate mt-0.5">
+              Dịch Vụ Khảo Sát & Số Liệu SPSS
+            </p>
+          </div>
         </div>
-        <div className="min-w-0">
-          <div className="flex items-center gap-1.5">
-            <span className="font-extrabold text-base text-slate-900 tracking-tight">
-              AutoSurvey <span className="text-orange-500">VN</span>
-            </span>
-            <span className="text-[9px] uppercase font-extrabold tracking-wider px-1.5 py-0.2 rounded-md bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-xs">
-              PRO
+
+        {/* Workspace Switcher Badge */}
+        <div className="mt-3.5 flex items-center justify-between px-2.5 py-1.5 rounded-xl bg-slate-900/80 border border-slate-800 text-[11px] text-slate-400">
+          <div className="flex items-center gap-2 truncate">
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+            <span className="font-semibold text-slate-300 truncate">
+              {user ? `Không gian: ${user.username}` : 'Chế độ: Khách dùng thử'}
             </span>
           </div>
-          <p className="text-[10px] text-slate-500 font-medium truncate mt-0.5">
-            Khảo Sát & Số Liệu SPSS
-          </p>
+          <span className="text-[10px] bg-slate-800 px-1.5 py-0.2 rounded text-slate-400 font-mono">v2.5</span>
         </div>
       </div>
 
-      {/* Navigation Links */}
-      <nav className="flex-1 overflow-y-auto px-3.5 py-4 space-y-1 text-sm">
-        {/* Dashboard */}
-        <Link
-          href="/"
-          className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-semibold transition-all relative ${
-            isActive('/') && pathname === '/'
-              ? 'bg-blue-50 text-blue-700 shadow-xs'
-              : 'text-slate-600 hover:bg-slate-50/80 hover:text-slate-900'
-          }`}
-        >
-          {isActive('/') && pathname === '/' && (
-            <span className="absolute left-0 top-2 bottom-2 w-1 bg-blue-600 rounded-r-full"></span>
-          )}
-          <LayoutDashboard className="w-4 h-4 text-blue-600" />
-          <span>Bảng điều khiển</span>
-        </Link>
-
-        {/* Tạo form ngay (Collapsible) */}
-        <div className="pt-1">
-          <button
-            onClick={() => setCreateFormOpen(!createFormOpen)}
-            className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl font-semibold transition-all ${
-              pathname.startsWith('/create-form')
-                ? 'text-blue-700 bg-blue-50/50'
-                : 'text-slate-600 hover:bg-slate-50/80 hover:text-slate-900'
+      {/* Navigation Groups */}
+      <nav className="flex-1 overflow-y-auto px-3.5 py-4 space-y-5 text-xs">
+        {/* Hub 1: Bảng điều khiển */}
+        <div className="space-y-1">
+          <Link
+            href="/"
+            className={`flex items-center gap-3 px-3 py-2.5 rounded-xl font-bold transition-all relative ${
+              isActive('/') && pathname === '/'
+                ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30'
+                : 'text-slate-400 hover:bg-slate-800/60 hover:text-white'
             }`}
           >
-            <div className="flex items-center gap-3">
-              <FilePlus2 className="w-4 h-4 text-indigo-600" />
-              <span>Tạo form ngay</span>
-            </div>
-            {createFormOpen ? (
-              <ChevronDown className="w-4 h-4 text-slate-400" />
-            ) : (
-              <ChevronRight className="w-4 h-4 text-slate-400" />
-            )}
-          </button>
-
-          {createFormOpen && (
-            <div className="mt-1 ml-4 pl-3 border-l-2 border-slate-100 space-y-0.5">
-              <Link
-                href="/create-form/ratio"
-                className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium transition-all ${
-                  pathname === '/create-form/ratio'
-                    ? 'bg-blue-50 text-blue-700 font-bold'
-                    : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
-                }`}
-              >
-                <PieChart className="w-3.5 h-3.5 text-blue-600" />
-                <span>Theo tỉ lệ mong muốn</span>
-              </Link>
-
-              <Link
-                href="/create-form/data"
-                className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium transition-all ${
-                  pathname === '/create-form/data'
-                    ? 'bg-blue-50 text-blue-700 font-bold'
-                    : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
-                }`}
-              >
-                <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />
-                <span>Điền data có trước</span>
-              </Link>
-
-              <Link
-                href="/create-form/model"
-                className={`flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-all ${
-                  pathname === '/create-form/model'
-                    ? 'bg-blue-50 text-blue-700 font-bold'
-                    : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
-                }`}
-              >
-                <div className="flex items-center gap-2.5">
-                  <Network className="w-3.5 h-3.5 text-orange-500" />
-                  <span>Theo mô hình NCKH</span>
-                </div>
-                <span className="bg-orange-100 text-orange-700 text-[9px] px-1.5 py-0.2 rounded font-extrabold uppercase">
-                  HOT
-                </span>
-              </Link>
-
-              <Link
-                href="/create-form/agent"
-                className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium transition-all ${
-                  pathname === '/create-form/agent'
-                    ? 'bg-blue-50 text-blue-700 font-bold'
-                    : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
-                }`}
-              >
-                <Bot className="w-3.5 h-3.5 text-purple-600" />
-                <span>AI Agent tự luận</span>
-              </Link>
-            </div>
-          )}
+            <LayoutDashboard className="w-4 h-4 text-blue-400" />
+            <span>Bảng điều khiển trung tâm</span>
+          </Link>
         </div>
 
-        {/* Data Services Section */}
-        <div className="pt-2">
-          <div className="px-3 pb-1.5 text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
-            Dịch vụ dữ liệu SPSS/PLS
+        {/* Hub 2: Studio Khảo Sát (Form Filling Engines) */}
+        <div className="space-y-1">
+          <div className="px-3 pb-1 text-[10px] font-black uppercase tracking-wider text-slate-500 flex items-center justify-between">
+            <span>Studio Điền Khảo Sát</span>
+            <span className="text-[9px] text-slate-600 font-mono">4 CHẾ ĐỘ</span>
+          </div>
+
+          <Link
+            href="/create-form/model"
+            className={`flex items-center justify-between px-3 py-2 rounded-xl font-bold transition-all ${
+              pathname === '/create-form/model'
+                ? 'bg-gradient-to-r from-orange-500 to-amber-500 text-white shadow-md shadow-orange-500/20'
+                : 'text-slate-300 hover:bg-slate-800/60 hover:text-white'
+            }`}
+          >
+            <div className="flex items-center gap-2.5">
+              <Network className="w-4 h-4 text-orange-400" />
+              <span>Mô hình NCKH (SPSS/PLS)</span>
+            </div>
+            <span className="bg-orange-950/80 text-orange-300 text-[9px] px-1.5 py-0.2 rounded font-extrabold uppercase border border-orange-500/30">
+              HOT
+            </span>
+          </Link>
+
+          <Link
+            href="/create-form/ratio"
+            className={`flex items-center gap-2.5 px-3 py-2 rounded-xl font-semibold transition-all ${
+              pathname === '/create-form/ratio'
+                ? 'bg-blue-600 text-white font-bold shadow-md shadow-blue-600/20'
+                : 'text-slate-300 hover:bg-slate-800/60 hover:text-white'
+            }`}
+          >
+            <PieChart className="w-4 h-4 text-blue-400" />
+            <span>Tỉ lệ & Phân phối Bell Curve</span>
+          </Link>
+
+          <Link
+            href="/create-form/data"
+            className={`flex items-center gap-2.5 px-3 py-2 rounded-xl font-semibold transition-all ${
+              pathname === '/create-form/data'
+                ? 'bg-blue-600 text-white font-bold shadow-md shadow-blue-600/20'
+                : 'text-slate-300 hover:bg-slate-800/60 hover:text-white'
+            }`}
+          >
+            <FileSpreadsheet className="w-4 h-4 text-emerald-400" />
+            <span>Nạp Data có sẵn (Excel / CSV)</span>
+          </Link>
+
+          <Link
+            href="/create-form/agent"
+            className={`flex items-center gap-2.5 px-3 py-2 rounded-xl font-semibold transition-all ${
+              pathname === '/create-form/agent'
+                ? 'bg-blue-600 text-white font-bold shadow-md shadow-blue-600/20'
+                : 'text-slate-300 hover:bg-slate-800/60 hover:text-white'
+            }`}
+          >
+            <Bot className="w-4 h-4 text-purple-400" />
+            <span>AI Agent tự luận đa nhân khẩu</span>
+          </Link>
+        </div>
+
+        {/* Hub 3: Phòng Lab Dữ Liệu SPSS */}
+        <div className="space-y-1">
+          <div className="px-3 pb-1 text-[10px] font-black uppercase tracking-wider text-slate-500">
+            Phòng Lab Dữ Liệu
           </div>
 
           <Link
             href="/data-builder"
-            className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-medium transition-all ${
+            className={`flex items-center gap-2.5 px-3 py-2 rounded-xl font-semibold transition-all ${
               isActive('/data-builder')
-                ? 'bg-emerald-50 text-emerald-800 font-bold shadow-xs'
-                : 'text-slate-600 hover:bg-slate-50/80 hover:text-slate-900'
+                ? 'bg-emerald-600 text-white font-bold shadow-md shadow-emerald-600/20'
+                : 'text-slate-300 hover:bg-slate-800/60 hover:text-white'
             }`}
           >
-            <Database className="w-4 h-4 text-emerald-600" />
-            <span>Build dữ liệu đẹp</span>
+            <Database className="w-4 h-4 text-emerald-400" />
+            <span>Bộ tổng hợp dữ liệu sạch</span>
           </Link>
 
           <Link
             href="/data-encode"
-            className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-medium transition-all ${
+            className={`flex items-center gap-2.5 px-3 py-2 rounded-xl font-semibold transition-all ${
               isActive('/data-encode')
-                ? 'bg-amber-50 text-amber-800 font-bold shadow-xs'
-                : 'text-slate-600 hover:bg-slate-50/80 hover:text-slate-900'
+                ? 'bg-amber-600 text-white font-bold shadow-md shadow-amber-600/20'
+                : 'text-slate-300 hover:bg-slate-800/60 hover:text-white'
             }`}
           >
-            <Binary className="w-4 h-4 text-amber-600" />
-            <span>Mã hoá data</span>
+            <Binary className="w-4 h-4 text-amber-400" />
+            <span>Mã hoá thang đo Likert</span>
           </Link>
         </div>
 
-        {/* Orders & Finance */}
-        <div className="pt-2">
-          <div className="px-3 pb-1.5 text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
-            Quản lý & Tài chính
+        {/* Hub 4: Quản lý & Vận hành */}
+        <div className="space-y-1">
+          <div className="px-3 pb-1 text-[10px] font-black uppercase tracking-wider text-slate-500">
+            Vận Hành & Tài Chính
           </div>
 
           <Link
             href="/orders"
-            className={`flex items-center justify-between px-3.5 py-2.5 rounded-xl font-medium transition-all ${
+            className={`flex items-center justify-between px-3 py-2 rounded-xl font-semibold transition-all ${
               isActive('/orders')
-                ? 'bg-blue-50 text-blue-700 font-bold shadow-xs'
-                : 'text-slate-600 hover:bg-slate-50/80 hover:text-slate-900'
+                ? 'bg-blue-600 text-white font-bold shadow-md shadow-blue-600/20'
+                : 'text-slate-300 hover:bg-slate-800/60 hover:text-white'
             }`}
           >
-            <div className="flex items-center gap-3">
-              <ClipboardList className="w-4 h-4 text-blue-600" />
-              <span>Đơn hàng của bạn</span>
+            <div className="flex items-center gap-2.5">
+              <ClipboardList className="w-4 h-4 text-sky-400" />
+              <span>Tiến trình & Báo cáo Excel</span>
             </div>
           </Link>
 
           <Link
             href="/credit"
-            className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-medium transition-all ${
+            className={`flex items-center gap-2.5 px-3 py-2 rounded-xl font-semibold transition-all ${
               isActive('/credit')
-                ? 'bg-amber-50 text-amber-800 font-bold shadow-xs'
-                : 'text-slate-600 hover:bg-slate-50/80 hover:text-slate-900'
+                ? 'bg-orange-500 text-white font-bold shadow-md shadow-orange-500/20'
+                : 'text-slate-300 hover:bg-slate-800/60 hover:text-white'
             }`}
           >
-            <Wallet className="w-4 h-4 text-orange-500" />
-            <span>Nạp tiền / Số dư</span>
+            <Wallet className="w-4 h-4 text-orange-400" />
+            <span>Nạp tiền VietQR 24/7</span>
           </Link>
 
           <Link
             href="/settings"
-            className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-medium transition-all ${
+            className={`flex items-center gap-2.5 px-3 py-2 rounded-xl font-semibold transition-all ${
               isActive('/settings')
-                ? 'bg-blue-50 text-blue-700 font-bold shadow-xs'
-                : 'text-slate-600 hover:bg-slate-50/80 hover:text-slate-900'
+                ? 'bg-blue-600 text-white font-bold shadow-md shadow-blue-600/20'
+                : 'text-slate-300 hover:bg-slate-800/60 hover:text-white'
             }`}
           >
-            <Settings className="w-4 h-4 text-slate-500" />
-            <span>Cài đặt hệ thống</span>
+            <Settings className="w-4 h-4 text-slate-400" />
+            <span>Cài đặt & Bot Protection</span>
           </Link>
 
-          {/* Admin link for admins */}
+          {/* Admin link */}
           {user?.role === 'admin' && (
             <Link
               href="/admin"
-              className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-bold transition-all mt-2 ${
+              className={`flex items-center gap-2.5 px-3 py-2 rounded-xl font-bold transition-all mt-2 ${
                 isActive('/admin')
-                  ? 'bg-purple-100 text-purple-800'
-                  : 'text-purple-700 hover:bg-purple-50'
+                  ? 'bg-purple-600 text-white shadow-md shadow-purple-600/20'
+                  : 'text-purple-300 bg-purple-950/40 hover:bg-purple-900/40 border border-purple-800/40'
               }`}
             >
-              <ShieldAlert className="w-4 h-4 text-purple-600" />
-              <span>Quản trị Admin</span>
+              <ShieldAlert className="w-4 h-4 text-purple-400" />
+              <span>Quản trị Hệ thống Admin</span>
             </Link>
           )}
         </div>
       </nav>
 
-      {/* User Balance Card with Premium Midnight Gradient */}
-      <div className="p-3.5 border-t border-slate-100 bg-slate-50/50">
+      {/* Luxury Credit Pass Widget at Bottom */}
+      <div className="p-3.5 border-t border-slate-800/80 bg-slate-950/60">
         {user ? (
-          <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-950 via-slate-900 to-blue-950 p-4 text-white shadow-lg border border-slate-800/80 mb-2.5">
-            {/* Subtle glow orb */}
-            <div className="absolute -top-8 -right-8 w-24 h-24 rounded-full bg-blue-500/20 blur-xl pointer-events-none"></div>
+          <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-900 via-[#071330] to-slate-900 p-4 border border-slate-800 shadow-xl space-y-3">
+            <div className="flex items-center justify-between text-[11px] text-slate-400">
+              <span className="font-semibold">Ví AutoSurvey</span>
+              <span className="text-[10px] text-emerald-400 font-bold bg-emerald-950/60 px-1.5 py-0.2 rounded border border-emerald-800/40 flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                Sẵn sàng
+              </span>
+            </div>
 
-            <div className="relative z-10">
-              <div className="flex items-center justify-between text-[11px] text-slate-400 font-medium">
-                <span>Số dư khả dụng</span>
-                <span className="flex items-center gap-1.5 text-emerald-400 font-semibold text-[10px]">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                  24/7
-                </span>
-              </div>
-              <div className="text-xl font-black mt-1 tracking-tight text-white flex items-baseline gap-1">
+            <div>
+              <div className="text-2xl font-black text-white font-mono tracking-tight">
                 {user.credits.toLocaleString()}
-                <span className="text-[11px] font-normal text-slate-400">Credits</span>
+                <span className="text-xs font-normal text-slate-400 ml-1">Credits</span>
               </div>
-              <div className="mt-3 pt-2.5 border-t border-white/10 flex items-center justify-between">
-                <span className="text-[11px] text-slate-400 truncate max-w-[100px]">
-                  {user.username}
-                </span>
-                <Link
-                  href="/credit"
-                  className="inline-flex items-center gap-1 text-[11px] font-bold text-orange-400 hover:text-orange-300 transition-colors"
-                >
-                  <span>+ Nạp ngay</span>
-                  <ArrowUpRight className="w-3 h-3" />
-                </Link>
-              </div>
+            </div>
+
+            <div className="pt-2 border-t border-slate-800 flex items-center justify-between">
+              <span className="text-[11px] text-slate-400 truncate max-w-[100px]">
+                {user.username}
+              </span>
+              <Link
+                href="/credit"
+                className="inline-flex items-center gap-1 text-[11px] font-bold text-orange-400 hover:text-orange-300 transition-colors"
+              >
+                <span>+ Nạp VietQR</span>
+                <ArrowUpRight className="w-3 h-3" />
+              </Link>
             </div>
           </div>
         ) : (
-          <div className="rounded-2xl bg-gradient-to-br from-blue-600 via-indigo-600 to-blue-700 p-3.5 text-white shadow-md shadow-blue-500/10 mb-2.5">
-            <div className="text-xs font-bold flex items-center gap-1.5">
+          <div className="rounded-2xl bg-gradient-to-br from-blue-900/60 via-indigo-950 to-slate-900 p-3.5 border border-blue-800/50 text-white space-y-2">
+            <div className="flex items-center gap-1.5 text-xs font-bold text-blue-200">
               <Sparkles className="w-3.5 h-3.5 text-amber-300" />
               <span>Chưa đăng nhập</span>
             </div>
-            <p className="text-[10px] text-blue-100/90 mt-1">Đăng ký để nhận ngay 50.000 Credits miễn phí!</p>
+            <p className="text-[10px] text-slate-300 leading-relaxed">
+              Tạo tài khoản để nhận ngay <strong className="text-amber-300 font-bold">50.000 Credits</strong> chạy thử nghiệm!
+            </p>
             <button
-              onClick={() => openAuthModal('login')}
-              className="mt-2.5 w-full py-1.5 bg-white hover:bg-blue-50 text-blue-700 rounded-xl text-xs font-bold transition-all shadow-xs flex items-center justify-center gap-1.5"
+              onClick={() => openAuthModal('register')}
+              className="w-full py-1.5 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white rounded-xl text-xs font-bold transition-all shadow-md flex items-center justify-center gap-1.5"
             >
               <LogIn className="w-3.5 h-3.5" />
-              <span>Đăng nhập / Đăng ký</span>
+              <span>Đăng ký nhận 50K Free</span>
             </button>
           </div>
         )}
 
-        <div className="flex items-center gap-2 text-xs text-slate-500 px-2 py-1 hover:text-slate-800 transition-colors cursor-pointer">
-          <HelpCircle className="w-3.5 h-3.5 text-slate-400" />
-          <span className="text-[11px]">Hỗ trợ kỹ thuật 24/7</span>
+        <div className="mt-2.5 flex items-center justify-between text-[11px] text-slate-400 px-1 hover:text-slate-200 transition-colors cursor-pointer">
+          <div className="flex items-center gap-1.5">
+            <HelpCircle className="w-3.5 h-3.5 text-slate-500" />
+            <span>Hỗ trợ SPSS / SmartPLS</span>
+          </div>
+          <span className="text-[10px] text-slate-500 font-mono">24/7</span>
         </div>
       </div>
     </aside>
