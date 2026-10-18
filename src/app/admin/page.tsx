@@ -165,7 +165,7 @@ export default function AdminPage() {
         </div>
         <h2 className="text-xl font-extrabold text-slate-900">Khu vực dành riêng cho Quản trị viên</h2>
         <p className="text-xs text-slate-500 leading-relaxed">
-          Tài khoản hiện tại của bạn không có đặc quyền Admin. Vui lòng đăng nhập với tài khoản quản trị hệ thống (`admin` / `admin123`) để tiếp tục.
+          Tài khoản hiện tại của bạn không có đặc quyền Admin. Vui lòng đăng nhập bằng Email được cấp quyền Quản trị viên để truy cập hệ thống.
         </p>
         <button
           onClick={() => openAuthModal('login')}
@@ -628,6 +628,43 @@ export default function AdminPage() {
                   }
                   className="w-full h-10 px-3 text-xs font-semibold rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-purple-500 uppercase"
                 />
+              </div>
+            </div>
+          </div>
+
+          {/* Admin Email Whitelist */}
+          <div className="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-xs space-y-4">
+            <div>
+              <h3 className="text-base font-bold text-slate-900">Danh sách Email Quản trị viên (Admin Whitelist)</h3>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Các tài khoản đăng ký với Email trong danh sách này sẽ tự động được cấp quyền Admin và 1.000.000 Credits.
+              </p>
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">
+                Danh sách Email Admin (cách nhau bởi dấu phẩy)
+              </label>
+              <input
+                type="text"
+                value={(settings.adminEmails || []).join(', ')}
+                onChange={(e) =>
+                  setSettings({
+                    ...settings,
+                    adminEmails: e.target.value.split(',').map((s: string) => s.trim()).filter(Boolean),
+                  })
+                }
+                placeholder="admin@autosurvey.vn, levanthien21@gmail.com"
+                className="w-full h-11 px-4 text-xs font-mono font-medium rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-purple-500"
+              />
+              <div className="flex flex-wrap gap-1.5 mt-2">
+                {(settings.adminEmails || []).map((em: string) => (
+                  <span
+                    key={em}
+                    className="inline-flex items-center px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-purple-50 text-purple-700 border border-purple-200"
+                  >
+                    {em}
+                  </span>
+                ))}
               </div>
             </div>
           </div>

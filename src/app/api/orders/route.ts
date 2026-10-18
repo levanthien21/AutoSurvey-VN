@@ -39,10 +39,13 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Resolve user (or fallback to demo user if not logged in)
-    let user = getUserFromRequest(req);
+    // Resolve authenticated user
+    const user = getUserFromRequest(req);
     if (!user) {
-      user = db.findUserByUsername('demo') || null;
+      return NextResponse.json(
+        { success: false, error: 'Vui lòng đăng nhập tài khoản để bắt đầu chạy đơn điền form.' },
+        { status: 401 }
+      );
     }
 
     const count = totalTarget || responsesQueue.length;

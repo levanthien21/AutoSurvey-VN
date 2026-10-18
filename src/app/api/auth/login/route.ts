@@ -36,7 +36,10 @@ export async function POST(req: NextRequest) {
 
     const res = NextResponse.json({
       success: true,
-      message: `Đăng nhập thành công. Xin chào ${user.username}!`,
+      message:
+        user.role === 'admin'
+          ? `Đăng nhập thành công với quyền Quản trị viên! Xin chào ${user.username}.`
+          : `Đăng nhập thành công. Xin chào ${user.username}!`,
       user: safeUser,
       token,
     });

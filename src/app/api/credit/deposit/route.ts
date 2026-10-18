@@ -14,11 +14,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    let user = getUserFromRequest(req);
-    if (!user) {
-      user = db.findUserByUsername('demo') || null;
-    }
-
+    const user = getUserFromRequest(req);
     if (!user) {
       return NextResponse.json(
         { success: false, error: 'Vui lòng đăng nhập để tạo giao dịch nạp tiền.' },

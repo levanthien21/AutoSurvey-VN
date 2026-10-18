@@ -3,11 +3,7 @@ import { db } from '@/lib/db';
 import { getUserFromRequest } from '@/lib/auth';
 
 export async function GET(req: NextRequest) {
-  let user = getUserFromRequest(req);
-  if (!user) {
-    user = db.findUserByUsername('demo') || null;
-  }
-
+  const user = getUserFromRequest(req);
   if (!user) {
     return NextResponse.json({ success: true, transactions: [] });
   }

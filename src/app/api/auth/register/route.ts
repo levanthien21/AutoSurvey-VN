@@ -30,7 +30,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: 'Email đã được đăng ký.' }, { status: 409 });
     }
 
-    // Create user with 50k welcome credits
+    // Create user (auto-detects admin if whitelisted or first user)
     const user = db.createUser(cleanUsername, cleanEmail, password);
 
     // Record welcome bonus transaction
@@ -39,8 +39,11 @@ export async function POST(req: NextRequest) {
       username: user.username,
       type: 'bonus',
       amount: 0,
-      credits: 50000,
-      memo: 'Quà tặng chào mừng thành viên mới (50.000 Credits)',
+      credits: user.credits,
+      memo:
+        user.role === 'admin'
+          ? 'Khởi tạo tài khoản Quản trị viên (1.000.000 Credits)'
+          : 'Quà tặng chào mừng thành viên mới (50.000 Credits)',
       status: 'completed',
     });
 
@@ -58,7 +61,10 @@ export async function POST(req: NextRequest) {
 
     const res = NextResponse.json({
       success: true,
-      message: 'Đăng ký tài khoản thành công! Tặng bạn 50.000 Credits trải nghiệm.',
+      message:
+        user.role === 'admin'
+          ? 'Đăng ký tài khoản Quản trị viên thành công! Cấp quyền Admin & 1.000.000 Credits.'
+          : 'Đăng ký tài khoản thành công! Tặng bạn 50.000 Credits trải nghiệm.',
       user: safeUser,
       token,
     });

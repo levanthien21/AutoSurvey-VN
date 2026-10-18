@@ -21,6 +21,51 @@ export default function RootLayout({
 }) {
   return (
     <html lang="vi">
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function() {
+                if (typeof window === 'undefined') return;
+                function shouldSuppress(e) {
+                  try {
+                    var msg = (e && (e.message || (e.error && e.error.message) || (e.reason && (e.reason.message || e.reason)))) || '';
+                    var file = (e && (e.filename || (e.error && (e.error.fileName || e.error.stack)))) || '';
+                    var sMsg = String(msg);
+                    var sFile = String(file);
+                    if (
+                      sMsg.indexOf('M_ID') !== -1 ||
+                      sMsg.indexOf('chrome-extension://') !== -1 ||
+                      sMsg.indexOf('moz-extension://') !== -1 ||
+                      sFile.indexOf('chrome-extension://') !== -1 ||
+                      sFile.indexOf('moz-extension://') !== -1
+                    ) {
+                      return true;
+                    }
+                  } catch (err) {}
+                  return false;
+                }
+                window.addEventListener('error', function(e) {
+                  if (shouldSuppress(e)) {
+                    if (e.stopImmediatePropagation) e.stopImmediatePropagation();
+                    if (e.stopPropagation) e.stopPropagation();
+                    if (e.preventDefault) e.preventDefault();
+                    return true;
+                  }
+                }, true);
+                window.addEventListener('unhandledrejection', function(e) {
+                  if (shouldSuppress(e)) {
+                    if (e.stopImmediatePropagation) e.stopImmediatePropagation();
+                    if (e.stopPropagation) e.stopPropagation();
+                    if (e.preventDefault) e.preventDefault();
+                    return true;
+                  }
+                }, true);
+              })();
+            `,
+          }}
+        />
+      </head>
       <body className="flex min-h-screen bg-slate-50 text-slate-800 antialiased selection:bg-blue-600 selection:text-white">
         <AuthProvider>
           <Sidebar />

@@ -10,13 +10,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: 'Vui lòng nhập mã khuyến mãi.' }, { status: 400 });
     }
 
-    let user = getUserFromRequest(req);
+    const user = getUserFromRequest(req);
     if (!user) {
-      user = db.findUserByUsername('demo') || null;
-    }
-
-    if (!user) {
-      return NextResponse.json({ success: false, error: 'Vui lòng đăng nhập để sử dụng mã.' }, { status: 401 });
+      return NextResponse.json({ success: false, error: 'Vui lòng đăng nhập để sử dụng mã khuyến mãi.' }, { status: 401 });
     }
 
     const result = db.redeemCoupon(code, user.id);

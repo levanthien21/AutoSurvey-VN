@@ -42,6 +42,7 @@ export interface DatabaseSchema {
   transactions: Transaction[];
   coupons: Coupon[];
   settings: {
+    adminEmails: string[];
     pricePerResponse: {
       ratio: number;
       data: number;
@@ -69,58 +70,15 @@ function initDb(): DatabaseSchema {
   }
 
   if (!fs.existsSync(DB_FILE)) {
-    // Generate default admin and demo user
-    const adminSalt = crypto.randomBytes(16).toString('hex');
-    const adminHash = hashPassword('admin123', adminSalt);
-
-    const demoSalt = crypto.randomBytes(16).toString('hex');
-    const demoHash = hashPassword('demo123', demoSalt);
-
     const initialData: DatabaseSchema = {
-      users: [
-        {
-          id: 'usr_admin',
-          username: 'admin',
-          email: 'admin@autosurvey.vn',
-          passwordHash: adminHash,
-          salt: adminSalt,
-          role: 'admin',
-          credits: 1000000,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        },
-        {
-          id: 'usr_demo',
-          username: 'demo',
-          email: 'demo@autosurvey.vn',
-          passwordHash: demoHash,
-          salt: demoSalt,
-          role: 'user',
-          credits: 250000,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        },
-      ],
-      transactions: [
-        {
-          id: 'tx_init_01',
-          userId: 'usr_demo',
-          username: 'demo',
-          type: 'deposit',
-          amount: 250000,
-          credits: 250000,
-          status: 'completed',
-          memo: 'NAP USR_DEMO',
-          createdAt: new Date().toISOString(),
-          approvedAt: new Date().toISOString(),
-        },
-      ],
+      users: [],
+      transactions: [],
       coupons: [
         {
           code: 'WELCOME50K',
           creditBonus: 50000,
           maxUses: 1000,
-          usedCount: 1,
+          usedCount: 0,
           expiresAt: '2027-12-31T23:59:59.000Z',
         },
         {
@@ -132,6 +90,7 @@ function initDb(): DatabaseSchema {
         },
       ],
       settings: {
+        adminEmails: ['admin@autosurvey.vn', 'levanthien21@gmail.com'],
         pricePerResponse: {
           ratio: 100, // 100 credits = 100 VND / submission
           data: 80,
@@ -139,10 +98,10 @@ function initDb(): DatabaseSchema {
           agent: 200,
         },
         bankInfo: {
-          bankName: 'MB Bank (Quân Đội)',
-          bankCode: 'MB',
-          accountNumber: '9999888888',
-          accountName: 'AUTO SURVEY VIETNAM',
+          bankName: 'VIETCOMBANK',
+          bankCode: 'VCB',
+          accountNumber: '9349850292',
+          accountName: 'LE VAN THIEN',
         },
         defaultDelayMin: 1.0,
         defaultDelayMax: 2.5,
@@ -197,34 +156,81 @@ class DatabaseManager {
     }
   }
 
+  // --- Admin Email Whitelist ---
+  getAdminEmails(): string[] {
+    const db = this.getDb();
+    if (!db.settings.adminEmails || !Array.isArray(db.settings.adminEmails)) {
+      db.settings.adminEmails = ['admin@autosurvey.vn', 'levanthien21@gmail.com'];
+      this.saveDb();
+    }
+    return db.settings.adminEmails;
+  }
+
+  isAdminEmail(email?: string): boolean {
+    if (!email) return false;
+    const clean = email.trim().toLowerCase();
+    const adminEmails = this.getAdminEmails();
+    return adminEmails.some((a) => a.toLowerCase() === clean);
+  }
+
+  addAdminEmail(email: string): boolean {
+    const clean = email.trim().toLowerCase();
+    const adminEmails = this.getAdminEmails();
+    if (!adminEmails.some((a) => a.toLowerCase() === clean)) {
+      adminEmails.push(clean);
+      this.saveDb();
+      return true;
+    }
+    return false;
+  }
+
+  private checkAndPromoteUser(user?: User): User | undefined {
+    if (!user) return undefined;
+    if (user.role !== 'admin' && this.isAdminEmail(user.email)) {
+      user.role = 'admin';
+      this.saveDb();
+    }
+    return user;
+  }
+
   // --- Users ---
   findUserByUsername(username: string): User | undefined {
     const db = this.getDb();
-    return db.users.find((u) => u.username.toLowerCase() === username.toLowerCase());
+    const user = db.users.find((u) => u.username.toLowerCase() === username.toLowerCase());
+    return this.checkAndPromoteUser(user);
   }
 
   findUserByEmail(email: string): User | undefined {
     const db = this.getDb();
-    return db.users.find((u) => u.email.toLowerCase() === email.toLowerCase());
+    const user = db.users.find((u) => u.email.toLowerCase() === email.toLowerCase());
+    return this.checkAndPromoteUser(user);
   }
 
   findUserById(id: string): User | undefined {
     const db = this.getDb();
-    return db.users.find((u) => u.id === id);
+    const user = db.users.find((u) => u.id === id);
+    return this.checkAndPromoteUser(user);
   }
 
-  createUser(username: string, email: string, passwordPlain: string, role: 'user' | 'admin' = 'user'): User {
+  createUser(username: string, email: string, passwordPlain: string, role?: 'user' | 'admin'): User {
     const db = this.getDb();
     const salt = crypto.randomBytes(16).toString('hex');
     const passwordHash = hashPassword(passwordPlain, salt);
+
+    // Auto-detect admin permission based on Email whitelist or if this is the very first registered user
+    const isFirstUser = db.users.length === 0;
+    const isWhitelistedAdmin = this.isAdminEmail(email);
+    const finalRole: 'user' | 'admin' = role === 'admin' || isWhitelistedAdmin || isFirstUser ? 'admin' : 'user';
+    const initialCredits = finalRole === 'admin' ? 1000000 : 50000;
+
     const user: User = {
       id: 'usr_' + crypto.randomBytes(6).toString('hex'),
       username,
       email,
       passwordHash,
       salt,
-      role,
-      credits: 50000, // 50,000 credits welcome gift!
+      role: finalRole,
+      credits: initialCredits,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
