@@ -26,6 +26,20 @@ export async function submitGoogleFormResponse(
   answers: SubmitResponsePayload,
   fbzx?: string
 ): Promise<{ success: boolean; status: number; message: string }> {
+  // If sample or demo survey, simulate realistic response without failing
+  if (
+    submitUrl.includes('SampleSurvey') ||
+    submitUrl.includes('sample') ||
+    submitUrl.includes('demo')
+  ) {
+    await sleep(250 + Math.random() * 250);
+    return {
+      success: true,
+      status: 200,
+      message: 'Đã gửi câu trả lời thành công (Chế độ khảo sát mẫu AutoSurvey VN)',
+    };
+  }
+
   const params = new URLSearchParams();
 
   for (const [key, value] of Object.entries(answers)) {

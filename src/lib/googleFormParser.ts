@@ -76,20 +76,214 @@ export async function resolveGoogleFormUrl(rawUrl: string): Promise<string> {
     const res = await fetch(url, { redirect: 'follow' });
     url = res.url;
   }
+  // Convert /edit to /viewform if pasted from Google Form editor
+  if (url.includes('/edit')) {
+    url = url.replace(/\/edit.*$/, '/viewform');
+  }
   // Ensure viewform
   if (url.includes('formResponse')) {
     url = url.replace('formResponse', 'viewform');
-  } else if (!url.includes('viewform') && !url.includes('edit')) {
+  } else if (!url.includes('viewform')) {
     url = url.replace(/\/?$/, '/viewform');
   }
   return url;
+}
+
+export function getSampleGoogleForm(): ParsedGoogleForm {
+  return {
+    formId: '1FAIpQLScP_SampleSurvey_NCKH_AutoSurveyVN',
+    title: 'Khảo sát các yếu tố ảnh hưởng đến sự hài lòng của sinh viên đối với dịch vụ đào tạo (NCKH Đại học)',
+    description: 'Phiếu khảo sát phục vụ đề tài nghiên cứu khoa học. Thang đo Likert 5 mức độ từ 1 (Hoàn toàn không đồng ý) đến 5 (Hoàn toàn đồng ý). Mọi thông tin phản hồi đều được bảo mật 100%.',
+    submitUrl: 'https://docs.google.com/forms/d/e/1FAIpQLScP_SampleSurvey_NCKH_AutoSurveyVN/formResponse',
+    fbzx: '179234892349812903',
+    questions: [
+      {
+        id: 'entry.1001',
+        internalId: 1001,
+        title: 'Họ và tên của bạn',
+        type: 'text',
+        subType: 'name',
+        rawType: 0,
+        required: true,
+        options: [],
+        defaultSampleAnswers: ['Nguyễn Văn An', 'Trần Thị Bích', 'Lê Hoàng Long', 'Phạm Minh Tuấn', 'Đặng Thảo Vy', 'Hoàng Gia Huy', 'Vũ Mai Anh'],
+      },
+      {
+        id: 'entry.1002',
+        internalId: 1002,
+        title: 'Giới tính của bạn',
+        type: 'radio',
+        subType: 'general',
+        rawType: 2,
+        required: true,
+        options: [
+          { value: 'Nam', label: 'Nam' },
+          { value: 'Nữ', label: 'Nữ' },
+        ],
+      },
+      {
+        id: 'entry.1003',
+        internalId: 1003,
+        title: 'Năm học hiện tại của bạn',
+        type: 'radio',
+        subType: 'general',
+        rawType: 2,
+        required: true,
+        options: [
+          { value: 'Năm 1', label: 'Năm 1' },
+          { value: 'Năm 2', label: 'Năm 2' },
+          { value: 'Năm 3', label: 'Năm 3' },
+          { value: 'Năm 4', label: 'Năm 4' },
+          { value: 'Sau đại học', label: 'Sau đại học' },
+        ],
+      },
+      {
+        id: 'entry.1004',
+        internalId: 1004,
+        title: 'Giảng viên có chuyên môn cao và phương pháp truyền đạt dễ hiểu (CLDV1)',
+        type: 'radio',
+        subType: 'general',
+        rawType: 2,
+        required: true,
+        options: [
+          { value: '1', label: '1 - Hoàn toàn không đồng ý' },
+          { value: '2', label: '2 - Không đồng ý' },
+          { value: '3', label: '3 - Bình thường / Trung lập' },
+          { value: '4', label: '4 - Đồng ý' },
+          { value: '5', label: '5 - Hoàn toàn đồng ý' },
+        ],
+      },
+      {
+        id: 'entry.1005',
+        internalId: 1005,
+        title: 'Cơ sở vật chất, phòng máy tính và thư viện đáp ứng tốt nhu cầu học tập (CLDV2)',
+        type: 'radio',
+        subType: 'general',
+        rawType: 2,
+        required: true,
+        options: [
+          { value: '1', label: '1 - Hoàn toàn không đồng ý' },
+          { value: '2', label: '2 - Không đồng ý' },
+          { value: '3', label: '3 - Bình thường / Trung lập' },
+          { value: '4', label: '4 - Đồng ý' },
+          { value: '5', label: '5 - Hoàn toàn đồng ý' },
+        ],
+      },
+      {
+        id: 'entry.1006',
+        internalId: 1006,
+        title: 'Tài liệu giáo trình và học liệu số được cung cấp đầy đủ, kịp thời (CLDV3)',
+        type: 'radio',
+        subType: 'general',
+        rawType: 2,
+        required: true,
+        options: [
+          { value: '1', label: '1 - Hoàn toàn không đồng ý' },
+          { value: '2', label: '2 - Không đồng ý' },
+          { value: '3', label: '3 - Bình thường / Trung lập' },
+          { value: '4', label: '4 - Đồng ý' },
+          { value: '5', label: '5 - Hoàn toàn đồng ý' },
+        ],
+      },
+      {
+        id: 'entry.1007',
+        internalId: 1007,
+        title: 'Mức học phí tương xứng với chất lượng đào tạo và dịch vụ nhận được (GTCN1)',
+        type: 'radio',
+        subType: 'general',
+        rawType: 2,
+        required: true,
+        options: [
+          { value: '1', label: '1 - Hoàn toàn không đồng ý' },
+          { value: '2', label: '2 - Không đồng ý' },
+          { value: '3', label: '3 - Bình thường / Trung lập' },
+          { value: '4', label: '4 - Đồng ý' },
+          { value: '5', label: '5 - Hoàn toàn đồng ý' },
+        ],
+      },
+      {
+        id: 'entry.1008',
+        internalId: 1008,
+        title: 'Kiến thức được trang bị mang lại giá trị thực tiễn cho công việc tương lai (GTCN2)',
+        type: 'radio',
+        subType: 'general',
+        rawType: 2,
+        required: true,
+        options: [
+          { value: '1', label: '1 - Hoàn toàn không đồng ý' },
+          { value: '2', label: '2 - Không đồng ý' },
+          { value: '3', label: '3 - Bình thường / Trung lập' },
+          { value: '4', label: '4 - Đồng ý' },
+          { value: '5', label: '5 - Hoàn toàn đồng ý' },
+        ],
+      },
+      {
+        id: 'entry.1009',
+        internalId: 1009,
+        title: 'Nhìn chung, tôi cảm thấy rất hài lòng khi theo học tại trường (SHL1)',
+        type: 'radio',
+        subType: 'general',
+        rawType: 2,
+        required: true,
+        options: [
+          { value: '1', label: '1 - Hoàn toàn không đồng ý' },
+          { value: '2', label: '2 - Không đồng ý' },
+          { value: '3', label: '3 - Bình thường / Trung lập' },
+          { value: '4', label: '4 - Đồng ý' },
+          { value: '5', label: '5 - Hoàn toàn đồng ý' },
+        ],
+      },
+      {
+        id: 'entry.1010',
+        internalId: 1010,
+        title: 'Tôi sẽ giới thiệu chương trình đào tạo của trường cho bạn bè và người quen (SHL2)',
+        type: 'radio',
+        subType: 'general',
+        rawType: 2,
+        required: true,
+        options: [
+          { value: '1', label: '1 - Hoàn toàn không đồng ý' },
+          { value: '2', label: '2 - Không đồng ý' },
+          { value: '3', label: '3 - Bình thường / Trung lập' },
+          { value: '4', label: '4 - Đồng ý' },
+          { value: '5', label: '5 - Hoàn toàn đồng ý' },
+        ],
+      },
+      {
+        id: 'entry.1011',
+        internalId: 1011,
+        title: 'Ý kiến đóng góp khác của bạn nhằm nâng cao chất lượng dịch vụ đào tạo',
+        type: 'paragraph',
+        subType: 'general',
+        rawType: 1,
+        required: false,
+        options: [],
+        defaultSampleAnswers: [
+          'Nhà trường nên mở rộng thêm các lớp học kỹ năng mềm và ngoại ngữ vào cuối tuần.',
+          'Cần cải thiện đường truyền Wifi tại các giảng đường khu nhà B.',
+          'Thời khóa biểu các môn chuyên ngành nên được thông báo sớm hơn.',
+          'Chất lượng dịch vụ nhìn chung rất tốt và giảng viên tận tình.',
+        ],
+      },
+    ],
+  };
 }
 
 /**
  * Fetches and parses a Google Form HTML to extract fields, options, and entry IDs.
  */
 export async function parseGoogleForm(formUrl: string): Promise<ParsedGoogleForm> {
-  const resolvedUrl = await resolveGoogleFormUrl(formUrl);
+  const trimmed = (formUrl || '').trim();
+  if (
+    trimmed.includes('SampleSurvey') ||
+    trimmed.includes('sample') ||
+    trimmed.toLowerCase() === 'demo' ||
+    trimmed.includes('mau-khao-sat')
+  ) {
+    return getSampleGoogleForm();
+  }
+
+  const resolvedUrl = await resolveGoogleFormUrl(trimmed);
 
   const res = await fetch(resolvedUrl, {
     headers: {
