@@ -1,6 +1,32 @@
 {
-  "users": [],
-  "transactions": [],
+  "users": [
+    {
+      "id": "usr_4294ed152e09",
+      "username": "thienlv",
+      "email": "thienlv.bbh@gmail.com",
+      "passwordHash": "c3e6c59007842aecc9971991fb1b5ea0b0275021f333e2f9891909e48b2f24d1f412ac663e3f8532763fbeb23e728f1bb6f6e5927d490b0494c43a99eccb9104",
+      "salt": "46f228149b1a709eb06ca598d285741a",
+      "role": "admin",
+      "credits": 1000000,
+      "createdAt": "2026-10-18T05:53:30.315Z",
+      "updatedAt": "2026-10-18T05:53:30.315Z"
+    }
+  ],
+  "transactions": [
+    {
+      "id": "tx_b84147dd7987",
+      "userId": "usr_4294ed152e09",
+      "username": "thienlv",
+      "type": "bonus",
+      "amount": 0,
+      "credits": 1000000,
+      "memo": "Khởi tạo tài khoản Quản trị viên (1.000.000 Credits)",
+      "bankCode": "VCB",
+      "accountNumber": "9349850292",
+      "status": "completed",
+      "createdAt": "2026-10-18T05:53:30.316Z"
+    }
+  ],
   "coupons": [
     {
       "code": "WELCOME50K",
@@ -20,7 +46,8 @@
   "settings": {
     "adminEmails": [
       "admin@autosurvey.vn",
-      "levanthien21@gmail.com"
+      "levanthien21@gmail.com",
+      "thienlv.bbh@gmail.com"
     ],
     "pricePerResponse": {
       "ratio": 100,

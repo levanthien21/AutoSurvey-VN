@@ -15,12 +15,22 @@ export async function POST(req: NextRequest) {
     const user = db.findUserByUsername(cleanInput) || db.findUserByEmail(cleanInput);
 
     if (!user) {
-      return NextResponse.json({ success: false, error: 'Tài khoản hoặc mật khẩu không chính xác.' }, { status: 401 });
+      return NextResponse.json(
+        {
+          success: false,
+          error: `Tài khoản hoặc Email "${cleanInput}" chưa được đăng ký. Bạn hãy chuyển sang tab Đăng ký để tạo tài khoản mới.`,
+          notRegistered: true,
+        },
+        { status: 401 }
+      );
     }
 
     const valid = verifyPassword(password, user.passwordHash, user.salt);
     if (!valid) {
-      return NextResponse.json({ success: false, error: 'Tài khoản hoặc mật khẩu không chính xác.' }, { status: 401 });
+      return NextResponse.json(
+        { success: false, error: 'Mật khẩu không chính xác. Vui lòng kiểm tra lại hoặc đổi mật khẩu.' },
+        { status: 401 }
+      );
     }
 
     const token = generateSessionToken(user.id);

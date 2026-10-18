@@ -4,7 +4,27 @@ import { generateSessionToken, SESSION_COOKIE_NAME } from '@/lib/auth';
 
 export async function POST(req: NextRequest) {
   try {
-    const { email, name, avatar, googleId } = await req.json();
+    const body = await req.json();
+    let email = body.email;
+    let name = body.name;
+    let avatar = body.avatar;
+    let googleId = body.googleId;
+
+    // Decode official Google Identity Services (GIS) JWT credential if present
+    if (body.credential && typeof body.credential === 'string') {
+      try {
+        const parts = body.credential.split('.');
+        if (parts.length === 3) {
+          const payload = JSON.parse(Buffer.from(parts[1], 'base64url').toString('utf8'));
+          if (payload.email) email = payload.email;
+          if (payload.name) name = payload.name;
+          if (payload.picture) avatar = payload.picture;
+          if (payload.sub) googleId = payload.sub;
+        }
+      } catch (jwtErr) {
+        console.warn('Failed to parse Google JWT credential:', jwtErr);
+      }
+    }
 
     if (!email || typeof email !== 'string' || !email.includes('@')) {
       return NextResponse.json({ success: false, error: 'Email tài khoản Google không hợp lệ.' }, { status: 400 });

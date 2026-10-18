@@ -92,7 +92,7 @@ function initDb(): DatabaseSchema {
         },
       ],
       settings: {
-        adminEmails: ['admin@autosurvey.vn', 'levanthien21@gmail.com'],
+        adminEmails: ['admin@autosurvey.vn', 'levanthien21@gmail.com', 'thienlv.bbh@gmail.com'],
         pricePerResponse: {
           ratio: 100, // 100 credits = 100 VND / submission
           data: 80,
@@ -162,7 +162,7 @@ class DatabaseManager {
   getAdminEmails(): string[] {
     const db = this.getDb();
     if (!db.settings.adminEmails || !Array.isArray(db.settings.adminEmails)) {
-      db.settings.adminEmails = ['admin@autosurvey.vn', 'levanthien21@gmail.com'];
+      db.settings.adminEmails = ['admin@autosurvey.vn', 'levanthien21@gmail.com', 'thienlv.bbh@gmail.com'];
       this.saveDb();
     }
     return db.settings.adminEmails;
