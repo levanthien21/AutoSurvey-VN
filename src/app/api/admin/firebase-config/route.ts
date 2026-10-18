@@ -55,14 +55,6 @@ NEXT_PUBLIC_FIREBASE_APP_ID=${(appId || '').trim()}
 
     fs.writeFileSync(envPath, newEnvContent, 'utf8');
 
-    // Also update current process.env
-    process.env.NEXT_PUBLIC_FIREBASE_API_KEY = apiKey.trim();
-    process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN = (authDomain || `${projectId}.firebaseapp.com`).trim();
-    process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID = (projectId || '').trim();
-    process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET = (storageBucket || `${projectId}.appspot.com`).trim();
-    process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID = (messagingSenderId || '').trim();
-    process.env.NEXT_PUBLIC_FIREBASE_APP_ID = (appId || '').trim();
-
     return NextResponse.json({
       success: true,
       message: 'Cấu hình Firebase chính thống đã được lưu thành công vào .env.local!',

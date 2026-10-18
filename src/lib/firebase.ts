@@ -26,17 +26,18 @@ import {
 
 // Firebase Configuration from environment or defaults
 const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || 'AIzaSyA_DummyKey_AutoSurveyVN_2026',
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || 'autosurvey-vn.firebaseapp.com',
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'autosurvey-vn',
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || 'autosurvey-vn.appspot.com',
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || '102938475610',
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || '1:102938475610:web:9f8e7d6c5b4a3a2b',
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || 'AIzaSyDwO44HaWh-0XEKuGRu4HemQVNtuuux44M',
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || 'auto-survey-vn.firebaseapp.com',
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'auto-survey-vn',
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || 'auto-survey-vn.firebasestorage.app',
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || '196269599491',
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || '1:196269599491:web:e45151cab5f06fadad9736',
+  measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID || 'G-G5DJL6FMX1',
 };
 
 // Check if official Firebase API key has been connected
 export const isFirebaseConfigured = (): boolean => {
-  const key = process.env.NEXT_PUBLIC_FIREBASE_API_KEY || '';
+  const key = process.env.NEXT_PUBLIC_FIREBASE_API_KEY || firebaseConfig.apiKey;
   return typeof key === 'string' && key.length > 20 && !key.includes('DummyKey');
 };
 
