@@ -110,13 +110,13 @@ export default function Navbar() {
         {!user && !loading && (
           <Link
             href="/credit"
-            className="group relative inline-flex items-center gap-2 bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:from-amber-600 hover:to-orange-700 text-white text-xs font-black px-3.5 sm:px-4 py-2.5 rounded-2xl shadow-[0_4px_16px_rgba(245,158,11,0.35)] hover:shadow-[0_6px_22px_rgba(245,158,11,0.45)] hover:scale-[1.02] active:scale-[0.98] transition-all overflow-hidden"
+            className="group relative inline-flex items-center gap-1.5 sm:gap-2 bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:from-amber-600 hover:to-orange-700 text-white text-xs font-black px-2.5 sm:px-4 py-2 sm:py-2.5 rounded-xl sm:rounded-2xl shadow-[0_4px_16px_rgba(245,158,11,0.35)] hover:shadow-[0_6px_22px_rgba(245,158,11,0.45)] hover:scale-[1.02] active:scale-[0.98] transition-all overflow-hidden shrink-0"
             title="Xem bảng giá dịch vụ & nạp credits"
           >
             <span className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></span>
-            <Coins className="w-4 h-4 text-amber-200 fill-amber-200 shrink-0" />
+            <Coins className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-200 fill-amber-200 shrink-0" />
             <span className="tracking-tight">Nạp tiền</span>
-            <span className="text-[10px] bg-white/25 text-white font-extrabold px-1.5 py-0.5 rounded-md uppercase tracking-wider shadow-2xs">
+            <span className="text-[9px] sm:text-[10px] bg-white/25 text-white font-extrabold px-1.5 py-0.5 rounded-md uppercase tracking-wider shadow-2xs">
               +30%
             </span>
           </Link>
@@ -126,15 +126,15 @@ export default function Navbar() {
         {user && (
           <Link
             href="/credit"
-            className="group inline-flex items-center gap-2.5 bg-gradient-to-r from-orange-50/90 via-amber-50/70 to-orange-50/90 hover:from-orange-100 hover:to-amber-100 border border-orange-200/90 text-orange-950 px-3 sm:px-3.5 py-1.5 rounded-2xl shadow-xs transition-all hover:scale-[1.01]"
+            className="group inline-flex items-center gap-2 sm:gap-2.5 bg-gradient-to-r from-orange-50/90 via-amber-50/70 to-orange-50/90 hover:from-orange-100 hover:to-amber-100 border border-orange-200/90 text-orange-950 px-2.5 sm:px-3.5 py-1.5 rounded-xl sm:rounded-2xl shadow-xs transition-all hover:scale-[1.01] shrink-0"
             title="Số dư hiện tại - Bấm để nạp thêm"
           >
-            <div className="w-6 h-6 rounded-xl bg-gradient-to-tr from-orange-500 to-amber-500 text-white flex items-center justify-center shadow-xs shrink-0">
-              <Wallet className="w-3.5 h-3.5" />
+            <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-lg sm:rounded-xl bg-gradient-to-tr from-orange-500 to-amber-500 text-white flex items-center justify-center shadow-xs shrink-0">
+              <Wallet className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
             </div>
             <div className="flex flex-col text-left leading-tight">
-              <span className="text-[9px] font-extrabold uppercase text-orange-600 tracking-wider">
-                Credits Ví
+              <span className="text-[8px] sm:text-[9px] font-extrabold uppercase text-orange-600 tracking-wider">
+                Credits
               </span>
               <span className="font-mono text-xs sm:text-sm font-black text-slate-900">
                 {user.credits.toLocaleString()}
@@ -146,23 +146,22 @@ export default function Navbar() {
           </Link>
         )}
 
-        {/* PRIMARY CTA: KHỞI TẠO CHIẾN DỊCH */}
+        {/* PRIMARY CTA: KHỞI TẠO CHIẾN DỊCH (ẨN TRÊN MOBILE VÌ ĐÃ CÓ Ở BOTTOM NAV, HIỂN THỊ TỪ TABLET/DESKTOP) */}
         <Link
           href="/create-form"
-          className="inline-flex items-center gap-2 bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 hover:from-blue-700 hover:to-indigo-700 text-white text-xs font-black px-3.5 sm:px-4 py-2.5 rounded-2xl shadow-[0_4px_16px_rgba(37,99,235,0.25)] hover:shadow-[0_6px_22px_rgba(37,99,235,0.35)] hover:scale-[1.02] active:scale-[0.98] transition-all shrink-0"
+          className="hidden md:inline-flex items-center gap-2 bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 hover:from-blue-700 hover:to-indigo-700 text-white text-xs font-black px-3.5 sm:px-4 py-2.5 rounded-2xl shadow-[0_4px_16px_rgba(37,99,235,0.25)] hover:shadow-[0_6px_22px_rgba(37,99,235,0.35)] hover:scale-[1.02] active:scale-[0.98] transition-all shrink-0"
         >
           <Sparkles className="w-3.5 h-3.5 text-amber-300 fill-amber-300 shrink-0" />
-          <span className="hidden sm:inline">Khởi tạo chiến dịch</span>
-          <span className="sm:hidden">Tạo form</span>
+          <span>Khởi tạo chiến dịch</span>
         </Link>
 
         {/* USER PROFILE OR AUTH BUTTONS */}
         {loading ? (
-          <div className="w-9 h-9 rounded-2xl bg-slate-100 animate-pulse"></div>
+          <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl sm:rounded-2xl bg-slate-100 animate-pulse"></div>
         ) : user ? (
           /* Logged In User Capsule */
-          <div className="flex items-center gap-2 sm:gap-2.5 pl-2 sm:pl-3 border-l border-slate-200/80">
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-slate-900 via-slate-800 to-blue-950 flex items-center justify-center text-white font-black text-xs shadow-xs border border-slate-700/80 shrink-0">
+          <div className="flex items-center gap-1.5 sm:gap-2.5 pl-1.5 sm:pl-3 border-l border-slate-200/80">
+            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl bg-gradient-to-tr from-slate-900 via-slate-800 to-blue-950 flex items-center justify-center text-white font-black text-xs shadow-xs border border-slate-700/80 shrink-0">
               {user.username.charAt(0).toUpperCase()}
             </div>
             <div className="hidden lg:block text-left max-w-[120px] truncate">
@@ -186,32 +185,32 @@ export default function Navbar() {
             <button
               onClick={logout}
               title="Đăng xuất khỏi hệ thống"
-              className="w-8 h-8 rounded-xl border border-slate-200 text-slate-400 hover:text-rose-600 hover:bg-rose-50 hover:border-rose-200 flex items-center justify-center transition-all ml-0.5 shrink-0"
+              className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl border border-slate-200 text-slate-400 hover:text-rose-600 hover:bg-rose-50 hover:border-rose-200 flex items-center justify-center transition-all ml-0.5 shrink-0"
             >
-              <LogOut className="w-3.5 h-3.5" />
+              <LogOut className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
             </button>
           </div>
         ) : (
-          /* Guest Actions: High-contrast, bold, prominent buttons */
-          <div className="flex items-center gap-2 pl-2 sm:pl-3 border-l border-slate-200/80">
+          /* Guest Actions: High-contrast, bold, prominent buttons with zero mobile overflow */
+          <div className="flex items-center gap-1.5 sm:gap-2 pl-1.5 sm:pl-3 border-l border-slate-200/80">
             {/* Đăng nhập button: Solid white surface, 2px border, rich dark text, vibrant blue icon */}
             <Link
               href="/login"
-              className="inline-flex items-center gap-1.5 sm:gap-2 bg-white hover:bg-blue-50/70 text-slate-900 hover:text-blue-700 text-xs font-black px-3 sm:px-4 py-2 rounded-2xl border-2 border-slate-300 hover:border-blue-600 shadow-xs hover:shadow-md transition-all active:scale-95 shrink-0"
+              className="inline-flex items-center gap-1.5 bg-white hover:bg-blue-50/70 text-slate-900 hover:text-blue-700 text-xs font-black px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-xl sm:rounded-2xl border-2 border-slate-300 hover:border-blue-600 shadow-xs hover:shadow-md transition-all active:scale-95 shrink-0"
               title="Đăng nhập tài khoản"
             >
               <LogIn className="w-3.5 h-3.5 text-blue-600 shrink-0" />
               <span>Đăng nhập</span>
             </Link>
 
-            {/* Đăng ký button: Premium gradient with shadow */}
+            {/* Đăng ký button: Premium gradient (visible on screens >= 480px / sm) */}
             <Link
               href="/login?tab=register"
-              className="inline-flex items-center gap-1.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white text-xs font-black px-3.5 sm:px-4 py-2 rounded-2xl shadow-md shadow-blue-500/20 hover:scale-[1.02] active:scale-95 transition-all shrink-0"
+              className="hidden sm:inline-flex items-center gap-1.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white text-xs font-black px-3.5 sm:px-4 py-2 rounded-2xl shadow-md shadow-blue-500/20 hover:scale-[1.02] active:scale-95 transition-all shrink-0"
               title="Đăng ký tài khoản mới"
             >
               <UserPlus className="w-3.5 h-3.5 text-blue-200 shrink-0" />
-              <span className="hidden sm:inline">Đăng ký</span>
+              <span>Đăng ký</span>
             </Link>
           </div>
         )}

@@ -24,6 +24,7 @@ import {
   signInWithGoogleFirebase,
   saveUserToFirestore,
   registerWithEmailFirebase,
+  loginWithFirebase,
 } from '@/lib/firebase';
 
 export interface SafeUser {
@@ -155,17 +156,47 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = async (usernameInput: string, passwordInput: string) => {
     try {
+      // 1. Try standard login first (handles username or email)
       const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username: usernameInput, password: passwordInput }),
       });
       const data = await res.json();
-      if (!res.ok || !data.success) {
-        return { success: false, error: data.error || 'Đăng nhập không thành công', notRegistered: data.notRegistered };
+      if (res.ok && data.success) {
+        setUser(data.user);
+        return { success: true };
       }
-      setUser(data.user);
-      return { success: true };
+
+      // 2. If password check failed or user changed password via Firebase reset link,
+      // verify against Firebase Auth directly
+      const targetEmail = usernameInput.includes('@') ? usernameInput.trim() : (data.email || '');
+      if (targetEmail) {
+        try {
+          const fbRes = await loginWithFirebase(targetEmail, passwordInput);
+          if (fbRes.success && fbRes.user) {
+            // Synchronize and set server session
+            const syncRes = await fetch('/api/auth/firebase', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                uid: fbRes.user.uid,
+                email: fbRes.user.email,
+                displayName: fbRes.user.displayName,
+              }),
+            });
+            const syncData = await syncRes.json();
+            if (syncData.success) {
+              setUser(syncData.user);
+              return { success: true };
+            }
+          }
+        } catch {
+          // Fall through to show original error message
+        }
+      }
+
+      return { success: false, error: data.error || 'Đăng nhập không thành công', notRegistered: data.notRegistered };
     } catch (err: any) {
       return { success: false, error: err.message || 'Lỗi kết nối máy chủ' };
     }

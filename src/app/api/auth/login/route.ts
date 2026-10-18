@@ -28,7 +28,11 @@ export async function POST(req: NextRequest) {
     const valid = verifyPassword(password, user.passwordHash, user.salt);
     if (!valid) {
       return NextResponse.json(
-        { success: false, error: 'Mật khẩu không chính xác. Vui lòng kiểm tra lại hoặc đổi mật khẩu.' },
+        {
+          success: false,
+          error: 'Mật khẩu không chính xác. Vui lòng kiểm tra lại hoặc dùng chức năng Quên mật khẩu.',
+          email: user.email,
+        },
         { status: 401 }
       );
     }
