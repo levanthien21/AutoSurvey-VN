@@ -92,7 +92,7 @@ function LoginFormContent() {
   // Check query params on mount
   useEffect(() => {
     if (searchParams.get('reset') === 'success') {
-      setSuccessMsg('Mật khẩu tài khoản đã được đặt lại thành công qua Google Firebase! Vui lòng đăng nhập với mật khẩu mới.');
+      setSuccessMsg('Đặt lại mật khẩu thành công! Vui lòng đăng nhập bằng mật khẩu mới của bạn.');
     }
   }, [searchParams]);
 
@@ -198,10 +198,10 @@ function LoginFormContent() {
           setForgotSent(true);
           setErrorMsg(null);
         } else {
-          setErrorMsg(fbRes.error || 'Không thể gửi email đặt lại mật khẩu qua Firebase.');
+          setErrorMsg(fbRes.error || 'Không thể gửi email đặt lại mật khẩu lúc này. Vui lòng thử lại sau.');
         }
       } catch (err: any) {
-        setErrorMsg(err.message || 'Lỗi khi gửi yêu cầu khôi phục mật khẩu qua Firebase.');
+        setErrorMsg(err.message || 'Lỗi khi gửi yêu cầu khôi phục mật khẩu. Vui lòng thử lại.');
       }
     }
     setLoading(false);
@@ -297,8 +297,8 @@ function LoginFormContent() {
         {/* Mobile Top Branding Capsule (Compact for all phone sizes) */}
         <div className="lg:hidden w-full text-center mb-1">
           <Link href="/" className="inline-flex items-center gap-2.5 group">
-            <div className="w-10 h-10 rounded-xl bg-white p-1 border border-slate-200/90 shadow-2xs flex items-center justify-center shrink-0">
-              <img src="/logo.png" alt="AutoSurvey VN Logo" className="w-full h-full object-contain" />
+            <div className="w-10 h-10 min-w-[40px] max-w-[40px] h-[40px] max-h-[40px] rounded-xl bg-white p-1 border border-slate-200/90 shadow-2xs flex items-center justify-center shrink-0 overflow-hidden">
+              <img src="/logo.png" alt="AutoSurvey VN Logo" width={32} height={32} className="w-8 h-8 max-w-full max-h-full object-contain" />
             </div>
             <span className="font-black text-2xl text-slate-900 tracking-tight">
               AutoSurvey <span className="text-blue-600">VN</span>
@@ -315,11 +315,13 @@ function LoginFormContent() {
         <div className="hidden lg:block w-full lg:w-1/2 space-y-8 lg:pr-6 text-left">
           {/* Brand Logo & Title */}
           <Link href="/" className="inline-flex items-center gap-3.5 group">
-            <div className="w-13 h-13 sm:w-14 sm:h-14 rounded-2xl bg-white p-1.5 shadow-sm border border-slate-200/90 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+            <div className="w-12 h-12 min-w-[48px] max-w-[48px] h-[48px] max-h-[48px] rounded-2xl bg-white p-1.5 shadow-sm border border-slate-200/90 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform overflow-hidden">
               <img
                 src="/logo.png"
                 alt="AutoSurvey VN Logo"
-                className="w-full h-full object-contain"
+                width={36}
+                height={36}
+                className="w-9 h-9 max-w-full max-h-full object-contain"
               />
             </div>
             <div>
@@ -504,12 +506,12 @@ function LoginFormContent() {
                         <h4 className="font-extrabold text-sm text-emerald-900">
                           Đã gửi email khôi phục thành công!
                         </h4>
-                        <span className="text-[11px] text-emerald-700">Google Firebase Authentication</span>
+                        <span className="text-[11px] text-emerald-700">Hệ thống bảo mật AutoSurvey VN</span>
                       </div>
                     </div>
 
                     <p className="text-slate-700 leading-relaxed text-xs">
-                      Hệ thống bảo mật Firebase đã gửi thư chứa liên kết đặt lại mật khẩu an toàn trực tiếp đến:
+                      Hệ thống đã gửi liên kết đặt lại mật khẩu an toàn trực tiếp đến hộp thư:
                       <br />
                       <strong className="text-emerald-900 font-mono text-sm block mt-1">{forgotSentEmail}</strong>
                     </p>
@@ -521,8 +523,8 @@ function LoginFormContent() {
                         <span>Mở hộp thư Gmail của <strong>{forgotSentEmail}</strong>.</span>
                       </p>
                       <div className="p-2.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-[11px] leading-relaxed">
-                        <span className="font-bold block text-amber-950 mb-0.5">⚠️ Lưu ý quan trọng từ Google:</span>
-                        Do thư được gửi tự động từ máy chủ Firebase, Gmail thường phân loại thư vào mục <strong>Thư rác (Spam)</strong>, <strong>Quảng cáo (Promotions)</strong> hoặc <strong>Cập nhật</strong>. Vui lòng kiểm tra các thư mục này hoặc gõ tìm kiếm từ khóa <code className="bg-amber-100 px-1 py-0.5 rounded font-mono text-[10px]">AutoSurvey</code> trong Gmail!
+                        <span className="font-bold block text-amber-950 mb-0.5">⚠️ Lưu ý kiểm tra hòm thư:</span>
+                        Do hệ thống gửi email tự động, hộp thư Gmail có thể phân loại thư vào mục <strong>Thư rác (Spam)</strong>, <strong>Quảng cáo (Promotions)</strong> hoặc <strong>Cập nhật</strong>. Vui lòng kiểm tra các thư mục này hoặc gõ tìm kiếm từ khóa <code className="bg-amber-100 px-1 py-0.5 rounded font-mono text-[10px]">AutoSurvey</code> trong Gmail!
                       </div>
                       <p className="flex items-start gap-1.5">
                         <span className="font-bold text-emerald-700">2.</span>
