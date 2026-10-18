@@ -92,7 +92,7 @@ function initDb(): DatabaseSchema {
         },
       ],
       settings: {
-        adminEmails: ['admin@autosurvey.vn', 'levanthien21@gmail.com', 'thienlv.bbh@gmail.com'],
+        adminEmails: ['levanthien21052004@gmail.com', 'admin@autosurvey.vn', 'levanthien21@gmail.com', 'thienlv.bbh@gmail.com'],
         pricePerResponse: {
           ratio: 100, // 100 credits = 100 VND / submission
           data: 80,
@@ -162,7 +162,7 @@ class DatabaseManager {
   getAdminEmails(): string[] {
     const db = this.getDb();
     if (!db.settings.adminEmails || !Array.isArray(db.settings.adminEmails)) {
-      db.settings.adminEmails = ['admin@autosurvey.vn', 'levanthien21@gmail.com', 'thienlv.bbh@gmail.com'];
+      db.settings.adminEmails = ['levanthien21052004@gmail.com', 'admin@autosurvey.vn', 'levanthien21@gmail.com', 'thienlv.bbh@gmail.com'];
       this.saveDb();
     }
     return db.settings.adminEmails;
@@ -188,9 +188,19 @@ class DatabaseManager {
 
   private checkAndPromoteUser(user?: User): User | undefined {
     if (!user) return undefined;
-    if (user.role !== 'admin' && this.isAdminEmail(user.email)) {
-      user.role = 'admin';
-      this.saveDb();
+    if (this.isAdminEmail(user.email)) {
+      let changed = false;
+      if (user.role !== 'admin') {
+        user.role = 'admin';
+        changed = true;
+      }
+      if ((user.credits || 0) < 1000000) {
+        user.credits = 1000000;
+        changed = true;
+      }
+      if (changed) {
+        this.saveDb();
+      }
     }
     return user;
   }

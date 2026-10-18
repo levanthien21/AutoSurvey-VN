@@ -74,7 +74,7 @@ function GoogleIcon({ className = 'w-5 h-5' }: { className?: string }) {
 }
 
 // Known Admin Emails for Client Badge
-const ADMIN_EMAILS_PRESET = ['thienlv.bbh@gmail.com', 'admin@autosurvey.vn', 'levanthien21@gmail.com'];
+const ADMIN_EMAILS_PRESET = ['levanthien21052004@gmail.com', 'thienlv.bbh@gmail.com', 'admin@autosurvey.vn', 'levanthien21@gmail.com'];
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<SafeUser | null>(null);
