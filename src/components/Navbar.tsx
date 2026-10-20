@@ -35,28 +35,28 @@ export default function Navbar() {
   };
 
   return (
-    <header className="sticky top-0 z-30 h-[70px] bg-white/85 backdrop-blur-2xl border-b border-slate-200/70 shadow-[0_4px_24px_-4px_rgba(15,23,42,0.04)] px-4 sm:px-8 flex items-center justify-between transition-all">
+    <header className="sticky top-0 z-30 h-14 sm:h-[70px] bg-white/90 backdrop-blur-2xl border-b border-slate-200/70 shadow-[0_4px_24px_-4px_rgba(15,23,42,0.04)] px-2 sm:px-8 flex items-center justify-between transition-all">
       {/* Left: Mobile Drawer Button & Desktop Brand / Navigation Hub */}
-      <div className="flex items-center gap-3 sm:gap-6 min-w-0">
+      <div className="flex items-center gap-1.5 sm:gap-6 min-w-0 shrink-0">
         <button
           type="button"
           onClick={openMobileDrawer}
-          className="lg:hidden p-2.5 rounded-2xl text-slate-700 hover:text-slate-900 bg-slate-100/90 hover:bg-slate-200/90 transition-all border border-slate-200/80 shrink-0 shadow-2xs active:scale-95"
+          className="lg:hidden p-2 rounded-xl text-slate-700 hover:text-slate-900 bg-slate-100/90 hover:bg-slate-200/90 transition-all border border-slate-200/80 shrink-0 shadow-2xs active:scale-95"
           title="Mở bảng điều hướng"
         >
           <Menu className="w-5 h-5" />
         </button>
 
         {/* Brand identity mark (visible ONLY on mobile/tablet when sidebar is hidden - avoids desktop duplicate) */}
-        <Link href="/" className="flex lg:hidden items-center gap-2 group shrink-0">
-          <div className="w-9 h-9 rounded-xl bg-white p-1 border border-slate-200/90 shadow-2xs flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform overflow-hidden">
+        <Link href="/" className="flex lg:hidden items-center gap-1.5 group shrink-0">
+          <div className="w-8 h-8 rounded-xl bg-white p-1 border border-slate-200/90 shadow-2xs flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform overflow-hidden">
             <img src="/logo.png" alt="AutoSurvey VN" className="w-full h-full object-contain" />
           </div>
-          <div className="flex items-center gap-1.5">
-            <span className="font-black text-sm tracking-tight text-slate-900 group-hover:text-blue-600 transition-colors">
+          <div className="flex items-center gap-1">
+            <span className="font-black text-sm tracking-tight text-slate-900 group-hover:text-blue-600 transition-colors whitespace-nowrap">
               AutoSurvey <span className="text-orange-500">VN</span>
             </span>
-            <span className="text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-md bg-blue-50 text-blue-700 border border-blue-200/70">
+            <span className="hidden md:inline-flex text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-md bg-blue-50 text-blue-700 border border-blue-200/70">
               AI 2.5
             </span>
           </div>
@@ -129,15 +129,15 @@ export default function Navbar() {
       </div>
 
       {/* Right: Harmonious, Clean & Balanced Action Header */}
-      <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
+      <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
         {/* Mobile / Tablet Estimator Button (lg:hidden) */}
         <button
           type="button"
           onClick={() => setIsEstimatorOpen(true)}
-          className="lg:hidden inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border border-blue-200/90 hover:border-blue-400 bg-blue-50 hover:bg-blue-100 text-blue-800 text-xs font-bold shadow-2xs transition-all active:scale-95 shrink-0"
+          className="lg:hidden w-8 h-8 sm:w-auto sm:h-auto sm:px-2.5 sm:py-1.5 rounded-xl border border-blue-200/90 hover:border-blue-400 bg-blue-50 hover:bg-blue-100 text-blue-800 text-xs font-bold shadow-2xs transition-all active:scale-95 flex items-center justify-center gap-1.5 shrink-0"
           title="Ước tính ngân sách & thời gian chạy khảo sát"
         >
-          <Calculator className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+          <Calculator className="w-4 h-4 sm:w-3.5 sm:h-3.5 text-blue-600 shrink-0" />
           <span className="hidden sm:inline">Ước tính</span>
         </button>
 
@@ -174,17 +174,17 @@ export default function Navbar() {
         {user && (
           <Link
             href="/credit"
-            className="inline-flex items-center gap-2 bg-orange-50/80 hover:bg-orange-100/80 border border-orange-200 text-orange-950 px-2.5 py-1 rounded-xl shadow-2xs transition-all shrink-0"
+            className="inline-flex items-center gap-1.5 bg-orange-50/90 hover:bg-orange-100/90 border border-orange-200 text-orange-950 px-2 sm:px-2.5 py-1 rounded-xl shadow-2xs transition-all shrink-0"
             title="Số dư hiện tại - Bấm để nạp thêm"
           >
-            <div className="w-5 h-5 rounded-lg bg-orange-500 text-white flex items-center justify-center shadow-2xs shrink-0">
-              <Wallet className="w-3 h-3" />
+            <div className="w-4 h-4 sm:w-5 sm:h-5 rounded-lg bg-orange-500 text-white flex items-center justify-center shadow-2xs shrink-0">
+              <Wallet className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
             </div>
             <div className="flex items-baseline gap-1 text-left leading-tight">
               <span className="font-mono text-xs font-black text-slate-900">
-                {user.role === 'admin' ? '∞ Vô hạn' : (user.credits ?? 0).toLocaleString()}
+                {user.role === 'admin' ? '∞' : (user.credits ?? 0).toLocaleString()}
               </span>
-              <span className="text-[9px] font-bold text-orange-600">Credits</span>
+              <span className="text-[9px] font-bold text-orange-600 hidden xs:inline">Credits</span>
             </div>
           </Link>
         )}
@@ -203,13 +203,17 @@ export default function Navbar() {
 
         {/* User Profile or Auth Group */}
         {loading ? (
-          <div className="w-8 h-8 rounded-xl bg-slate-100 animate-pulse"></div>
+          <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-slate-100 animate-pulse"></div>
         ) : user ? (
           /* Logged In User Pill */
-          <div className="flex items-center gap-2">
-            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-gradient-to-tr from-slate-900 to-blue-950 flex items-center justify-center text-white font-black text-xs shadow-xs border border-slate-700/80 shrink-0">
+          <div className="flex items-center gap-1.5 sm:gap-2">
+            <Link
+              href="/settings"
+              title={`Tài khoản: ${user.username}`}
+              className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-gradient-to-tr from-slate-900 to-blue-950 flex items-center justify-center text-white font-black text-xs shadow-xs border border-slate-700/80 shrink-0 hover:scale-105 transition-transform"
+            >
               {user.username.charAt(0).toUpperCase()}
-            </div>
+            </Link>
             <div className="hidden lg:block text-left max-w-[110px] truncate">
               <div className="text-xs font-bold text-slate-900 flex items-center gap-1 truncate">
                 <span className="truncate">{user.username}</span>
@@ -223,7 +227,7 @@ export default function Navbar() {
             <button
               onClick={logout}
               title="Đăng xuất"
-              className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl border border-slate-200 text-slate-400 hover:text-rose-600 hover:bg-rose-50 hover:border-rose-200 flex items-center justify-center transition-all shrink-0"
+              className="hidden sm:flex w-7 h-7 sm:w-8 sm:h-8 rounded-xl border border-slate-200 text-slate-400 hover:text-rose-600 hover:bg-rose-50 hover:border-rose-200 items-center justify-center transition-all shrink-0"
             >
               <LogOut className="w-3.5 h-3.5" />
             </button>

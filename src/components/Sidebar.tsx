@@ -22,13 +22,14 @@ import {
   X,
   Calculator,
   Gift,
+  LogOut,
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useMobileNav } from '@/context/MobileNavContext';
 
 export default function Sidebar() {
   const pathname = usePathname();
-  const { user, openAuthModal } = useAuth();
+  const { user, openAuthModal, logout } = useAuth();
   const { isMobileDrawerOpen, closeMobileDrawer } = useMobileNav();
 
   const isActive = (path: string) => {
@@ -332,18 +333,28 @@ export default function Sidebar() {
               </div>
             </div>
 
-            <div className="pt-2 border-t border-slate-100 flex items-center justify-between">
-              <span className="text-[11px] text-slate-600 truncate max-w-[100px] font-medium">
+            <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px]">
+              <span className="text-slate-600 truncate max-w-[85px] font-medium">
                 {user.username}
               </span>
-              <Link
-                href="/credit"
-                onClick={isMobile ? closeMobileDrawer : undefined}
-                className="inline-flex items-center gap-1 text-[11px] font-bold text-orange-600 hover:text-orange-700 transition-colors"
-              >
-                <span>+ Nạp VietQR</span>
-                <ArrowUpRight className="w-3 h-3" />
-              </Link>
+              <div className="flex items-center gap-2">
+                <Link
+                  href="/credit"
+                  onClick={isMobile ? closeMobileDrawer : undefined}
+                  className="inline-flex items-center gap-1 font-bold text-orange-600 hover:text-orange-700 transition-colors"
+                >
+                  <span>+ Nạp</span>
+                  <ArrowUpRight className="w-3 h-3" />
+                </Link>
+                <button
+                  type="button"
+                  onClick={logout}
+                  className="text-slate-400 hover:text-rose-600 transition-colors p-1 rounded hover:bg-rose-50"
+                  title="Đăng xuất"
+                >
+                  <LogOut className="w-3.5 h-3.5" />
+                </button>
+              </div>
             </div>
           </div>
         ) : (
