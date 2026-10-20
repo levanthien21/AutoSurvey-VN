@@ -21,6 +21,7 @@ import {
   Sparkles,
   X,
   Calculator,
+  Gift,
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useMobileNav } from '@/context/MobileNavContext';
@@ -256,6 +257,28 @@ export default function Sidebar() {
             </div>
             <span className="text-[10px] font-bold text-orange-600 bg-orange-50 px-1.5 py-0.2 rounded border border-orange-200">
               VietQR
+            </span>
+          </Link>
+
+          <Link
+            href="/affiliate"
+            onClick={isMobile ? closeMobileDrawer : undefined}
+            className={`flex items-center justify-between px-3 py-2 rounded-xl font-semibold transition-all ${
+              pathname === '/affiliate'
+                ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white font-bold shadow-md shadow-amber-500/20'
+                : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900'
+            }`}
+          >
+            <div className="flex items-center gap-2.5">
+              <Gift className={`w-4 h-4 ${pathname === '/affiliate' ? 'text-white' : 'text-amber-500'}`} />
+              <span>Giới thiệu nhận 10%</span>
+            </div>
+            <span className={`text-[10px] font-black px-1.5 py-0.2 rounded ${
+              pathname === '/affiliate'
+                ? 'bg-white/20 text-white'
+                : 'text-amber-700 bg-amber-50 border border-amber-200'
+            }`}>
+              10%
             </span>
           </Link>
 

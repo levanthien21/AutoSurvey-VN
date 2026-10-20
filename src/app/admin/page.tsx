@@ -32,6 +32,7 @@ import {
   BarChart3,
   ArrowUpRight,
   Radio,
+  Gift,
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 
@@ -60,6 +61,8 @@ interface AdminMetrics {
   totalOrders: number;
   totalSubmitted: number;
   pendingDepositsCount: number;
+  totalReferredUsers?: number;
+  totalAffiliateCommissions?: number;
 }
 
 export default function AdminPage() {
@@ -475,7 +478,7 @@ export default function AdminPage() {
       {/* TAB 1: OVERVIEW */}
       {activeTab === 'overview' && metrics && (
         <div className="space-y-6">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
             {/* CARD 1: CON MẮT LƯỢT TRUY CẬP HÔM NAY */}
             <div className="bg-gradient-to-br from-indigo-900 via-[#0c1638] to-slate-950 text-white p-5 rounded-2xl border border-indigo-700/50 shadow-md relative overflow-hidden flex flex-col justify-between group">
               <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/15 rounded-full blur-2xl pointer-events-none group-hover:bg-indigo-500/25 transition-all"></div>
@@ -563,6 +566,22 @@ export default function AdminPage() {
                 {metrics.totalSubmitted.toLocaleString()}
               </div>
               <div className="mt-1 text-[11px] text-purple-600 font-medium">Trên {metrics.totalOrders} chiến dịch</div>
+            </div>
+
+            {/* CARD 6: ĐỐI TÁC AFFILIATE */}
+            <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs">
+              <div className="flex items-center justify-between text-xs text-slate-500 font-medium">
+                <span>Đối tác Affiliate</span>
+                <div className="w-8 h-8 rounded-lg bg-orange-50 text-orange-600 flex items-center justify-center">
+                  <Gift className="w-4 h-4" />
+                </div>
+              </div>
+              <div className="mt-3 text-2xl font-extrabold text-slate-900">
+                {(metrics.totalReferredUsers ?? 0).toLocaleString()} <span className="text-xs font-normal text-slate-500">bạn bè</span>
+              </div>
+              <div className="mt-1 text-[11px] text-orange-600 font-semibold">
+                +{(metrics.totalAffiliateCommissions ?? 0).toLocaleString()} Credits hoa hồng
+              </div>
             </div>
           </div>
 
@@ -826,6 +845,7 @@ export default function AdminPage() {
                   <th className="py-3 px-3">Tên đăng nhập</th>
                   <th className="py-3 px-3">Email</th>
                   <th className="py-3 px-3">Vai trò</th>
+                  <th className="py-3 px-3">Mã Affiliate</th>
                   <th className="py-3 px-3">Số dư Credits</th>
                   <th className="py-3 px-3">Ngày đăng ký</th>
                   <th className="py-3 px-3 text-right">Điều chỉnh ví</th>
@@ -845,6 +865,20 @@ export default function AdminPage() {
                       >
                         {u.role.toUpperCase()}
                       </span>
+                    </td>
+                    <td className="py-3 px-3">
+                      {u.referralCode ? (
+                        <div className="flex flex-col">
+                          <span className="font-mono font-bold text-amber-800 bg-amber-50 px-1.5 py-0.5 rounded text-[10px] inline-block w-fit border border-amber-200">
+                            {u.referralCode}
+                          </span>
+                          <span className="text-[10px] text-slate-500 mt-0.5">
+                            {u.referralCount ? `${u.referralCount} bạn bè (+${(u.affiliateEarnings || 0).toLocaleString()}đ)` : 'Chưa giới thiệu'}
+                          </span>
+                        </div>
+                      ) : (
+                        <span className="text-slate-300">-</span>
+                      )}
                     </td>
                     <td className="py-3 px-3 font-bold font-mono">
                       {u.role === 'admin' ? (

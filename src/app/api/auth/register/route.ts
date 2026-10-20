@@ -4,7 +4,7 @@ import { generateSessionToken, SESSION_COOKIE_NAME } from '@/lib/auth';
 
 export async function POST(req: NextRequest) {
   try {
-    const { username, email, password } = await req.json();
+    const { username, email, password, refCode } = await req.json();
 
     if (!username || typeof username !== 'string' || username.trim().length < 3) {
       return NextResponse.json({ success: false, error: 'Tên đăng nhập phải có ít nhất 3 ký tự.' }, { status: 400 });
@@ -30,8 +30,36 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: 'Email đã được đăng ký.' }, { status: 409 });
     }
 
+    // Check referral code
+    let referrerUser = null;
+    let welcomeBonus = 5000;
+    if (refCode && typeof refCode === 'string' && refCode.trim()) {
+      const found = db.findUserByReferralCode(refCode.trim());
+      if (found && found.email.toLowerCase() !== cleanEmail) {
+        referrerUser = found;
+        welcomeBonus = 10000; // Special 10,000 credits for referred users!
+      }
+    }
+
     // Create user (auto-detects admin if whitelisted or first user)
     const user = db.createUser(cleanUsername, cleanEmail, password);
+
+    // Apply referral bonus & linkage
+    if (referrerUser) {
+      user.referredBy = referrerUser.id;
+      if (user.role !== 'admin') {
+        user.credits = welcomeBonus;
+        db.saveDb();
+      }
+
+      // Record referral & reward referrer with 5,000 Credits immediately
+      db.recordReferral({
+        referrerId: referrerUser.id,
+        referredUserId: user.id,
+        referredUsername: user.username,
+        bonus: 5000,
+      });
+    }
 
     // Record welcome bonus transaction
     db.createTransaction({
@@ -43,6 +71,8 @@ export async function POST(req: NextRequest) {
       memo:
         user.role === 'admin'
           ? 'Khởi tạo tài khoản Quản trị viên (1.000.000 Credits)'
+          : referrerUser
+          ? `Quà tặng gia nhập qua giới thiệu của ${referrerUser.username} (10.000 Credits)`
           : 'Quà tặng chào mừng thành viên mới (5.000 Credits)',
       status: 'completed',
     });
@@ -56,6 +86,7 @@ export async function POST(req: NextRequest) {
       email: user.email,
       role: user.role,
       credits: user.credits,
+      referralCode: user.referralCode,
       createdAt: user.createdAt,
     };
 
@@ -63,7 +94,9 @@ export async function POST(req: NextRequest) {
       success: true,
       message:
         user.role === 'admin'
-          ? 'Đăng ký tài khoản Quản trị viên thành công! Cấp quyền Admin & 1.000.000 Credits.'
+          ? 'Đăng ký tài khoản Quản trị viên thành công! Cấp quyền Admin & Credits vô hạn.'
+          : referrerUser
+          ? `Đăng ký thành công qua lời mời của ${referrerUser.username}! Tặng bạn 10.000 Credits.`
           : 'Đăng ký tài khoản thành công! Tặng bạn 5.000 Credits trải nghiệm.',
       user: safeUser,
       token,

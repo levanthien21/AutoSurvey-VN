@@ -21,6 +21,7 @@ import {
   X,
   Settings,
   UserPlus,
+  Gift,
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import {
@@ -59,11 +60,14 @@ function GoogleIcon({ className = 'w-5 h-5' }: { className?: string }) {
 function LoginFormContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const initialTab = searchParams.get('tab') === 'register' ? 'register' : 'login';
+  const refParam = searchParams.get('ref') || searchParams.get('referral');
+  const initialTab = (searchParams.get('tab') === 'register' || refParam) ? 'register' : 'login';
 
   const { user, login, register, loginWithGoogle } = useAuth();
 
   const [mode, setMode] = useState<'login' | 'register' | 'forgot'>(initialTab);
+  const [refCode, setRefCode] = useState<string>(refParam || '');
+  const [showRefInput, setShowRefInput] = useState(Boolean(refParam));
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -77,6 +81,24 @@ function LoginFormContent() {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [notRegistered, setNotRegistered] = useState(false);
+
+  useEffect(() => {
+    if (refParam) {
+      setRefCode(refParam);
+      setShowRefInput(true);
+      try {
+        localStorage.setItem('asv_ref', refParam);
+      } catch {}
+    } else {
+      try {
+        const stored = localStorage.getItem('asv_ref');
+        if (stored) {
+          setRefCode(stored);
+          setShowRefInput(true);
+        }
+      } catch {}
+    }
+  }, [refParam]);
 
   // Firebase Password Reset State (100% Secure via Google Firebase)
   const [forgotSent, setForgotSent] = useState(false);
@@ -145,13 +167,17 @@ function LoginFormContent() {
         return;
       }
       const registerEmail = email.trim() || (username.includes('@') ? username : `${username}@autosurvey.vn`);
-      const res = await register(username, registerEmail, password);
+      const res = await register(username, registerEmail, password, refCode.trim() || undefined);
       if (res.success) {
         // Also register with Firebase Auth so Firebase password reset is enabled
         if (registerEmail.includes('@')) {
           registerWithEmailFirebase(registerEmail, password).catch(() => {});
         }
-        setSuccessMsg('Đăng ký tài khoản thành công! Tặng ngay 5.000 Credits.');
+        setSuccessMsg(
+          refCode.trim()
+            ? '🎉 Đăng ký thành công! Bạn nhận được 10.000 Credits quà tặng từ người giới thiệu.'
+            : 'Đăng ký tài khoản thành công! Tặng ngay 5.000 Credits.'
+        );
         setTimeout(() => {
           router.push('/');
         }, 800);
@@ -443,12 +469,32 @@ function LoginFormContent() {
                   {mode === 'login'
                     ? 'Nhập tài khoản và mật khẩu của bạn để tiếp tục'
                     : mode === 'register'
-                    ? 'Điền thông tin bên dưới để tạo tài khoản nhận 5.000 Credits'
+                    ? refCode
+                      ? 'Đăng ký nhận ngay 10.000 Credits quà tặng từ mã giới thiệu'
+                      : 'Điền thông tin bên dưới để tạo tài khoản nhận 5.000 Credits'
                     : forgotSent
                     ? 'Liên kết bảo mật đã được gửi an toàn về Gmail của bạn'
                     : 'Nhập email hoặc tên đăng nhập để nhận link đổi mật khẩu'}
                 </p>
               </div>
+
+              {/* Referral Incentive Welcome Banner */}
+              {mode === 'register' && refCode && (
+                <div className="mb-4 p-3 rounded-2xl bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200/90 text-amber-950 text-xs flex items-center gap-3 animate-fadeIn shadow-2xs">
+                  <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-amber-500 to-orange-500 text-white flex items-center justify-center shrink-0 shadow-sm">
+                    <Gift className="w-5 h-5" />
+                  </div>
+                  <div className="flex-1 min-w-0 text-left">
+                    <div className="flex items-center gap-1.5 font-bold text-amber-900">
+                      <span>Quà tặng bạn bè: +10.000 Credits</span>
+                      <span className="text-[10px] bg-amber-500 text-white px-1.5 py-0.2 rounded-full font-extrabold uppercase">Ưu đãi</span>
+                    </div>
+                    <p className="text-[11px] text-amber-800 truncate mt-0.5">
+                      Áp dụng mã: <strong className="font-mono bg-amber-200/80 px-1.5 py-0.5 rounded text-amber-950 font-bold">{refCode}</strong> (gấp đôi quà chuẩn)
+                    </p>
+                  </div>
+                </div>
+              )}
 
               {/* Notifications */}
               {errorMsg && !notRegistered && (
@@ -711,6 +757,38 @@ function LoginFormContent() {
                     </div>
                   )}
 
+                  {/* Referral Code (Optional or prefilled) */}
+                  {mode === 'register' && (
+                    <div>
+                      <div className="flex items-center justify-between mb-1.5">
+                        <label className="text-xs font-bold text-slate-700 text-left">
+                          Mã giới thiệu <span className="text-slate-400 font-normal">(tùy chọn)</span>
+                        </label>
+                        {!showRefInput && (
+                          <button
+                            type="button"
+                            onClick={() => setShowRefInput(true)}
+                            className="text-[11px] text-blue-600 hover:underline font-semibold"
+                          >
+                            + Nhập mã nhận 10.000 Credits
+                          </button>
+                        )}
+                      </div>
+                      {showRefInput && (
+                        <div className="relative rounded-xl border border-slate-200 bg-white hover:border-slate-300 focus-within:border-amber-500 focus-within:ring-4 focus-within:ring-amber-500/10 transition-all">
+                          <Gift className="w-5 h-5 text-amber-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                          <input
+                            type="text"
+                            placeholder="Nhập mã giới thiệu (VD: ASV...)"
+                            value={refCode}
+                            onChange={(e) => setRefCode(e.target.value.toUpperCase())}
+                            className="w-full h-11 sm:h-12 pl-11 pr-4 text-base sm:text-sm font-semibold uppercase tracking-wider text-slate-900 placeholder:text-slate-400 placeholder:normal-case placeholder:font-normal bg-transparent focus:outline-none"
+                          />
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                   {/* Remember Me & Forgot Password Row */}
                   {mode === 'login' && (
                     <div className="flex items-center justify-between text-xs sm:text-sm pt-0.5">
@@ -756,7 +834,9 @@ function LoginFormContent() {
                           {mode === 'login'
                             ? 'Đăng nhập hệ thống'
                             : mode === 'register'
-                            ? 'Đăng ký tài khoản (Tặng 5.000đ)'
+                            ? refCode.trim()
+                              ? 'Đăng ký tài khoản (+10.000 Credits)'
+                              : 'Đăng ký tài khoản (+5.000 Credits)'
                             : 'Gửi liên kết khôi phục về Gmail'}
                         </span>
                       </>

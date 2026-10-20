@@ -10,7 +10,18 @@ export default function VisitorTracker() {
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
-    // Get or initialize persistent visitor ID
+    // 1. Capture referral code from URL (?ref=CODE) and persist for 30 days
+    try {
+      const urlParams = new URLSearchParams(window.location.search);
+      const ref = urlParams.get('ref') || urlParams.get('referral');
+      if (ref && ref.trim()) {
+        const cleanRef = ref.trim().toUpperCase();
+        localStorage.setItem('asv_ref', cleanRef);
+        document.cookie = `asv_ref=${encodeURIComponent(cleanRef)}; path=/; max-age=2592000; SameSite=Lax`;
+      }
+    } catch (e) {}
+
+    // 2. Get or initialize persistent visitor ID
     let visitorId = localStorage.getItem('asv_vid');
     if (!visitorId) {
       visitorId = 'vid_' + Date.now().toString(36) + Math.random().toString(36).substring(2, 8);

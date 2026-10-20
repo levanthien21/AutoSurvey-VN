@@ -41,7 +41,7 @@ interface AuthContextType {
   user: SafeUser | null;
   loading: boolean;
   login: (username: string, password: string) => Promise<{ success: boolean; error?: string; notRegistered?: boolean }>;
-  register: (username: string, email: string, password: string) => Promise<{ success: boolean; error?: string }>;
+  register: (username: string, email: string, password: string, refCode?: string) => Promise<{ success: boolean; error?: string }>;
   loginWithGoogle: (googleData: { email: string; name?: string; avatar?: string; googleId?: string }) => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
@@ -202,12 +202,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const register = async (usernameInput: string, emailInput: string, passwordInput: string) => {
+  const register = async (usernameInput: string, emailInput: string, passwordInput: string, refCodeInput?: string) => {
     try {
+      let refCode = refCodeInput;
+      if (!refCode && typeof window !== 'undefined') {
+        refCode = localStorage.getItem('asv_ref') || undefined;
+      }
+
       const res = await fetch('/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username: usernameInput, email: emailInput, password: passwordInput }),
+        body: JSON.stringify({ username: usernameInput, email: emailInput, password: passwordInput, refCode }),
       });
       const data = await res.json();
       if (!res.ok || !data.success) {

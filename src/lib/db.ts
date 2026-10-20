@@ -10,12 +10,27 @@ export interface User {
   salt: string;
   role: 'user' | 'admin';
   credits: number;
+  referralCode?: string;
+  referredBy?: string; // ID of the user who referred them
+  affiliateEarnings?: number; // Total credits earned from referrals
+  referralCount?: number; // Number of referred friends
   googleId?: string;
   avatar?: string;
   resetOtp?: string;
   resetOtpExpiry?: string;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface ReferralRecord {
+  id: string;
+  referrerId: string;
+  referrerUsername: string;
+  referredUserId: string;
+  referredUsername: string;
+  bonusAwarded: number;
+  depositCommissions: number;
+  createdAt: string;
 }
 
 export interface Transaction {
@@ -45,6 +60,7 @@ export interface DatabaseSchema {
   users: User[];
   transactions: Transaction[];
   coupons: Coupon[];
+  referrals?: ReferralRecord[];
   settings: {
     adminEmails: string[];
     pricePerResponse: {
@@ -214,6 +230,17 @@ class DatabaseManager {
 
   private checkAndPromoteUser(user?: User): User | undefined {
     if (!user) return undefined;
+    let changed = false;
+
+    // Auto-generate referral code if not exists
+    if (!user.referralCode) {
+      const cleanName = (user.username || 'REF').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 8);
+      user.referralCode = cleanName ? `${cleanName}${crypto.randomBytes(2).toString('hex').toUpperCase()}` : `REF${crypto.randomBytes(3).toString('hex').toUpperCase()}`;
+      user.affiliateEarnings = user.affiliateEarnings || 0;
+      user.referralCount = user.referralCount || 0;
+      changed = true;
+    }
+
     if (this.isAdminEmail(user.email) || user.role === 'admin') {
       let changed = false;
       if (user.role !== 'admin') {
@@ -543,6 +570,124 @@ class DatabaseManager {
     Object.assign(db.settings, patch);
     this.saveDb();
     return db.settings;
+  }
+
+  // --- Affiliate & Referral Program ---
+  findUserByReferralCode(code: string): User | undefined {
+    if (!code) return undefined;
+    const clean = code.trim().toUpperCase();
+    const db = this.getDb();
+    const user = db.users.find(
+      (u) =>
+        (u.referralCode && u.referralCode.toUpperCase() === clean) ||
+        u.username.toUpperCase() === clean
+    );
+    return this.checkAndPromoteUser(user);
+  }
+
+  recordReferral(params: {
+    referrerId: string;
+    referredUserId: string;
+    referredUsername: string;
+    bonus: number;
+  }): ReferralRecord | null {
+    const db = this.getDb();
+    if (!db.referrals) db.referrals = [];
+
+    const referrer = this.findUserById(params.referrerId);
+    if (!referrer) return null;
+
+    const record: ReferralRecord = {
+      id: 'ref_' + crypto.randomBytes(6).toString('hex'),
+      referrerId: params.referrerId,
+      referrerUsername: referrer.username,
+      referredUserId: params.referredUserId,
+      referredUsername: params.referredUsername,
+      bonusAwarded: params.bonus,
+      depositCommissions: 0,
+      createdAt: new Date().toISOString(),
+    };
+
+    db.referrals.unshift(record);
+
+    // Update referrer stats
+    referrer.referralCount = (referrer.referralCount || 0) + 1;
+    referrer.affiliateEarnings = (referrer.affiliateEarnings || 0) + params.bonus;
+    this.updateUserCredits(referrer.id, params.bonus);
+
+    // Log transaction for referrer
+    this.createTransaction({
+      userId: referrer.id,
+      username: referrer.username,
+      type: 'bonus',
+      amount: 0,
+      credits: params.bonus,
+      memo: `Hoa hồng giới thiệu bạn bè: ${params.referredUsername} đăng ký thành công (+${params.bonus.toLocaleString()} Credits)`,
+      status: 'completed',
+    });
+
+    this.saveDb();
+    return record;
+  }
+
+  rewardReferrerOnDeposit(referredUserId: string, depositAmount: number): number {
+    const db = this.getDb();
+    const user = this.findUserById(referredUserId);
+    if (!user || !user.referredBy) return 0;
+
+    const referrer = this.findUserById(user.referredBy);
+    if (!referrer) return 0;
+
+    // 10% commission on deposit amount
+    const commissionCredits = Math.round(depositAmount * 0.10);
+    if (commissionCredits <= 0) return 0;
+
+    this.updateUserCredits(referrer.id, commissionCredits);
+    referrer.affiliateEarnings = (referrer.affiliateEarnings || 0) + commissionCredits;
+
+    // Update referral record
+    if (db.referrals) {
+      const rec = db.referrals.find((r) => r.referredUserId === referredUserId);
+      if (rec) {
+        rec.depositCommissions = (rec.depositCommissions || 0) + commissionCredits;
+      }
+    }
+
+    // Log transaction
+    this.createTransaction({
+      userId: referrer.id,
+      username: referrer.username,
+      type: 'bonus',
+      amount: depositAmount,
+      credits: commissionCredits,
+      memo: `Hoa hồng 10% nạp tiền VietQR từ bạn bè: ${user.username} (+${commissionCredits.toLocaleString()} Credits)`,
+      status: 'completed',
+    });
+
+    this.saveDb();
+    return commissionCredits;
+  }
+
+  getUserAffiliateStats(userId: string) {
+    const db = this.getDb();
+    const user = this.findUserById(userId);
+    if (!user) return null;
+
+    if (!db.referrals) db.referrals = [];
+    const myReferrals = db.referrals.filter((r) => r.referrerId === userId);
+
+    return {
+      referralCode: user.referralCode || user.username.toUpperCase(),
+      referralCount: user.referralCount || myReferrals.length,
+      affiliateEarnings: user.affiliateEarnings || 0,
+      commissionRate: '10%',
+      referrals: myReferrals.slice(0, 50),
+    };
+  }
+
+  getAllReferrals(): ReferralRecord[] {
+    const db = this.getDb();
+    return db.referrals || [];
   }
 }
 

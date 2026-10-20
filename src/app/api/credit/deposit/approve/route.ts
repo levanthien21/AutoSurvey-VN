@@ -26,10 +26,16 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Auto-reward referrer 10% commission on deposit
+    const commission = db.rewardReferrerOnDeposit(tx.userId, tx.amount);
+
     return NextResponse.json({
       success: true,
-      message: `Đã duyệt thành công giao dịch #${txId}. Đã cộng ${tx.credits.toLocaleString()} Credits cho người dùng ${tx.username}.`,
+      message: `Đã duyệt thành công giao dịch #${txId}. Đã cộng ${tx.credits.toLocaleString()} Credits cho người dùng ${tx.username}.${
+        commission > 0 ? ` (Đã chi trả ${commission.toLocaleString()} Credits hoa hồng Affiliate cho người giới thiệu)` : ''
+      }`,
       transaction: tx,
+      commissionAwarded: commission,
     });
   } catch (err: any) {
     console.error('Approve deposit error:', err);

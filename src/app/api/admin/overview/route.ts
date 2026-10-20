@@ -24,6 +24,10 @@ export async function GET(req: NextRequest) {
   const pendingDeposits = transactions.filter((t) => t.type === 'deposit' && t.status === 'pending');
   const totalSubmitted = orders.reduce((sum, o) => sum + o.completedCount, 0);
 
+  const allReferrals = db.getAllReferrals();
+  const totalAffiliateCommissions = users.reduce((sum, u) => sum + (u.affiliateEarnings || 0), 0);
+  const totalReferredUsers = allReferrals.length;
+
   return NextResponse.json({
     success: true,
     metrics: {
@@ -33,6 +37,8 @@ export async function GET(req: NextRequest) {
       totalOrders: orders.length,
       totalSubmitted,
       pendingDepositsCount: pendingDeposits.length,
+      totalReferredUsers,
+      totalAffiliateCommissions,
     },
     users: users.map((u) => ({
       id: u.id,
@@ -41,6 +47,10 @@ export async function GET(req: NextRequest) {
       role: u.role,
       credits: u.credits,
       createdAt: u.createdAt,
+      referralCode: u.referralCode,
+      referredBy: u.referredBy,
+      referralCount: u.referralCount || 0,
+      affiliateEarnings: u.affiliateEarnings || 0,
     })),
     pendingDeposits,
     settings,

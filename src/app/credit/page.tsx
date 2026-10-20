@@ -248,6 +248,31 @@ export default function CreditPage() {
         </div>
       </div>
 
+      {/* Affiliate Referral Program Promo Banner */}
+      <div className="rounded-3xl bg-gradient-to-r from-amber-500/10 via-orange-500/10 to-amber-500/5 border border-amber-200/90 p-5 sm:p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-3.5">
+          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-500 to-orange-500 text-white flex items-center justify-center shrink-0 shadow-md shadow-orange-500/20">
+            <Gift className="w-6 h-6" />
+          </div>
+          <div className="text-left">
+            <div className="flex items-center gap-2">
+              <h3 className="font-extrabold text-slate-900 text-sm sm:text-base">Chương trình Giới thiệu bạn bè (Hoa hồng 10%)</h3>
+              <span className="text-[10px] bg-amber-500 text-white font-black px-2 py-0.2 rounded-full uppercase">HOT</span>
+            </div>
+            <p className="text-xs text-slate-600 mt-0.5 leading-relaxed">
+              Tặng bạn bè <strong>10.000 Credits</strong> khi mở tài khoản. Bạn nhận ngay <strong>5.000 Credits</strong> + <strong>10% hoa hồng vĩnh viễn</strong> mỗi khi bạn bè nạp tiền!
+            </p>
+          </div>
+        </div>
+        <Link
+          href="/affiliate"
+          className="shrink-0 w-full sm:w-auto px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-bold text-xs shadow-md shadow-orange-500/20 active:scale-95 transition-all flex items-center justify-center gap-2"
+        >
+          <span>Lấy link đối tác</span>
+          <ArrowRight className="w-4 h-4" />
+        </Link>
+      </div>
+
       {/* Packs Selection */}
       <div className="space-y-4">
         <div className="flex items-center justify-between">

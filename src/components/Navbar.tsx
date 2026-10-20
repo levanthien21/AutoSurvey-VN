@@ -17,6 +17,7 @@ import {
   ClipboardList,
   Crown,
   Calculator,
+  Gift,
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useMobileNav } from '@/context/MobileNavContext';
@@ -108,6 +109,21 @@ export default function Navbar() {
           >
             <ClipboardList className="w-3.5 h-3.5 text-slate-500" />
             <span>Đơn hàng</span>
+          </Link>
+
+          <Link
+            href="/affiliate"
+            className={`px-3 py-1.5 rounded-xl font-bold transition-all flex items-center gap-1.5 ${
+              isNavActive('/affiliate')
+                ? 'bg-amber-50 text-amber-900 shadow-2xs'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/70'
+            }`}
+          >
+            <Gift className="w-3.5 h-3.5 text-amber-500" />
+            <span>Giới thiệu</span>
+            <span className="text-[9px] font-black bg-gradient-to-r from-amber-500 to-orange-500 text-white px-1.5 py-0.2 rounded-full">
+              10%
+            </span>
           </Link>
         </nav>
       </div>
