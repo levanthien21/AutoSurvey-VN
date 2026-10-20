@@ -526,7 +526,7 @@ export default function AdminPage() {
                 </div>
               </div>
               <div className="mt-3 text-2xl font-extrabold text-slate-900">
-                {metrics.totalRevenue.toLocaleString()} <span className="text-xs font-normal text-slate-500">VNĐ</span>
+                {(metrics?.totalRevenue ?? 0).toLocaleString()} <span className="text-xs font-normal text-slate-500">VNĐ</span>
               </div>
               <div className="mt-1 text-[11px] text-emerald-600 font-semibold">↑ Thanh toán tự động 24/7</div>
             </div>
@@ -538,7 +538,7 @@ export default function AdminPage() {
                   <Users className="w-4 h-4" />
                 </div>
               </div>
-              <div className="mt-3 text-2xl font-extrabold text-slate-900">{metrics.totalUsers}</div>
+              <div className="mt-3 text-2xl font-extrabold text-slate-900">{metrics?.totalUsers ?? 0}</div>
               <div className="mt-1 text-[11px] text-slate-400 font-medium">Thành viên hệ thống</div>
             </div>
 
@@ -550,7 +550,7 @@ export default function AdminPage() {
                 </div>
               </div>
               <div className="mt-3 text-2xl font-extrabold text-slate-900">
-                {metrics.totalCreditsInCirculation.toLocaleString()}
+                {(metrics?.totalCreditsInCirculation ?? 0).toLocaleString()}
               </div>
               <div className="mt-1 text-[11px] text-amber-600 font-medium">Trong ví người dùng</div>
             </div>
@@ -563,9 +563,9 @@ export default function AdminPage() {
                 </div>
               </div>
               <div className="mt-3 text-2xl font-extrabold text-slate-900">
-                {metrics.totalSubmitted.toLocaleString()}
+                {(metrics?.totalSubmitted ?? 0).toLocaleString()}
               </div>
-              <div className="mt-1 text-[11px] text-purple-600 font-medium">Trên {metrics.totalOrders} chiến dịch</div>
+              <div className="mt-1 text-[11px] text-purple-600 font-medium">Trên {metrics?.totalOrders ?? 0} chiến dịch</div>
             </div>
 
             {/* CARD 6: ĐỐI TÁC AFFILIATE */}
@@ -789,10 +789,10 @@ export default function AdminPage() {
                         <td className="py-3 px-3 font-mono text-slate-500">#{tx.id}</td>
                         <td className="py-3 px-3 font-bold text-slate-900">{tx.username}</td>
                         <td className="py-3 px-3 font-bold text-blue-700 font-mono">
-                          {tx.amount.toLocaleString()} VNĐ
+                          {(tx.amount || 0).toLocaleString()} VNĐ
                         </td>
                         <td className="py-3 px-3 font-bold text-emerald-700 font-mono">
-                          +{tx.credits.toLocaleString()} Credits
+                          +{(tx.credits || 0).toLocaleString()} Credits
                         </td>
                         <td className="py-3 px-3 font-mono bg-blue-50/50 text-blue-900">{tx.memo}</td>
                         <td className="py-3 px-3 text-slate-400 text-[11px]">
@@ -854,7 +854,7 @@ export default function AdminPage() {
               <tbody className="divide-y divide-slate-100 font-medium">
                 {filteredUsers.map((u) => (
                   <tr key={u.id} className="hover:bg-slate-50/60">
-                    <td className="py-3 px-3 font-mono text-slate-400">#{u.id.replace('usr_', '')}</td>
+                    <td className="py-3 px-3 font-mono text-slate-400">#{String(u?.id || '').replace('usr_', '')}</td>
                     <td className="py-3 px-3 font-bold text-slate-900">{u.username}</td>
                     <td className="py-3 px-3 text-slate-600">{u.email}</td>
                     <td className="py-3 px-3">
@@ -887,7 +887,7 @@ export default function AdminPage() {
                           <span>∞ Vô hạn (Admin)</span>
                         </span>
                       ) : (
-                        <span className="text-blue-700 font-bold">{u.credits.toLocaleString()} Credits</span>
+                        <span className="text-blue-700 font-bold">{(u?.credits ?? 0).toLocaleString()} Credits</span>
                       )}
                     </td>
                     <td className="py-3 px-3 text-slate-400 text-[11px]">
@@ -1238,7 +1238,7 @@ export default function AdminPage() {
             <div className="text-xs text-slate-600">
               Người dùng: <strong className="text-slate-900">{adjustModalUser.username}</strong>
               <div className="text-slate-400 mt-0.5">
-                Số dư hiện tại: {adjustModalUser.credits.toLocaleString()} Credits
+                Số dư hiện tại: {(adjustModalUser?.credits ?? 0).toLocaleString()} Credits
               </div>
             </div>
 
@@ -1434,7 +1434,7 @@ export default function AdminPage() {
                         <span className="font-mono text-slate-800 font-semibold">{p.path}</span>
                       </div>
                       <span className="font-mono font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-md">
-                        {p.count.toLocaleString()} lượt xem
+                        {(p?.count ?? 0).toLocaleString()} lượt xem
                       </span>
                     </div>
                   ))}

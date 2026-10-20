@@ -212,7 +212,7 @@ export default function CreditPage() {
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
             </div>
             <div className="text-3xl sm:text-4xl font-black mt-1 tracking-tight text-white flex items-baseline gap-1.5 font-mono">
-              {user ? (user.role === 'admin' ? '∞ Vô hạn' : user.credits.toLocaleString()) : '0'}
+              {user ? (user.role === 'admin' ? '∞ Vô hạn' : (user.credits ?? 0).toLocaleString()) : '0'}
               <span className="text-sm font-normal text-slate-400">Credits</span>
             </div>
             <div className="text-xs text-slate-300 mt-2.5 flex flex-wrap items-center gap-3">
@@ -624,8 +624,8 @@ export default function CreditPage() {
                     </td>
                     <td className="py-3 px-3 text-slate-800">{tx.memo}</td>
                     <td className="py-3 px-3 font-bold font-mono">
-                      <span className={tx.credits >= 0 ? 'text-emerald-600' : 'text-slate-900'}>
-                        {tx.credits >= 0 ? `+${tx.credits.toLocaleString()}` : tx.credits.toLocaleString()} Credits
+                      <span className={(tx.credits || 0) >= 0 ? 'text-emerald-600' : 'text-slate-900'}>
+                        {(tx.credits || 0) >= 0 ? `+${(tx.credits || 0).toLocaleString()}` : (tx.credits || 0).toLocaleString()} Credits
                       </span>
                     </td>
                     <td className="py-3 px-3">

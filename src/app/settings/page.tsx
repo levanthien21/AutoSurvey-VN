@@ -119,7 +119,7 @@ export default function SettingsPage() {
               <input
                 type="text"
                 readOnly
-                value={user.role === 'admin' ? '∞ Vô hạn (Đặc quyền Quản trị viên)' : `${user.credits.toLocaleString()} Credits`}
+                value={user.role === 'admin' ? '∞ Vô hạn (Đặc quyền Quản trị viên)' : `${(user.credits ?? 0).toLocaleString()} Credits`}
                 className="w-full h-10 px-3 font-bold font-mono rounded-xl border border-slate-200 bg-slate-50 text-blue-700 cursor-not-allowed"
               />
             </div>

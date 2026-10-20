@@ -327,7 +327,7 @@ export default function Sidebar() {
 
             <div>
               <div className="text-2xl font-black text-slate-900 font-mono tracking-tight">
-                {user.role === 'admin' ? '∞ Vô hạn' : user.credits.toLocaleString()}
+                {user.role === 'admin' ? '∞ Vô hạn' : (user.credits ?? 0).toLocaleString()}
                 <span className="text-xs font-normal text-slate-500 ml-1">Credits</span>
               </div>
             </div>

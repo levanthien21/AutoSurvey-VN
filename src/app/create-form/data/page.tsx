@@ -300,7 +300,7 @@ export default function CreateFormDataPage() {
                 <div className="flex items-center gap-2">
                   <span className="text-slate-500">Số dư hiện tại: </span>
                   <strong className="text-slate-900 font-mono font-bold">
-                    {user ? (user.role === 'admin' ? '∞ Vô hạn (Admin)' : `${user.credits.toLocaleString()} Credits`) : '0 Credits (Chưa đăng nhập)'}
+                    {user ? (user.role === 'admin' ? '∞ Vô hạn (Admin)' : ` Credits`) : '0 Credits (Chưa đăng nhập)'}
                   </strong>
                   {user && user.role !== 'admin' && user.credits < excelData.length * 180 && (
                     <a

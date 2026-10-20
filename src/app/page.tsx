@@ -434,7 +434,7 @@ export default function HomePage() {
             </div>
           </div>
           <div className="mt-3 text-3xl font-black text-slate-900 tracking-tight font-mono">
-            {user ? (user.role === 'admin' ? '∞ Vô hạn' : user.credits.toLocaleString()) : '0'}
+            {user ? (user.role === 'admin' ? '∞ Vô hạn' : (user.credits ?? 0).toLocaleString()) : '0'}
           </div>
           <div className="mt-1 text-xs text-orange-600 font-bold">
             <Link href="/credit" className="hover:underline flex items-center gap-1">

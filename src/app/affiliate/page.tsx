@@ -72,14 +72,22 @@ export default function AffiliatePage() {
       if (res.ok) {
         const json = await res.json();
         if (json.success) {
-          // Adjust referral link to match current origin dynamically
           const origin = typeof window !== 'undefined' ? window.location.origin : 'https://autosurvey.vn';
-          const dynamicLink = `${origin}/login?ref=${json.referralCode}`;
+          const code = json.referralCode || json.stats?.referralCode || user?.username?.toUpperCase() || 'ASV';
+          const dynamicLink = `${origin}/login?ref=${encodeURIComponent(code)}`;
           setData({
-            ...json,
+            referralCode: code,
             referralLink: dynamicLink,
+            stats: {
+              totalReferred: json.stats?.totalReferred ?? json.stats?.referralCount ?? 0,
+              totalEarnings: json.stats?.totalEarnings ?? json.stats?.affiliateEarnings ?? 0,
+              commissionRate: json.stats?.commissionRate || '10%',
+              friendBonus: json.stats?.friendBonus || 10000,
+              signupReward: json.stats?.signupReward || 5000,
+            },
+            referrals: json.referrals || json.stats?.referrals || [],
           });
-          setCustomCodeInput(json.referralCode);
+          setCustomCodeInput(code);
         }
       }
     } catch (err) {
@@ -270,7 +278,7 @@ export default function AffiliatePage() {
             </div>
           </div>
           <div className="text-2xl sm:text-3xl font-black text-slate-900 font-mono">
-            {data ? data.stats.totalEarnings.toLocaleString() : '0'}
+            {(data?.stats?.totalEarnings ?? 0).toLocaleString()}
           </div>
           <div className="text-[11px] text-slate-400 flex items-center gap-1">
             <TrendingUp className="w-3 h-3 text-emerald-500" />
@@ -286,7 +294,7 @@ export default function AffiliatePage() {
             </div>
           </div>
           <div className="text-2xl sm:text-3xl font-black text-slate-900 font-mono">
-            {data ? data.stats.totalReferred : '0'}
+            {(data?.stats?.totalReferred ?? 0).toLocaleString()}
           </div>
           <div className="text-[11px] text-slate-400">Tài khoản đăng ký thành công</div>
         </div>
@@ -550,21 +558,21 @@ export default function AffiliatePage() {
                   <tr key={friend.id} className="hover:bg-slate-50/60 transition-colors">
                     <td className="py-3.5 px-3 font-semibold text-slate-800 flex items-center gap-2">
                       <div className="w-7 h-7 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-xs uppercase">
-                        {friend.name.charAt(0)}
+                        {(friend?.name || 'U').charAt(0)}
                       </div>
-                      <span>{friend.name}</span>
+                      <span>{friend?.name || 'Bạn bè'}</span>
                     </td>
                     <td className="py-3.5 px-3 text-slate-500">
-                      {new Date(friend.signupDate).toLocaleDateString('vi-VN')}
+                      {friend?.signupDate ? new Date(friend.signupDate).toLocaleDateString('vi-VN') : 'Mới'}
                     </td>
                     <td className="py-3.5 px-3 font-mono font-bold text-emerald-600">
-                      +{friend.signupBonus.toLocaleString()}
+                      +{(friend?.signupBonus ?? 5000).toLocaleString()}
                     </td>
                     <td className="py-3.5 px-3 font-mono font-bold text-amber-600">
-                      +{friend.depositCommissions.toLocaleString()}
+                      +{(friend?.depositCommissions ?? 0).toLocaleString()}
                     </td>
                     <td className="py-3.5 px-3 font-mono font-black text-slate-900 text-right">
-                      +{friend.totalGenerated.toLocaleString()} Credits
+                      +{(friend?.totalGenerated ?? 5000).toLocaleString()} Credits
                     </td>
                   </tr>
                 ))}

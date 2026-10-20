@@ -182,7 +182,7 @@ export default function Navbar() {
             </div>
             <div className="flex items-baseline gap-1 text-left leading-tight">
               <span className="font-mono text-xs font-black text-slate-900">
-                {user.role === 'admin' ? '∞ Vô hạn' : user.credits.toLocaleString()}
+                {user.role === 'admin' ? '∞ Vô hạn' : (user.credits ?? 0).toLocaleString()}
               </span>
               <span className="text-[9px] font-bold text-orange-600">Credits</span>
             </div>

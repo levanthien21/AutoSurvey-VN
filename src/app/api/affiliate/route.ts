@@ -24,11 +24,23 @@ export async function GET(req: NextRequest) {
 
     const stats = db.getUserAffiliateStats(user.id);
     const referralCode = stats?.referralCode || user.referralCode || user.username.toUpperCase();
-    const referralLink = `${baseUrl}/register?ref=${encodeURIComponent(referralCode)}`;
+    const referralLink = `${baseUrl}/login?ref=${encodeURIComponent(referralCode)}`;
+
+    const rawReferrals = stats?.referrals || [];
+    const formattedReferrals = rawReferrals.map((r) => ({
+      id: r.id,
+      name: r.referredUsername || 'Người dùng',
+      signupDate: r.createdAt,
+      signupBonus: r.bonusAwarded || 5000,
+      depositCommissions: r.depositCommissions || 0,
+      totalGenerated: (r.bonusAwarded || 5000) + (r.depositCommissions || 0),
+    }));
 
     return NextResponse.json({
       success: true,
       authenticated: true,
+      referralCode,
+      referralLink,
       user: {
         id: user.id,
         username: user.username,
@@ -38,11 +50,15 @@ export async function GET(req: NextRequest) {
       stats: {
         referralCode,
         referralLink,
-        referralCount: stats?.referralCount || 0,
+        totalReferred: stats?.referralCount || formattedReferrals.length,
+        referralCount: stats?.referralCount || formattedReferrals.length,
+        totalEarnings: stats?.affiliateEarnings || 0,
         affiliateEarnings: stats?.affiliateEarnings || 0,
         commissionRate: '10%',
-        referrals: stats?.referrals || [],
+        friendBonus: 10000,
+        signupReward: 5000,
       },
+      referrals: formattedReferrals,
       programInfo: {
         commissionRate: '10%',
         friendSignupBonus: 10000,
