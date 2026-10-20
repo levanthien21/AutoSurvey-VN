@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { getUserFromRequest } from '@/lib/auth';
 import { orderManager } from '@/lib/orderStore';
+import { analytics } from '@/lib/analytics';
 
 export async function GET(req: NextRequest) {
   const user = getUserFromRequest(req);
@@ -43,5 +44,6 @@ export async function GET(req: NextRequest) {
     })),
     pendingDeposits,
     settings,
+    visitorStats: analytics.getStats(),
   });
 }

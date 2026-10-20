@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation';
 import Sidebar from '@/components/Sidebar';
 import Navbar from '@/components/Navbar';
 import MobileBottomNav from '@/components/MobileBottomNav';
-import MascotChatWidget from '@/components/MascotChatWidget';
+import VisitorTracker from '@/components/VisitorTracker';
 
 export default function AppLayoutShell({
   children,
@@ -18,6 +18,7 @@ export default function AppLayoutShell({
   if (isAuthPage) {
     return (
       <div className="min-h-screen w-full flex flex-col bg-[#f8fbff] text-slate-800 antialiased">
+        <VisitorTracker />
         {children}
       </div>
     );
@@ -25,6 +26,7 @@ export default function AppLayoutShell({
 
   return (
     <div className="flex min-h-screen w-full bg-slate-50 text-slate-800 antialiased">
+      <VisitorTracker />
       <Sidebar />
       <div className="flex-1 flex flex-col min-w-0">
         <Navbar />

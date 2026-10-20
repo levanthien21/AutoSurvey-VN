@@ -141,6 +141,18 @@ class DatabaseManager {
   private getDb(): DatabaseSchema {
     if (!this.cache) {
       this.cache = initDb();
+      // Ensure essential coupons exist
+      const defaultCoupons: Coupon[] = [
+        { code: 'WELCOME10K', creditBonus: 10000, maxUses: 1000, usedCount: 0, expiresAt: '2027-12-31T23:59:59.000Z' },
+        { code: 'NCKH2026', creditBonus: 20000, maxUses: 500, usedCount: 0, expiresAt: '2027-12-31T23:59:59.000Z' },
+        { code: 'PASSMON10', creditBonus: 15000, maxUses: 1000, usedCount: 0, expiresAt: '2027-12-31T23:59:59.000Z' },
+      ];
+      if (!this.cache.coupons) this.cache.coupons = [];
+      for (const dc of defaultCoupons) {
+        if (!this.cache.coupons.some((c) => c.code.toUpperCase() === dc.code)) {
+          this.cache.coupons.push(dc);
+        }
+      }
     }
     return this.cache;
   }

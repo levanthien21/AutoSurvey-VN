@@ -509,6 +509,13 @@ export default function CreditPage() {
           >
             NCKH2026 (+20.000đ)
           </button>
+          <button
+            type="button"
+            onClick={() => handleRedeemCoupon('PASSMON10')}
+            className="px-2.5 py-1 rounded-lg bg-orange-50 hover:bg-orange-100 text-orange-700 text-xs font-mono font-bold transition-colors border border-orange-200"
+          >
+            PASSMON10 (+15.000đ)
+          </button>
         </div>
       </div>
 

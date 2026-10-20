@@ -4,6 +4,14 @@ import { getUserFromRequest } from '@/lib/auth';
 
 export async function POST(req: NextRequest) {
   try {
+    const user = getUserFromRequest(req);
+    if (!user || user.role !== 'admin') {
+      return NextResponse.json(
+        { success: false, error: 'Chỉ Quản trị viên mới có quyền duyệt giao dịch nạp tiền.' },
+        { status: 403 }
+      );
+    }
+
     const { txId } = await req.json();
 
     if (!txId) {

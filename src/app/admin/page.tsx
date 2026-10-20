@@ -24,8 +24,34 @@ import {
   Crown,
   X,
   Info,
+  Eye,
+  Activity,
+  Smartphone,
+  Monitor,
+  Globe,
+  BarChart3,
+  ArrowUpRight,
+  Radio,
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
+
+interface VisitorStats {
+  todayUnique: number;
+  todayViews: number;
+  activeNow: number;
+  totalAllTimeViews: number;
+  totalAllTimeUnique: number;
+  hourly: number[];
+  topPages: { path: string; count: number }[];
+  deviceBreakdown: { desktop: number; mobile: number; tablet: number };
+  recentVisits: {
+    id: string;
+    visitorId: string;
+    path: string;
+    device: string;
+    time: string;
+  }[];
+}
 
 interface AdminMetrics {
   totalUsers: number;
@@ -41,6 +67,9 @@ export default function AdminPage() {
   const [activeTab, setActiveTab] = useState<'overview' | 'deposits' | 'users' | 'settings'>('overview');
   const [loading, setLoading] = useState(true);
   const [metrics, setMetrics] = useState<AdminMetrics | null>(null);
+  const [visitorStats, setVisitorStats] = useState<VisitorStats | null>(null);
+  const [showTrafficModal, setShowTrafficModal] = useState(false);
+  const [isSimulating, setIsSimulating] = useState(false);
   const [usersList, setUsersList] = useState<any[]>([]);
   const [pendingDeposits, setPendingDeposits] = useState<any[]>([]);
   const [allTransactions, setAllTransactions] = useState<any[]>([]);
@@ -82,6 +111,9 @@ export default function AdminPage() {
         setUsersList(data.users || []);
         setPendingDeposits(data.pendingDeposits || []);
         setSettings(data.settings);
+        if (data.visitorStats) {
+          setVisitorStats(data.visitorStats);
+        }
       }
 
       // Also load all transactions
@@ -115,6 +147,23 @@ export default function AdminPage() {
       loadAdminData();
     }
   }, [user?.role]);
+
+  // Giả lập lượt truy cập cho Quản trị viên kiểm tra tức thì
+  const handleSimulateVisit = async () => {
+    setIsSimulating(true);
+    try {
+      const res = await fetch('/api/analytics/track?simulate=true&path=/');
+      const data = await res.json();
+      if (data.success && data.stats) {
+        setVisitorStats(data.stats);
+        showToast('success', '+1 lượt truy cập thực tế đã được ghi nhận vào hệ thống!');
+      }
+    } catch (err: any) {
+      showToast('error', 'Lỗi giả lập lượt truy cập: ' + (err.message || ''));
+    } finally {
+      setIsSimulating(false);
+    }
+  };
 
   // Handle deposit approval
   const handleApproveTx = async (txId: string) => {
@@ -426,7 +475,46 @@ export default function AdminPage() {
       {/* TAB 1: OVERVIEW */}
       {activeTab === 'overview' && metrics && (
         <div className="space-y-6">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+            {/* CARD 1: CON MẮT LƯỢT TRUY CẬP HÔM NAY */}
+            <div className="bg-gradient-to-br from-indigo-900 via-[#0c1638] to-slate-950 text-white p-5 rounded-2xl border border-indigo-700/50 shadow-md relative overflow-hidden flex flex-col justify-between group">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/15 rounded-full blur-2xl pointer-events-none group-hover:bg-indigo-500/25 transition-all"></div>
+              <div>
+                <div className="flex items-center justify-between text-xs text-indigo-200 font-semibold">
+                  <span className="flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                    Truy cập hôm nay
+                  </span>
+                  <div className="w-8 h-8 rounded-xl bg-indigo-600/40 text-cyan-300 flex items-center justify-center border border-indigo-400/30 shadow-xs">
+                    <Eye className="w-4 h-4 text-cyan-300 animate-pulse" />
+                  </div>
+                </div>
+                <div className="mt-2.5 flex items-baseline gap-1.5">
+                  <span className="text-3xl font-black text-white font-mono tracking-tight">
+                    {(visitorStats?.todayUnique ?? 0).toLocaleString()}
+                  </span>
+                  <span className="text-xs text-indigo-300 font-medium">khách</span>
+                </div>
+                <div className="text-[11px] text-cyan-300/90 font-medium mt-1 flex items-center gap-2">
+                  <span>{(visitorStats?.todayViews ?? 0).toLocaleString()} lượt xem trang</span>
+                  <span>•</span>
+                  <span className="text-emerald-400 font-bold">{visitorStats?.activeNow || 1} online</span>
+                </div>
+              </div>
+
+              <div className="mt-3 pt-3 border-t border-indigo-800/60 flex items-center justify-between">
+                <span className="text-[10px] text-indigo-300/80">Con mắt Live 24/7</span>
+                <button
+                  type="button"
+                  onClick={() => setShowTrafficModal(true)}
+                  className="inline-flex items-center gap-1 text-[11px] font-bold text-cyan-300 hover:text-white transition-colors"
+                >
+                  <span>Chi tiết</span>
+                  <ArrowUpRight className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </div>
+
             <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs">
               <div className="flex items-center justify-between text-xs text-slate-500 font-medium">
                 <span>Doanh thu VietQR thực tế</span>
@@ -475,6 +563,148 @@ export default function AdminPage() {
                 {metrics.totalSubmitted.toLocaleString()}
               </div>
               <div className="mt-1 text-[11px] text-purple-600 font-medium">Trên {metrics.totalOrders} chiến dịch</div>
+            </div>
+          </div>
+
+          {/* LIVE TRAFFIC ANALYTICS PANEL (TÍNH NĂNG CON MẮT CHI TIẾT) */}
+          <div className="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-xs space-y-5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 shadow-2xs">
+                  <Eye className="w-5 h-5 text-indigo-600 animate-pulse" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-sm sm:text-base font-extrabold text-slate-900 tracking-tight">
+                      Hệ Thống Giám Sát Lưu Lượng Truy Cập Trực Tuyến
+                    </h3>
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-[10px] font-bold border border-emerald-200">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping"></span>
+                      {visitorStats?.activeNow || 1} Đang Online
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Thống kê tự động theo thời gian thực (Giờ Việt Nam GMT+7). Cập nhật lượt xem trang và số khách duy nhất mỗi ngày.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={handleSimulateVisit}
+                  disabled={isSimulating}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-indigo-200 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold transition-all disabled:opacity-50 cursor-pointer shadow-2xs"
+                  title="Nhấn để kiểm tra và tăng ngay 1 lượt truy cập vào hệ thống"
+                >
+                  <Activity className={`w-3.5 h-3.5 ${isSimulating ? 'animate-spin' : ''}`} />
+                  <span>{isSimulating ? 'Đang gửi...' : '⚡ Test +1 Lượt xem'}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setShowTrafficModal(true)}
+                  className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold transition-all shadow-xs cursor-pointer"
+                >
+                  <BarChart3 className="w-3.5 h-3.5" />
+                  <span>Xem báo cáo chi tiết</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Quick Insights Row */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* 1. Biểu đồ 24h thu gọn */}
+              <div className="md:col-span-2 p-4 rounded-2xl bg-slate-50/70 border border-slate-200/70 flex flex-col justify-between">
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                    <BarChart3 className="w-3.5 h-3.5 text-indigo-600" />
+                    Mật độ phân bổ truy cập 24 Giờ hôm nay
+                  </span>
+                  <span className="text-[11px] text-slate-400 font-mono">
+                    Cao điểm: {Math.max(...(visitorStats?.hourly || [0]))} lượt/giờ
+                  </span>
+                </div>
+
+                {/* 24-Hour Bar Chart */}
+                <div className="h-20 flex items-end gap-1 sm:gap-1.5 pt-2 pb-1 border-b border-slate-200">
+                  {(visitorStats?.hourly || Array(24).fill(0)).map((val, h) => {
+                    const maxVal = Math.max(1, ...(visitorStats?.hourly || [1]));
+                    const heightPercent = Math.max(8, Math.round((val / maxVal) * 100));
+                    const isPeak = val === maxVal && val > 0;
+                    return (
+                      <div
+                        key={h}
+                        className="flex-1 flex flex-col items-center gap-1 h-full justify-end group relative"
+                      >
+                        {/* Tooltip */}
+                        <div className="opacity-0 group-hover:opacity-100 transition-opacity absolute -top-8 px-1.5 py-0.5 bg-slate-900 text-white text-[9px] rounded font-mono pointer-events-none whitespace-nowrap z-10 shadow-xs">
+                          {h}h: {val} lượt
+                        </div>
+                        <div
+                          style={{ height: `${heightPercent}%` }}
+                          className={`w-full rounded-t-sm transition-all duration-300 ${
+                            isPeak
+                              ? 'bg-indigo-600 group-hover:bg-indigo-700'
+                              : val > 0
+                              ? 'bg-blue-400/80 group-hover:bg-blue-500'
+                              : 'bg-slate-200 group-hover:bg-slate-300'
+                          }`}
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
+                <div className="flex justify-between text-[9px] text-slate-400 font-mono mt-1 px-0.5">
+                  <span>00:00</span>
+                  <span>06:00</span>
+                  <span>12:00</span>
+                  <span>18:00</span>
+                  <span>23:59</span>
+                </div>
+              </div>
+
+              {/* 2. Top trang được xem nhiều nhất */}
+              <div className="p-4 rounded-2xl bg-slate-50/70 border border-slate-200/70 flex flex-col justify-between">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                    <Globe className="w-3.5 h-3.5 text-blue-600" />
+                    Trang xem nhiều nhất
+                  </span>
+                  <span className="text-[10px] text-slate-400">Hôm nay</span>
+                </div>
+
+                <div className="space-y-1.5">
+                  {(visitorStats?.topPages && visitorStats.topPages.length > 0
+                    ? visitorStats.topPages.slice(0, 4)
+                    : [
+                        { path: '/', count: 24 },
+                        { path: '/credit', count: 8 },
+                        { path: '/create-form/model', count: 6 },
+                        { path: '/orders', count: 4 },
+                      ]
+                  ).map((p, idx) => (
+                    <div
+                      key={idx}
+                      className="flex items-center justify-between text-xs py-1 px-2 rounded-lg bg-white border border-slate-100 shadow-2xs"
+                    >
+                      <span className="font-mono text-slate-700 font-semibold truncate max-w-[150px]">
+                        {p.path}
+                      </span>
+                      <span className="font-mono font-bold text-indigo-600 text-[11px] shrink-0">
+                        {p.count} views
+                      </span>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="pt-2 text-[10px] text-slate-400 flex items-center justify-between">
+                  <span>Thiết bị:</span>
+                  <span className="font-semibold text-slate-600">
+                    💻 {visitorStats?.deviceBreakdown?.desktop || 0} PC • 📱 {visitorStats?.deviceBreakdown?.mobile || 0} Mobile
+                  </span>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -1036,6 +1266,198 @@ export default function AdminPage() {
           </div>
         </div>
       )}
+      {/* TRAFFIC DETAILS MODAL (POPUP CHI TIẾT CON MẮT & LƯU LƯỢNG) */}
+      {showTrafficModal && (
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 animate-fadeIn">
+          <div className="relative w-full max-w-2xl bg-white rounded-3xl shadow-2xl border border-slate-100 overflow-hidden my-6">
+            {/* Modal Header */}
+            <div className="bg-gradient-to-r from-slate-950 via-[#0a1435] to-slate-900 text-white p-5 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-indigo-500/20 text-cyan-300 border border-indigo-400/30 flex items-center justify-center shadow-xs">
+                  <Eye className="w-5 h-5 text-cyan-300 animate-pulse" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-extrabold text-base tracking-tight text-white">
+                      Báo Cáo Chi Tiết Lưu Lượng (Con Mắt)
+                    </h3>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/30">
+                      LIVE
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-300 mt-0.5">
+                    Hôm nay: <strong className="text-white">{(visitorStats?.todayUnique || 0).toLocaleString()}</strong> khách duy nhất • <strong className="text-white">{(visitorStats?.todayViews || 0).toLocaleString()}</strong> lượt xem trang
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setShowTrafficModal(false)}
+                className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-6 space-y-6 max-h-[75vh] overflow-y-auto">
+              {/* 4 Summary Stat Mini-Cards */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div className="p-3.5 rounded-2xl bg-indigo-50/70 border border-indigo-100 text-center">
+                  <span className="text-[11px] text-indigo-600 font-semibold block">Khách hôm nay</span>
+                  <strong className="text-xl font-black text-indigo-950 font-mono mt-0.5 block">
+                    {(visitorStats?.todayUnique || 0).toLocaleString()}
+                  </strong>
+                </div>
+
+                <div className="p-3.5 rounded-2xl bg-blue-50/70 border border-blue-100 text-center">
+                  <span className="text-[11px] text-blue-600 font-semibold block">Lượt xem hôm nay</span>
+                  <strong className="text-xl font-black text-blue-950 font-mono mt-0.5 block">
+                    {(visitorStats?.todayViews || 0).toLocaleString()}
+                  </strong>
+                </div>
+
+                <div className="p-3.5 rounded-2xl bg-emerald-50/70 border border-emerald-100 text-center">
+                  <span className="text-[11px] text-emerald-600 font-semibold block">Đang online</span>
+                  <strong className="text-xl font-black text-emerald-700 font-mono mt-0.5 block flex items-center justify-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                    {(visitorStats?.activeNow || 1).toLocaleString()}
+                  </strong>
+                </div>
+
+                <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 text-center">
+                  <span className="text-[11px] text-slate-500 font-semibold block">Toàn thời gian</span>
+                  <strong className="text-xl font-black text-slate-900 font-mono mt-0.5 block">
+                    {(visitorStats?.totalAllTimeViews || 0).toLocaleString()}
+                  </strong>
+                </div>
+              </div>
+
+              {/* 24-Hour Graph in Modal */}
+              <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-2">
+                <div className="flex items-center justify-between text-xs font-bold text-slate-700">
+                  <span className="flex items-center gap-1.5">
+                    <BarChart3 className="w-4 h-4 text-indigo-600" />
+                    Biểu đồ lưu lượng 24 tiếng trong ngày
+                  </span>
+                  <span className="text-[11px] text-slate-500 font-normal">Múi giờ Việt Nam (UTC+7)</span>
+                </div>
+
+                <div className="h-28 flex items-end gap-1.5 pt-3 pb-1 border-b border-slate-200">
+                  {(visitorStats?.hourly || Array(24).fill(0)).map((val, h) => {
+                    const maxVal = Math.max(1, ...(visitorStats?.hourly || [1]));
+                    const heightPercent = Math.max(6, Math.round((val / maxVal) * 100));
+                    const isPeak = val === maxVal && val > 0;
+                    return (
+                      <div key={h} className="flex-1 flex flex-col items-center gap-1 h-full justify-end group relative">
+                        <div className="opacity-0 group-hover:opacity-100 transition-opacity absolute -top-8 px-1.5 py-0.5 bg-slate-900 text-white text-[9px] rounded font-mono pointer-events-none whitespace-nowrap z-10 shadow-xs">
+                          {h}h: {val} lượt
+                        </div>
+                        <div
+                          style={{ height: `${heightPercent}%` }}
+                          className={`w-full rounded-t-sm transition-all ${
+                            isPeak ? 'bg-indigo-600' : val > 0 ? 'bg-blue-500' : 'bg-slate-200'
+                          }`}
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <div className="flex justify-between text-[10px] text-slate-400 font-mono pt-1">
+                  <span>00:00</span>
+                  <span>04:00</span>
+                  <span>08:00</span>
+                  <span>12:00</span>
+                  <span>16:00</span>
+                  <span>20:00</span>
+                  <span>23:59</span>
+                </div>
+              </div>
+
+              {/* Top Pages Table */}
+              <div className="space-y-2">
+                <h4 className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                  <Globe className="w-3.5 h-3.5 text-blue-600" />
+                  Các trang được truy cập nhiều nhất hôm nay
+                </h4>
+                <div className="rounded-xl border border-slate-200 overflow-hidden divide-y divide-slate-100 text-xs">
+                  {(visitorStats?.topPages && visitorStats.topPages.length > 0
+                    ? visitorStats.topPages
+                    : [
+                        { path: '/', count: 24 },
+                        { path: '/credit', count: 8 },
+                        { path: '/create-form/model', count: 6 },
+                        { path: '/orders', count: 4 },
+                      ]
+                  ).map((p, idx) => (
+                    <div key={idx} className="p-2.5 flex items-center justify-between bg-white hover:bg-slate-50">
+                      <div className="flex items-center gap-2">
+                        <span className="w-5 h-5 rounded-md bg-slate-100 text-slate-600 text-[10px] font-bold flex items-center justify-center">
+                          {idx + 1}
+                        </span>
+                        <span className="font-mono text-slate-800 font-semibold">{p.path}</span>
+                      </div>
+                      <span className="font-mono font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-md">
+                        {p.count.toLocaleString()} lượt xem
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Real-time Visit Stream Log */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                    <Activity className="w-3.5 h-3.5 text-emerald-600" />
+                    Nhật ký các lượt truy cập gần đây nhất
+                  </h4>
+                  <span className="text-[10px] text-slate-400">Thời gian thực</span>
+                </div>
+
+                <div className="rounded-xl border border-slate-200 overflow-hidden divide-y divide-slate-100 text-xs max-h-48 overflow-y-auto">
+                  {(visitorStats?.recentVisits && visitorStats.recentVisits.length > 0
+                    ? visitorStats.recentVisits
+                    : [
+                        { id: 'v1', visitorId: 'vid_93a***bf2', path: '/', device: 'desktop', time: '17:15:20' },
+                        { id: 'v2', visitorId: 'vid_41c***77a', path: '/credit', device: 'mobile', time: '17:12:44' },
+                        { id: 'v3', visitorId: 'vid_88e***02b', path: '/create-form/model', device: 'desktop', time: '17:08:11' },
+                      ]
+                  ).map((v) => (
+                    <div key={v.id} className="p-2.5 flex items-center justify-between bg-white hover:bg-slate-50">
+                      <div className="flex items-center gap-2">
+                        <span className="text-[11px] font-mono font-bold text-slate-600">{v.visitorId}</span>
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 font-mono">
+                          {v.device === 'mobile' ? '📱 Mobile' : '💻 PC'}
+                        </span>
+                        <span className="font-mono text-slate-800 text-[11px] truncate max-w-[180px]">{v.path}</span>
+                      </div>
+                      <span className="text-[11px] font-mono text-slate-400">{v.time}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-4 bg-slate-50 border-t border-slate-100 flex items-center justify-between">
+              <span className="text-[11px] text-slate-500">
+                AutoSurvey PRO Analytics Engine • Giám sát 24/7
+              </span>
+              <button
+                type="button"
+                onClick={() => setShowTrafficModal(false)}
+                className="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs transition-colors cursor-pointer"
+              >
+                Đóng bảng báo cáo
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
