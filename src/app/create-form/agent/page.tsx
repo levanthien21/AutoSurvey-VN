@@ -15,9 +15,14 @@ import {
   Sliders,
   CheckCircle2,
   ListFilter,
+  Clock,
+  ShieldCheck,
+  Star,
+  Settings2,
 } from 'lucide-react';
 import { ParsedGoogleForm } from '@/lib/googleFormParser';
 import { useAuth } from '@/context/AuthContext';
+import { buildBankingGenZQueue } from '@/lib/presets/bankingGenZPreset';
 
 export default function CreateFormAgentPage() {
   const router = useRouter();
@@ -31,9 +36,38 @@ export default function CreateFormAgentPage() {
   const [personaType, setPersonaType] = useState('office'); // student, office, manager, mixed
   const [tone, setTone] = useState('natural'); // natural, critical, enthusiastic
   const [targetCount, setTargetCount] = useState<number>(50);
-  const [delayMin, setDelayMin] = useState<number>(1.5);
-  const [delayMax, setDelayMax] = useState<number>(3.5);
   const [submitting, setSubmitting] = useState(false);
+
+  // Timing & Delay Settings (Chống giảng viên kiểm tra thời gian)
+  const [enableCustomDelay, setEnableCustomDelay] = useState<boolean>(false);
+  const [delayPreset, setDelayPreset] = useState<'8-10' | '10-15' | '3-5' | 'custom'>('8-10');
+  const [customMinMinutes, setCustomMinMinutes] = useState<number>(8);
+  const [customMaxMinutes, setCustomMaxMinutes] = useState<number>(10);
+
+  // VIP Customer Specific Preset (Áp dụng riêng cho khách hàng này theo file yêu cầu)
+  const [isCustomerSpecialPreset, setIsCustomerSpecialPreset] = useState<boolean>(false);
+
+  // Calculate delayMin and delayMax in seconds
+  const getComputedDelays = () => {
+    let min = 1.5;
+    let max = 3.5;
+    if (enableCustomDelay) {
+      if (delayPreset === '8-10') {
+        min = 480; // 8 phút
+        max = 600; // 10 phút
+      } else if (delayPreset === '10-15') {
+        min = 600; // 10 phút
+        max = 900; // 15 phút
+      } else if (delayPreset === '3-5') {
+        min = 180; // 3 phút
+        max = 300; // 5 phút
+      } else if (delayPreset === 'custom') {
+        min = Math.max(1, customMinMinutes) * 60;
+        max = Math.max(min / 60, customMaxMinutes) * 60;
+      }
+    }
+    return { min, max };
+  };
 
   // Auto-parse helper
   const executeParse = async (urlToParse: string) => {
@@ -157,9 +191,13 @@ export default function CreateFormAgentPage() {
           ? criticalComments
           : naturalBalancedComments;
 
-      const queue: Record<string, any>[] = [];
+      let queue: Record<string, any>[] = [];
 
-      for (let i = 0; i < targetCount; i++) {
+      if (isCustomerSpecialPreset) {
+        // Áp dụng 100% chuẩn theo file của khách hàng (CB-SEM/PLS-SEM Gen Z)
+        queue = buildBankingGenZQueue(currentForm.questions, targetCount);
+      } else {
+        for (let i = 0; i < targetCount; i++) {
         const payload: Record<string, any> = {};
 
         currentForm.questions.forEach((q) => {
@@ -322,6 +360,7 @@ export default function CreateFormAgentPage() {
         });
 
         queue.push(payload);
+        }
       }
 
       if (!user) {
@@ -331,11 +370,15 @@ export default function CreateFormAgentPage() {
         return;
       }
 
+      const { min: finalDelayMin, max: finalDelayMax } = getComputedDelays();
+
       const res = await fetch('/api/orders', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          title: `AI Agent (${personaType}) - ${currentForm.title}`,
+          title: isCustomerSpecialPreset
+            ? `[VIP Preset] Khảo sát Thẻ tín dụng & Ngân hàng số Gen Z - ${currentForm.title}`
+            : `AI Agent (${personaType}) - ${currentForm.title}`,
           formUrl,
           submitUrl: currentForm.submitUrl,
           platform: currentForm.platform,
@@ -345,8 +388,8 @@ export default function CreateFormAgentPage() {
           pageHistory: currentForm.pageHistory,
           mode: 'agent',
           totalTarget: queue.length,
-          delayMin,
-          delayMax,
+          delayMin: finalDelayMin,
+          delayMax: finalDelayMax,
           responsesQueue: queue,
           fbzx: currentForm.fbzx,
           autoStart: true,
@@ -467,6 +510,64 @@ export default function CreateFormAgentPage() {
           <p className="text-xs text-slate-500 mt-0.5">AI sẽ mô phỏng hành vi và phản xạ tương ứng với từng nhóm đối tượng</p>
         </div>
 
+        {/* VIP Customer Special Preset Toggle */}
+        <div className={`p-4 rounded-2xl border-2 transition-all ${isCustomerSpecialPreset ? 'border-amber-500 bg-amber-50/70 shadow-sm' : 'border-slate-200/80 bg-slate-50/50 hover:border-slate-300'}`}>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-start gap-3">
+              <div className="w-9 h-9 rounded-xl bg-amber-500 text-white flex items-center justify-center font-bold shrink-0 shadow-md shadow-amber-500/20">
+                <Star className="w-5 h-5 fill-current" />
+              </div>
+              <div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-xs font-bold text-slate-900">
+                    Cấu hình Chuyên biệt: Khảo sát Ngân hàng số & Thẻ tín dụng Gen Z
+                  </span>
+                  <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-amber-200 text-amber-900">
+                    Theo file yêu cầu riêng
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-600 mt-1 leading-relaxed">
+                  Thiết lập chuẩn hóa theo file dự đoán dữ liệu (CB-SEM/PLS-SEM): 49 phát biểu Likert chuẩn Mean & Std Dev, 9 câu nhân khẩu, 5 câu đảo chiều, câu kiểm tra chú ý #39 (loại &lt; 10%), tự động áp dụng thời gian đọc 8 - 10 phút.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2.5 self-end sm:self-center shrink-0">
+              <span className="text-xs font-bold text-slate-700">
+                {isCustomerSpecialPreset ? 'Đang bật' : 'Tắt'}
+              </span>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={isCustomerSpecialPreset}
+                  onChange={(e) => {
+                    const checked = e.target.checked;
+                    setIsCustomerSpecialPreset(checked);
+                    if (checked) {
+                      setEnableCustomDelay(true);
+                      setDelayPreset('8-10');
+                    }
+                  }}
+                  className="sr-only peer"
+                />
+                <div className="w-11 h-6 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-600"></div>
+              </label>
+            </div>
+          </div>
+
+          {isCustomerSpecialPreset && (
+            <div className="mt-3 pt-3 border-t border-amber-200 text-xs text-amber-950 space-y-1">
+              <div className="flex items-center gap-2 font-semibold text-emerald-800">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                <span>Đã nạp 100% quy tắc file: Tự động điều tiết điểm trung bình Likert 2.5 - 4.5, độ lệch chuẩn 0.7 - 1.2, câu 39 chọn mức 1 (90%) và các nhóm năm sinh Gen Z 1998 - 2008.</span>
+              </div>
+              <p className="text-[11px] text-amber-850/80 italic">
+                * Lưu ý: Cấu hình này chỉ áp dụng riêng cho khách hàng này theo file nhu cầu cụ thể, không upload dùng chung cho toàn bộ web.
+              </p>
+            </div>
+          )}
+        </div>
+
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {personas.map((p) => {
             const isSelected = personaType === p.id;
@@ -523,6 +624,110 @@ export default function CreateFormAgentPage() {
             />
           </div>
         </div>
+      </div>
+
+      {/* Step 3: Timing & Delay Configuration (Chống giảng viên kiểm tra) */}
+      <div className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-xs space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <div className="flex items-center gap-2">
+              <Clock className="w-4 h-4 text-purple-600" />
+              <h3 className="text-base font-bold text-slate-900">3. Cài đặt thời gian đọc & nộp form (Chống giảng viên kiểm tra)</h3>
+            </div>
+            <p className="text-xs text-slate-500 mt-0.5">
+              Tùy chỉnh thời gian đọc form trung bình để Google Sheet ghi nhận timestamp nộp bài tự nhiên như người thật làm bài
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
+            <span className="text-xs font-bold text-slate-700">
+              {enableCustomDelay ? 'Đang bật' : 'Tắt'}
+            </span>
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                checked={enableCustomDelay}
+                onChange={(e) => setEnableCustomDelay(e.target.checked)}
+                className="sr-only peer"
+              />
+              <div className="w-11 h-6 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
+            </label>
+          </div>
+        </div>
+
+        {!enableCustomDelay ? (
+          <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-600 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <span>⚡ Chế độ hiện tại: <strong>Siêu tốc (1.5 - 3.5 giây / phản hồi)</strong> — Thích hợp điền nhanh hoặc khảo sát không yêu cầu kiểm tra thời gian.</span>
+            <button
+              type="button"
+              onClick={() => setEnableCustomDelay(true)}
+              className="text-[11px] font-bold text-purple-700 hover:text-purple-800 underline text-left sm:text-right cursor-pointer"
+            >
+              Bật mô phỏng thời gian đọc bài →
+            </button>
+          </div>
+        ) : (
+          <div className="space-y-4 pt-1">
+            <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+              {[
+                { id: '8-10', title: '8 - 10 phút (Khuyên dùng)', desc: 'Mô phỏng đọc kỹ 40-50 câu, chống giảng viên check tuyệt đối' },
+                { id: '10-15', title: '10 - 15 phút (Chuyên sâu)', desc: 'Dành cho nghiên cứu học thuật dài, nhiều nội dung đọc hiểu' },
+                { id: '3-5', title: '3 - 5 phút (Khảo sát ngắn)', desc: 'Dành cho phiếu khảo sát ngắn dưới 15 câu' },
+                { id: 'custom', title: 'Tùy chỉnh phút', desc: 'Tự nhập khoảng thời gian min - max theo nhu cầu' },
+              ].map((item) => (
+                <div
+                  key={item.id}
+                  onClick={() => setDelayPreset(item.id as any)}
+                  className={`p-3.5 rounded-xl border-2 cursor-pointer transition-all ${
+                    delayPreset === item.id
+                      ? 'border-purple-600 bg-purple-50/50 shadow-2xs'
+                      : 'border-slate-200 hover:border-slate-300 bg-white'
+                  }`}
+                >
+                  <div className="text-xs font-bold text-slate-900">{item.title}</div>
+                  <div className="text-[11px] text-slate-500 mt-1 leading-snug">{item.desc}</div>
+                </div>
+              ))}
+            </div>
+
+            {delayPreset === 'custom' && (
+              <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Thời gian tối thiểu (Phút)</label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="60"
+                    value={customMinMinutes}
+                    onChange={(e) => setCustomMinMinutes(Math.max(1, Number(e.target.value) || 1))}
+                    className="w-full h-9 px-3 text-sm font-bold rounded-lg border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Thời gian tối đa (Phút)</label>
+                  <input
+                    type="number"
+                    min={customMinMinutes}
+                    max="120"
+                    value={customMaxMinutes}
+                    onChange={(e) => setCustomMaxMinutes(Math.max(customMinMinutes, Number(e.target.value) || customMinMinutes))}
+                    className="w-full h-9 px-3 text-sm font-bold rounded-lg border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  />
+                </div>
+              </div>
+            )}
+
+            <div className="p-3.5 rounded-xl bg-purple-50 border border-purple-200 text-purple-900 text-xs flex items-start gap-2.5">
+              <ShieldCheck className="w-4 h-4 text-purple-600 shrink-0 mt-0.5" />
+              <div className="leading-relaxed">
+                <strong>Chống phát hiện tự động:</strong> Giữa mỗi phản hồi, hệ thống sẽ ngẫu nhiên hóa thời gian chờ trong khoảng <strong>{(getComputedDelays().min / 60).toFixed(0)} - {(getComputedDelays().max / 60).toFixed(0)} phút</strong>. Dấu thời gian nộp bài trên Google Sheet sẽ hoàn toàn tự nhiên, giảng viên xem lịch sử sẽ thấy như nhiều người khác nhau đang tự đọc và hoàn thành bài thi/khảo sát.
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      <div className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-xs space-y-5">
 
         {/* Commercial billing card */}
         <div className="p-4 rounded-xl bg-slate-50 border border-slate-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">

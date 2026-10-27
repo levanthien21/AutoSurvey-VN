@@ -17,6 +17,8 @@ import {
   Sliders,
   Download,
   RotateCcw,
+  Sparkles,
+  ShieldCheck,
 } from 'lucide-react';
 import { SurveyOrder } from '@/lib/orderStore';
 
@@ -55,6 +57,10 @@ function OrdersContent() {
   const [loading, setLoading] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [refreshToast, setRefreshToast] = useState<string | null>(null);
+
+  // Natural delay countdown timer
+  const [nextStepTime, setNextStepTime] = useState<number | null>(null);
+  const [countdownSeconds, setCountdownSeconds] = useState<number>(0);
 
   const displayOrders = orders.length > 0 ? orders : (activeOrder ? [activeOrder] : []);
   const currentOrder = activeOrder || (displayOrders.length > 0 ? displayOrders[0] : null);
@@ -190,43 +196,95 @@ function OrdersContent() {
     };
   }, [currentOrder?.id]);
 
+  // Step execution helper
+  const triggerStep = async (orderToStep: SurveyOrder) => {
+    try {
+      const res = await fetch(`/api/orders/${orderToStep.id}/step`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ order: orderToStep }),
+      });
+      const data = await res.json();
+      if (data.success && data.order) {
+        setActiveOrder(data.order);
+        setOrders((prev) => {
+          const list = prev.map((o) => (o.id === data.order.id ? data.order : o));
+          if (!list.find((o) => o.id === data.order.id)) {
+            list.unshift(data.order);
+          }
+          try { localStorage.setItem('autosurvey_orders', JSON.stringify(list)); } catch {}
+          return list;
+        });
+
+        // Set next step time if in natural delay mode (delayMin >= 10)
+        if (data.order.status === 'running' && data.order.completedCount < data.order.totalTarget) {
+          if (data.order.delayMin && data.order.delayMin >= 10) {
+            const minSec = data.order.delayMin;
+            const maxSec = data.order.delayMax || minSec;
+            const nextSec = minSec + Math.random() * (maxSec - minSec);
+            setNextStepTime(Date.now() + nextSec * 1000);
+          } else {
+            setNextStepTime(null);
+          }
+        } else {
+          setNextStepTime(null);
+        }
+      }
+    } catch (err) {
+      console.warn('Step runner:', err);
+    }
+  };
+
+  const handleForceStepNow = () => {
+    if (currentOrder && currentOrder.status === 'running' && currentOrder.completedCount < currentOrder.totalTarget) {
+      setNextStepTime(Date.now());
+      triggerStep(currentOrder);
+    }
+  };
+
+  // Countdown ticker for natural delay
+  useEffect(() => {
+    if (!nextStepTime) {
+      setCountdownSeconds(0);
+      return;
+    }
+    const updateCountdown = () => {
+      const remaining = Math.max(0, Math.ceil((nextStepTime - Date.now()) / 1000));
+      setCountdownSeconds(remaining);
+    };
+    updateCountdown();
+    const ticker = setInterval(updateCountdown, 1000);
+    return () => clearInterval(ticker);
+  }, [nextStepTime]);
+
   // Client-driven runner heartbeat to ensure continuous progress even if serverless function sleeps
   useEffect(() => {
     if (!currentOrder || currentOrder.status !== 'running' || currentOrder.completedCount >= currentOrder.totalTarget) {
+      setNextStepTime(null);
       return;
     }
+
+    const isNaturalDelay = Boolean(currentOrder.delayMin && currentOrder.delayMin >= 10);
 
     let isStepping = false;
     const interval = setInterval(async () => {
       if (isStepping) return;
+
+      // If in natural delay mode, wait until nextStepTime is reached
+      if (isNaturalDelay && nextStepTime && Date.now() < nextStepTime) {
+        return;
+      }
+
       isStepping = true;
       try {
-        const res = await fetch(`/api/orders/${currentOrder.id}/step`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ order: currentOrder }),
-        });
-        const data = await res.json();
-        if (data.success && data.order) {
-          setActiveOrder(data.order);
-          setOrders((prev) => {
-            const list = prev.map((o) => (o.id === data.order.id ? data.order : o));
-            if (!list.find((o) => o.id === data.order.id)) {
-              list.unshift(data.order);
-            }
-            try { localStorage.setItem('autosurvey_orders', JSON.stringify(list)); } catch {}
-            return list;
-          });
-        }
-      } catch (err) {
-        console.warn('Step runner:', err);
+        await triggerStep(currentOrder);
       } finally {
         isStepping = false;
       }
-    }, 1800);
+    }, isNaturalDelay ? 1000 : 1800);
 
     return () => clearInterval(interval);
-  }, [currentOrder?.id, currentOrder?.status, currentOrder?.completedCount, currentOrder?.totalTarget]);
+  }, [currentOrder?.id, currentOrder?.status, currentOrder?.completedCount, currentOrder?.totalTarget, nextStepTime]);
 
   // Order action
   const handleAction = async (id: string, action: 'start' | 'pause' | 'cancel') => {
@@ -455,6 +513,46 @@ function OrdersContent() {
                       ></div>
                     </div>
                   </div>
+
+                  {/* Natural Delay Simulation Banner (Chống giảng viên check) */}
+                  {currentOrder.delayMin && currentOrder.delayMin >= 10 && (
+                    <div className="p-4 rounded-2xl bg-gradient-to-r from-purple-50 via-indigo-50 to-blue-50 border border-purple-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-purple-600 text-white flex items-center justify-center shrink-0 shadow-md shadow-purple-500/20">
+                          <Clock className="w-5 h-5 animate-pulse" />
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-extrabold text-purple-900">
+                              Giãn cách mô phỏng người thật: {(currentOrder.delayMin / 60).toFixed(0)} - {(currentOrder.delayMax / 60).toFixed(0)} phút / phản hồi
+                            </span>
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-200/80 text-purple-900">
+                              Chống giảng viên check
+                            </span>
+                          </div>
+                          <div className="text-[11px] text-purple-700/90 mt-0.5">
+                            {countdownSeconds > 0 ? (
+                              <span>
+                                Lần nộp tiếp theo sau: <strong className="font-mono text-purple-900 font-bold">{Math.floor(countdownSeconds / 60)}:{(countdownSeconds % 60).toString().padStart(2, '0')}</strong>
+                              </span>
+                            ) : (
+                              <span>Đang chuẩn bị gửi phản hồi tiếp theo...</span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      {currentOrder.status === 'running' && currentOrder.completedCount < currentOrder.totalTarget && (
+                        <button
+                          onClick={handleForceStepNow}
+                          className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold transition-all shadow-xs hover:scale-[1.02] shrink-0 cursor-pointer"
+                        >
+                          <Sparkles className="w-3.5 h-3.5" />
+                          <span>Nộp ngay phản hồi này</span>
+                        </button>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 {/* Real-time Submission Terminal Log */}
