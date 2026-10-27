@@ -33,6 +33,7 @@ export interface SurveyOrder {
   logs: OrderLog[];
   responsesQueue: SubmitResponsePayload[];
   fbzx?: string;
+  pageHistory?: string;
   platform?: 'google' | 'microsoft';
   antiForgeryToken?: string;
   serverSessionId?: string;
@@ -57,6 +58,7 @@ class OrderManager {
     totalCost?: number;
     responsesQueue: SubmitResponsePayload[];
     fbzx?: string;
+    pageHistory?: string;
     platform?: 'google' | 'microsoft';
     antiForgeryToken?: string;
     serverSessionId?: string;
@@ -85,6 +87,7 @@ class OrderManager {
       logs: [],
       responsesQueue: params.responsesQueue,
       fbzx: params.fbzx,
+      pageHistory: params.pageHistory,
       antiForgeryToken: params.antiForgeryToken,
       serverSessionId: params.serverSessionId,
     };
@@ -163,7 +166,7 @@ class OrderManager {
             order.serverSessionId,
             order.formUrl
           )
-        : await submitGoogleFormResponse(order.submitUrl, currentPayload, order.fbzx);
+        : await submitGoogleFormResponse(order.submitUrl, currentPayload, order.fbzx, order.pageHistory);
 
       const logItem: OrderLog = {
         timestamp: new Date().toLocaleTimeString(),

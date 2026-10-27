@@ -153,6 +153,7 @@ export default function CreateFormDataPage() {
           platform: form.platform,
           antiForgeryToken: form.antiForgeryToken,
           serverSessionId: form.serverSessionId,
+          pageHistory: form.pageHistory,
           mode: 'data',
           totalTarget: queue.length,
           delayMin,

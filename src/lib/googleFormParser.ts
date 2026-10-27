@@ -9,7 +9,7 @@ export interface FormQuestion {
   title: string;
   description?: string;
   type: 'text' | 'paragraph' | 'radio' | 'dropdown' | 'checkbox' | 'scale' | 'grid' | 'date' | 'time' | 'other';
-  subType?: 'name' | 'phone' | 'email' | 'age' | 'general';
+  subType?: 'name' | 'phone' | 'email' | 'age' | 'school' | 'major' | 'location' | 'job' | 'general';
   defaultSampleAnswers?: string[];
   rawType: number;
   required: boolean;
@@ -27,6 +27,7 @@ export interface ParsedGoogleForm {
   description: string;
   submitUrl: string;
   fbzx?: string;
+  pageHistory?: string;
   platform?: 'google' | 'microsoft';
   antiForgeryToken?: string;
   serverSessionId?: string;
@@ -57,7 +58,54 @@ export function detectQuestionSubType(title: string): { subType: FormQuestion['s
   if (t.includes('tuổi') || t.includes('năm sinh') || t.includes('age')) {
     return {
       subType: 'age',
-      samples: ['21', '24', '27', '30', '32'],
+      samples: ['21', '22', '24', '26', '28'],
+    };
+  }
+  if (t.includes('trường') || t.includes('đại học') || t.includes('học viện') || t.includes('school') || t.includes('university') || t.includes('cđ') || t.includes('đh')) {
+    return {
+      subType: 'school',
+      samples: [
+        'Đại học Quốc gia Hà Nội',
+        'Đại học Bách Khoa',
+        'Đại học Kinh tế Quốc dân (NEU)',
+        'Đại học Ngoại Thương (FTU)',
+        'Đại học Kinh tế TP.HCM (UEH)',
+        'Đại học FPT',
+        'Đại học Cần Thơ',
+      ],
+    };
+  }
+  if (t.includes('ngành') || t.includes('khoa') || t.includes('chuyên ngành') || t.includes('major')) {
+    return {
+      subType: 'major',
+      samples: [
+        'Quản trị kinh doanh',
+        'Marketing',
+        'Công nghệ thông tin',
+        'Tài chính - Ngân hàng',
+        'Kế toán - Kiểm toán',
+        'Ngôn ngữ Anh',
+        'Kinh doanh quốc tế',
+      ],
+    };
+  }
+  if (t.includes('tỉnh') || t.includes('thành phố') || t.includes('địa chỉ') || t.includes('quê') || t.includes('nơi ở') || t.includes('khu vực') || t.includes('city') || t.includes('province')) {
+    return {
+      subType: 'location',
+      samples: ['Hà Nội', 'TP. Hồ Chí Minh', 'Đà Nẵng', 'Hải Phòng', 'Cần Thơ', 'Bình Dương', 'Đồng Nai'],
+    };
+  }
+  if (t.includes('nghề nghiệp') || t.includes('công việc') || t.includes('chức vụ') || t.includes('vị trí') || t.includes('job') || t.includes('occupation')) {
+    return {
+      subType: 'job',
+      samples: [
+        'Sinh viên năm cuối',
+        'Nhân viên văn phòng',
+        'Chuyên viên Marketing',
+        'Lập trình viên',
+        'Nhân viên kinh doanh',
+        'Quản lý bộ phận',
+      ],
     };
   }
   return {
@@ -338,6 +386,15 @@ export async function parseGoogleForm(formUrl: string): Promise<ParsedGoogleForm
   const rawQuestions = data[1]?.[1] || [];
   const questions: FormQuestion[] = [];
 
+  // Calculate page count based on page break elements (qType === 8)
+  let pageCount = 1;
+  for (const item of rawQuestions) {
+    if (item && item[3] === 8) {
+      pageCount++;
+    }
+  }
+  const pageHistory = Array.from({ length: pageCount }, (_, i) => i).join(',');
+
   for (const item of rawQuestions) {
     if (!item) continue;
     const internalId = item[0];
@@ -460,23 +517,43 @@ export async function parseGoogleForm(formUrl: string): Promise<ParsedGoogleForm
         defaultSampleAnswers = detected.samples;
       }
 
-      questions.push({
-        id: entryId,
-        internalId,
-        title: qTitle,
-        description: qDesc,
-        type: typeName,
-        subType,
-        defaultSampleAnswers,
-        rawType: qType,
-        required,
-        options,
-        scaleMin,
-        scaleMax,
-        scaleMinLabel,
-        scaleMaxLabel,
-        gridRows,
-      });
+      // If it's a Grid / Matrix question, flatten each row so every respondent fills all rows
+      if (typeName === 'grid' && gridRows && gridRows.length > 0) {
+        for (let rIdx = 0; rIdx < gridRows.length; rIdx++) {
+          const row = gridRows[rIdx];
+          questions.push({
+            id: row.entryId,
+            internalId: internalId * 100 + rIdx,
+            title: `${qTitle} - [${row.title}]`,
+            description: qDesc,
+            type: 'radio',
+            subType: 'general',
+            rawType: qType,
+            required,
+            options: [...options],
+            scaleMin: options.length > 0 ? Number(options[0].value) || 1 : 1,
+            scaleMax: options.length > 0 ? Number(options[options.length - 1].value) || options.length : 5,
+          });
+        }
+      } else {
+        questions.push({
+          id: entryId,
+          internalId,
+          title: qTitle,
+          description: qDesc,
+          type: typeName,
+          subType,
+          defaultSampleAnswers,
+          rawType: qType,
+          required,
+          options,
+          scaleMin,
+          scaleMax,
+          scaleMinLabel,
+          scaleMaxLabel,
+          gridRows,
+        });
+      }
     }
   }
 
@@ -486,6 +563,7 @@ export async function parseGoogleForm(formUrl: string): Promise<ParsedGoogleForm
     description,
     submitUrl,
     fbzx,
+    pageHistory,
     platform: 'google',
     originalUrl: resolvedUrl,
     questions,

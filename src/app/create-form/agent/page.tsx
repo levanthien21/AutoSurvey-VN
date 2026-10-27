@@ -13,6 +13,8 @@ import {
   BrainCircuit,
   MessageSquare,
   Sliders,
+  CheckCircle2,
+  ListFilter,
 } from 'lucide-react';
 import { ParsedGoogleForm } from '@/lib/googleFormParser';
 import { useAuth } from '@/context/AuthContext';
@@ -33,12 +35,38 @@ export default function CreateFormAgentPage() {
   const [delayMax, setDelayMax] = useState<number>(3.5);
   const [submitting, setSubmitting] = useState(false);
 
+  // Auto-parse helper
+  const executeParse = async (urlToParse: string) => {
+    if (!urlToParse.trim()) return;
+    setError('');
+    setLoading(true);
+
+    try {
+      const res = await fetch('/api/forms/parse', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: urlToParse.trim() }),
+      });
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error);
+
+      setForm(data.form);
+      return data.form;
+    } catch (err: any) {
+      setError(err.message || 'Lỗi bóc tách Form');
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   React.useEffect(() => {
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
       const url = params.get('url');
       if (url) {
         setFormUrl(url);
+        executeParse(url);
       }
     }
   }, []);
@@ -75,39 +103,35 @@ export default function CreateFormAgentPage() {
       setError('Vui lòng nhập đường dẫn Google Form hoặc Microsoft Form.');
       return;
     }
-    setError('');
-    setLoading(true);
-
-    try {
-      const res = await fetch('/api/forms/parse', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url: formUrl }),
-      });
-      const data = await res.json();
-      if (!data.success) throw new Error(data.error);
-
-      setForm(data.form);
-    } catch (err: any) {
-      setError(err.message || 'Lỗi bóc tách Form');
-    } finally {
-      setLoading(false);
-    }
+    await executeParse(formUrl);
   };
 
   const handleStartAgent = async () => {
-    if (!form) return;
-    setSubmitting(true);
+    let currentForm = form;
     setError('');
 
+    // If form not yet parsed but user has entered a URL, auto-parse now
+    if (!currentForm) {
+      if (!formUrl.trim()) {
+        setError('Vui lòng nhập đường dẫn Google Form hoặc Microsoft Form hợp lệ trước khi bắt đầu.');
+        return;
+      }
+      currentForm = await executeParse(formUrl);
+      if (!currentForm) return;
+    }
+
+    setSubmitting(true);
+
     try {
-      // Natural Vietnamese sentence variations for open-ended questions
+      // Natural Vietnamese sentence variations for open-ended questions based on Persona & Tone
       const naturalPositiveComments = [
         'Trải nghiệm nhìn chung rất mượt mà và trực quan, nhân viên hỗ trợ nhiệt tình.',
         'Sản phẩm đáp ứng đúng kỳ vọng của tôi, giao diện dễ dùng và nhanh chóng.',
         'Tôi thấy quy trình phục vụ rất chuyên nghiệp, sẽ tiếp tục ủng hộ trong tương lai.',
-        'Rất thích tính năng thông báo và sự tiện lợi khi sử dụng.',
+        'Rất thích tính năng thông báo và sự tiện lợi khi sử dụng hàng ngày.',
         'Mức giá phù hợp với chất lượng mang lại, không có gì để phàn nàn.',
+        'Đánh giá cao tính bảo mật và sự chỉn chu trong từng khâu phục vụ.',
+        'Rất hài lòng, thời gian phản hồi nhanh và giải quyết vấn đề triệt để.',
       ];
 
       const naturalBalancedComments = [
@@ -115,63 +139,164 @@ export default function CreateFormAgentPage() {
         'Cơ bản hài lòng, nếu bổ sung thêm tính năng lưu nháp thì sẽ tiện hơn rất nhiều.',
         'Chất lượng ổn định nhưng cần tối ưu thêm giao diện trên điện thoại.',
         'Nhìn chung dùng ổn, hy vọng bên bạn tiếp tục cải thiện tốc độ xử lý.',
+        'Sản phẩm tốt, mức giá hợp lý nhưng nên có thêm hướng dẫn chi tiết cho người mới.',
+        'Trải nghiệm tương đối ổn, chưa gặp lỗi nghiêm trọng nào.',
       ];
 
-      const allComments = tone === 'enthusiastic' ? naturalPositiveComments : naturalBalancedComments;
+      const criticalComments = [
+        'Quy trình khá ổn nhưng thời gian chờ đợi còn lâu, cần cải thiện hiệu suất hệ thống.',
+        'Cần tối ưu thêm trải nghiệm người dùng ở các bước xác nhận để tránh nhầm lẫn.',
+        'Mong muốn bên bạn lắng nghe phản hồi của người dùng và cập nhật thêm các tính năng hữu ích.',
+        'Chính sách chăm sóc khách hàng cần linh hoạt và chủ động hơn.',
+      ];
+
+      const allComments =
+        tone === 'enthusiastic'
+          ? naturalPositiveComments
+          : tone === 'critical'
+          ? criticalComments
+          : naturalBalancedComments;
 
       const queue: Record<string, any>[] = [];
 
       for (let i = 0; i < targetCount; i++) {
         const payload: Record<string, any> = {};
 
-        form.questions.forEach((q) => {
-          if (q.options && q.options.length > 0) {
-            // Pick based on persona bias
+        currentForm.questions.forEach((q) => {
+          // 1. Choice / Radio / Dropdown
+          if (q.options && q.options.length > 0 && q.type !== 'checkbox') {
             const opts = q.options;
             let chosenIdx = 0;
             if (personaType === 'student' || personaType === 'office') {
-              // Lean towards upper middle (4 or 5)
               const r = Math.random();
-              chosenIdx = r < 0.6 ? opts.length - 1 : r < 0.85 ? Math.max(0, opts.length - 2) : 0;
+              chosenIdx = r < 0.65 ? opts.length - 1 : r < 0.9 ? Math.max(0, opts.length - 2) : 0;
             } else if (personaType === 'manager') {
-              // More critical
               const r = Math.random();
               chosenIdx = r < 0.4 ? Math.max(0, opts.length - 2) : opts.length - 1;
             } else {
               chosenIdx = Math.floor(Math.random() * opts.length);
             }
             payload[q.id] = opts[chosenIdx].value;
-          } else if (q.type === 'text' || q.type === 'paragraph') {
+          }
+          // 2. Checkbox (Multi-choice)
+          else if (q.type === 'checkbox') {
+            const opts = q.options || [];
+            if (opts.length > 0) {
+              const selectedCount = Math.min(opts.length, Math.random() < 0.6 ? 1 : 2);
+              const shuffled = [...opts].sort(() => 0.5 - Math.random());
+              const picked = shuffled.slice(0, selectedCount).map((o) => o.value);
+              payload[q.id] = picked;
+            }
+          }
+          // 3. Scale / Linear Likert (Thang đo 1-5)
+          else if (q.type === 'scale') {
+            const min = q.scaleMin || 1;
+            const max = q.scaleMax || 5;
+            let score = max;
+            if (personaType === 'student' || personaType === 'office') {
+              score = Math.random() < 0.7 ? max : Math.max(min, max - 1);
+            } else if (personaType === 'manager') {
+              score = Math.random() < 0.5 ? Math.max(min, max - 1) : max;
+            } else {
+              score = Math.floor(min + Math.random() * (max - min + 1));
+            }
+            payload[q.id] = String(score);
+          }
+          // 4. Date question
+          else if (q.type === 'date') {
+            const d = new Date();
+            d.setDate(d.getDate() - Math.floor(Math.random() * 30));
+            payload[q.id] = d.toISOString().split('T')[0];
+          }
+          // 5. Time question
+          else if (q.type === 'time') {
+            const h = String(8 + Math.floor(Math.random() * 12)).padStart(2, '0');
+            const m = String(Math.floor(Math.random() * 60)).padStart(2, '0');
+            payload[q.id] = `${h}:${m}`;
+          }
+          // 6. Text / Paragraph open-ended questions
+          else if (q.type === 'text' || q.type === 'paragraph') {
             if (q.subType === 'name') {
               const names = [
                 'Nguyễn Văn An', 'Trần Thị Mai', 'Lê Hoàng Long', 'Phạm Minh Tuấn',
                 'Đặng Thảo Vy', 'Hoàng Gia Huy', 'Vũ Mai Anh', 'Bùi Đức Trọng',
-                'Đỗ Quỳnh Nga', 'Hồ Quốc Bảo', 'Dương Thúy Hằng'
+                'Đỗ Quỳnh Nga', 'Hồ Quốc Bảo', 'Dương Thúy Hằng', 'Lý Gia Hưng',
+                'Nguyễn Hải Đăng', 'Võ Phương Linh', 'Trịnh Bá Đạt'
               ];
               payload[q.id] = names[Math.floor(Math.random() * names.length)];
             } else if (q.subType === 'phone') {
-              const prefixes = ['091', '098', '090', '097', '086', '093', '089'];
+              const prefixes = ['091', '098', '090', '097', '086', '093', '089', '077', '083'];
               const prefix = prefixes[Math.floor(Math.random() * prefixes.length)];
               const suffix = Math.floor(1000000 + Math.random() * 9000000);
               payload[q.id] = `${prefix}${suffix}`.slice(0, 10);
             } else if (q.subType === 'email') {
-              const userNames = ['vanan', 'thimai', 'hoanglong', 'minhtuan', 'thaovy', 'giahuy', 'maianh', 'ductrong'];
-              const domains = ['gmail.com', 'yahoo.com', 'outlook.com', 'icloud.com'];
+              const userNames = ['vanan', 'thimai', 'hoanglong', 'minhtuan', 'thaovy', 'giahuy', 'maianh', 'ductrong', 'quynhnga', 'quocbao'];
+              const domains = ['gmail.com', 'outlook.com', 'yahoo.com', 'icloud.com'];
               const randUser = userNames[Math.floor(Math.random() * userNames.length)];
               const randNum = Math.floor(10 + Math.random() * 990);
               const randDomain = domains[Math.floor(Math.random() * domains.length)];
               payload[q.id] = `${randUser}.${randNum}@${randDomain}`;
             } else if (q.subType === 'age') {
-              let age = 24;
+              let age = 22;
               if (personaType === 'student') age = 18 + Math.floor(Math.random() * 5);
               else if (personaType === 'office') age = 23 + Math.floor(Math.random() * 12);
               else if (personaType === 'manager') age = 35 + Math.floor(Math.random() * 15);
               else age = 20 + Math.floor(Math.random() * 30);
               payload[q.id] = String(age);
+            } else if (q.subType === 'school') {
+              const schools = [
+                'Đại học Quốc gia Hà Nội',
+                'Đại học Bách Khoa',
+                'Đại học Kinh tế Quốc dân (NEU)',
+                'Đại học Ngoại Thương (FTU)',
+                'Đại học Kinh tế TP.HCM (UEH)',
+                'Đại học FPT',
+                'Đại học Cần Thơ',
+                'Học viện Ngân hàng',
+                'Học viện Tài chính',
+              ];
+              payload[q.id] = schools[Math.floor(Math.random() * schools.length)];
+            } else if (q.subType === 'major') {
+              const majors = [
+                'Quản trị kinh doanh',
+                'Marketing & Truyền thông số',
+                'Công nghệ thông tin',
+                'Tài chính - Ngân hàng',
+                'Kế toán - Kiểm toán',
+                'Ngôn ngữ Anh thương mại',
+                'Kinh doanh quốc tế',
+                'Khoa học dữ liệu',
+              ];
+              payload[q.id] = majors[Math.floor(Math.random() * majors.length)];
+            } else if (q.subType === 'location') {
+              const cities = ['Hà Nội', 'TP. Hồ Chí Minh', 'Đà Nẵng', 'Hải Phòng', 'Cần Thơ', 'Bình Dương', 'Đồng Nai', 'Quảng Ninh', 'Huế'];
+              payload[q.id] = cities[Math.floor(Math.random() * cities.length)];
+            } else if (q.subType === 'job') {
+              const jobs = [
+                'Sinh viên năm cuối',
+                'Nhân viên văn phòng',
+                'Chuyên viên Marketing',
+                'Lập trình viên / IT',
+                'Nhân viên kinh doanh',
+                'Trưởng nhóm dự án',
+                'Quản lý bộ phận',
+              ];
+              payload[q.id] = jobs[Math.floor(Math.random() * jobs.length)];
             } else {
               const comment = allComments[Math.floor(Math.random() * allComments.length)];
               payload[q.id] = comment;
             }
+          }
+
+          // 7. Grid / Matrix question rows fallback
+          if (q.gridRows && q.gridRows.length > 0) {
+            const opts = q.options && q.options.length > 0 ? q.options : [{ value: '4' }, { value: '5' }];
+            q.gridRows.forEach((r) => {
+              if (r.entryId) {
+                const optVal = opts[Math.floor(Math.random() * opts.length)].value;
+                payload[r.entryId] = optVal;
+              }
+            });
           }
         });
 
@@ -189,18 +314,19 @@ export default function CreateFormAgentPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          title: `AI Agent (${personaType}) - ${form.title}`,
+          title: `AI Agent (${personaType}) - ${currentForm.title}`,
           formUrl,
-          submitUrl: form.submitUrl,
-          platform: form.platform,
-          antiForgeryToken: form.antiForgeryToken,
-          serverSessionId: form.serverSessionId,
+          submitUrl: currentForm.submitUrl,
+          platform: currentForm.platform,
+          antiForgeryToken: currentForm.antiForgeryToken,
+          serverSessionId: currentForm.serverSessionId,
+          pageHistory: currentForm.pageHistory,
           mode: 'agent',
           totalTarget: queue.length,
           delayMin,
           delayMax,
           responsesQueue: queue,
-          fbzx: form.fbzx,
+          fbzx: currentForm.fbzx,
           autoStart: true,
         }),
       });
@@ -223,9 +349,9 @@ export default function CreateFormAgentPage() {
           <Bot className="w-3.5 h-3.5" />
           <span>Chế độ 4 (AI Agent Thông minh)</span>
         </div>
-        <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">AI Agent điền form</h1>
+        <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">AI Agent điền form tự luận đa nhân khẩu</h1>
         <p className="text-sm text-slate-500 mt-1">
-          Mô phỏng chân dung người tham gia khảo sát có tri thức: Tự động trả lời câu hỏi trắc nghiệm và viết lời phản hồi tự luận chân thực 100%.
+          Mô phỏng chân dung người tham gia khảo sát có tri thức: Tự động trả lời câu hỏi trắc nghiệm, thang đo Likert và viết lời phản hồi tự luận chân thực 100%.
         </p>
       </div>
 
@@ -237,6 +363,12 @@ export default function CreateFormAgentPage() {
             type="text"
             value={formUrl}
             onChange={(e) => setFormUrl(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                handleParseForm();
+              }
+            }}
             placeholder="https://docs.google.com/forms/d/e/.../viewform hoặc https://forms.cloud.microsoft/..."
             className="flex-1 h-11 px-4 text-sm rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-purple-500"
           />
@@ -254,6 +386,45 @@ export default function CreateFormAgentPage() {
           <div className="p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center gap-2">
             <AlertCircle className="w-4 h-4 shrink-0" />
             <span>{error}</span>
+          </div>
+        )}
+
+        {/* Form Parsed Summary Card */}
+        {form && (
+          <div className="p-4 rounded-xl bg-emerald-50/80 border border-emerald-200 text-emerald-950 space-y-2.5">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                <span className="text-xs font-bold uppercase tracking-wider text-emerald-800">
+                  Biểu mẫu đã bóc tách sẵn sàng ({form.platform === 'microsoft' ? 'Microsoft Forms' : 'Google Forms'})
+                </span>
+              </div>
+              <span className="text-xs font-extrabold px-2.5 py-0.5 rounded-full bg-emerald-200/80 text-emerald-900">
+                {form.questions.length} câu hỏi hợp lệ
+              </span>
+            </div>
+            <h4 className="text-sm font-extrabold text-slate-900 line-clamp-1">{form.title}</h4>
+            {form.description && (
+              <p className="text-xs text-slate-600 line-clamp-2 leading-relaxed">{form.description}</p>
+            )}
+
+            {/* Quick Question Preview */}
+            <div className="pt-2 border-t border-emerald-200/60">
+              <div className="text-[11px] font-bold text-slate-700 mb-1 flex items-center gap-1.5">
+                <ListFilter className="w-3 h-3 text-emerald-600" />
+                <span>Các loại câu hỏi nhận diện được:</span>
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {Array.from(new Set(form.questions.map((q) => q.subType ? `${q.type} (${q.subType})` : q.type))).map((t, idx) => (
+                  <span
+                    key={idx}
+                    className="text-[11px] px-2 py-0.5 rounded-md bg-white border border-emerald-200 font-medium text-slate-700 shadow-2xs"
+                  >
+                    {t}
+                  </span>
+                ))}
+              </div>
+            </div>
           </div>
         )}
       </div>
@@ -332,7 +503,7 @@ export default function CreateFormAgentPage() {
           <div className="flex items-center gap-2">
             <span className="text-slate-500">Số dư hiện tại: </span>
             <strong className="text-slate-900 font-mono font-bold">
-              {user ? (user.role === 'admin' ? '∞ Vô hạn (Admin)' : ` Credits`) : '0 Credits (Chưa đăng nhập)'}
+              {user ? (user.role === 'admin' ? '∞ Vô hạn (Admin)' : `${user.credits.toLocaleString()} Credits`) : '0 Credits (Chưa đăng nhập)'}
             </strong>
             {user && user.role !== 'admin' && user.credits < targetCount * 500 && (
               <a
@@ -363,7 +534,7 @@ export default function CreateFormAgentPage() {
 
           <button
             onClick={handleStartAgent}
-            disabled={submitting || !form}
+            disabled={submitting}
             className="h-11 px-8 rounded-xl bg-purple-600 hover:bg-purple-700 disabled:bg-purple-300 text-white font-bold text-sm shadow-md shadow-purple-500/20 flex items-center gap-2 transition-all hover:scale-[1.02]"
           >
             {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}

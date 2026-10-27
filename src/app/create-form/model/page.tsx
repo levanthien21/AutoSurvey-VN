@@ -173,6 +173,7 @@ export default function CreateFormModelPage() {
           platform: form.platform,
           antiForgeryToken: form.antiForgeryToken,
           serverSessionId: form.serverSessionId,
+          pageHistory: form.pageHistory,
           mode: 'model',
           totalTarget: queue.length,
           delayMin: 1.0,

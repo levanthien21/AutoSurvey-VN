@@ -29,6 +29,7 @@ export async function POST(req: NextRequest) {
       delayMax,
       responsesQueue,
       fbzx,
+      pageHistory,
       platform,
       antiForgeryToken,
       serverSessionId,
@@ -120,6 +121,7 @@ export async function POST(req: NextRequest) {
       totalCost: isAdmin ? 0 : totalCost,
       responsesQueue,
       fbzx,
+      pageHistory,
     });
 
     if (autoStart) {

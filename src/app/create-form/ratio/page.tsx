@@ -238,6 +238,7 @@ export default function CreateFormRatioPage() {
           platform: form.platform,
           antiForgeryToken: form.antiForgeryToken,
           serverSessionId: form.serverSessionId,
+          pageHistory: form.pageHistory,
           mode: 'ratio',
           totalTarget: targetCount,
           delayMin,

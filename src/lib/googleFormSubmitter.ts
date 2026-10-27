@@ -24,7 +24,8 @@ export function sleep(ms: number): Promise<void> {
 export async function submitGoogleFormResponse(
   submitUrl: string,
   answers: SubmitResponsePayload,
-  fbzx?: string
+  fbzx?: string,
+  pageHistory?: string
 ): Promise<{ success: boolean; status: number; message: string }> {
   // If sample or demo survey, simulate realistic response without failing
   if (
@@ -55,7 +56,7 @@ export async function submitGoogleFormResponse(
 
   // Google Forms tracking standard fields
   params.append('fvv', '1');
-  params.append('pageHistory', '0');
+  params.append('pageHistory', pageHistory && pageHistory.trim() ? pageHistory.trim() : '0');
   params.append('submissionTimestamp', String(Date.now()));
 
   // Only append fbzx if valid signed integer
