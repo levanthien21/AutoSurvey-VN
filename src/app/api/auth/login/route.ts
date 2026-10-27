@@ -37,7 +37,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const token = generateSessionToken(user.id);
+    const token = generateSessionToken(user);
 
     const safeUser = {
       id: user.id,
@@ -63,7 +63,7 @@ export async function POST(req: NextRequest) {
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
       path: '/',
-      maxAge: 7 * 24 * 60 * 60,
+      maxAge: 30 * 24 * 60 * 60,
     });
 
     return res;

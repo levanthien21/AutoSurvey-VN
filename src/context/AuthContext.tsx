@@ -79,7 +79,16 @@ function GoogleIcon({ className = 'w-5 h-5' }: { className?: string }) {
 const ADMIN_EMAILS_PRESET = ['levanthien21052004@gmail.com'];
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<SafeUser | null>(null);
+  // Immediately restore from localStorage if available (ZERO flicker on reload)
+  const [user, setUser] = useState<SafeUser | null>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const stored = localStorage.getItem('autosurvey_user');
+        if (stored) return JSON.parse(stored);
+      } catch {}
+    }
+    return null;
+  });
   const [loading, setLoading] = useState(true);
 
   // Modal states
@@ -101,18 +110,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const refreshUser = async () => {
     try {
-      const res = await fetch('/api/auth/me');
+      const token = typeof window !== 'undefined' ? localStorage.getItem('autosurvey_token') : null;
+      const headers: Record<string, string> = {};
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
+      const res = await fetch('/api/auth/me', { headers });
       if (res.ok) {
         const data = await res.json();
         if (data.authenticated && data.user) {
           setUser(data.user);
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('autosurvey_user', JSON.stringify(data.user));
+          }
           return;
         }
       }
-      setUser(null);
+
+      // If server explicitly returned 401 unauthenticated
+      if (res.status === 401) {
+        if (token) {
+          setUser(null);
+          if (typeof window !== 'undefined') {
+            localStorage.removeItem('autosurvey_user');
+            localStorage.removeItem('autosurvey_token');
+          }
+        }
+      }
     } catch (err) {
-      console.error('Failed to fetch current user', err);
-      setUser(null);
+      console.warn('Network issue while verifying session, preserving offline cache:', err);
     } finally {
       setLoading(false);
     }
@@ -165,6 +192,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const data = await res.json();
       if (res.ok && data.success) {
         setUser(data.user);
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('autosurvey_user', JSON.stringify(data.user));
+          if (data.token) {
+            localStorage.setItem('autosurvey_token', data.token);
+          }
+        }
         return { success: true };
       }
 
@@ -188,6 +221,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             const syncData = await syncRes.json();
             if (syncData.success) {
               setUser(syncData.user);
+              if (typeof window !== 'undefined') {
+                localStorage.setItem('autosurvey_user', JSON.stringify(syncData.user));
+                if (syncData.token) {
+                  localStorage.setItem('autosurvey_token', syncData.token);
+                }
+              }
               return { success: true };
             }
           }
@@ -219,6 +258,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return { success: false, error: data.error || 'Đăng ký không thành công' };
       }
       setUser(data.user);
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('autosurvey_user', JSON.stringify(data.user));
+        if (data.token) {
+          localStorage.setItem('autosurvey_token', data.token);
+        }
+      }
 
       // Also register into Firebase Auth for password resets & future Firebase features
       if (emailInput && emailInput.includes('@')) {
@@ -246,6 +291,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return { success: false, error: data.error };
       }
       setUser(data.user);
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('autosurvey_user', JSON.stringify(data.user));
+        if (data.token) {
+          localStorage.setItem('autosurvey_token', data.token);
+        }
+      }
       // Sync user profile to Firebase Firestore database
       saveUserToFirestore({
         uid: data.user.id,
@@ -276,6 +327,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.error(err);
     } finally {
       setUser(null);
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('autosurvey_user');
+        localStorage.removeItem('autosurvey_token');
+      }
       window.location.href = '/';
     }
   };

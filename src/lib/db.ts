@@ -82,63 +82,81 @@ export interface DatabaseSchema {
 
 const DB_DIR = path.join(process.cwd(), 'data');
 const DB_FILE = path.join(DB_DIR, 'database.json');
+const TMP_FILE = path.join('/tmp', 'database.json');
 
 // Ensure DB directory and file exist
 function initDb(): DatabaseSchema {
+  // First priority: check /tmp on serverless environments (contains latest runtime updates)
+  if (fs.existsSync(TMP_FILE)) {
+    try {
+      const tmpRaw = fs.readFileSync(TMP_FILE, 'utf8');
+      const parsed = JSON.parse(tmpRaw);
+      if (parsed && Array.isArray(parsed.users) && parsed.users.length > 0) {
+        return parsed;
+      }
+    } catch (err) {
+      console.warn('Error reading from /tmp/database.json:', err);
+    }
+  }
+
+  // Second priority: check project DB_FILE
+  if (fs.existsSync(DB_FILE)) {
+    try {
+      const raw = fs.readFileSync(DB_FILE, 'utf8');
+      return JSON.parse(raw);
+    } catch (err) {
+      console.error('Error reading database file:', err);
+    }
+  }
+
   if (!fs.existsSync(DB_DIR)) {
-    fs.mkdirSync(DB_DIR, { recursive: true });
+    try {
+      fs.mkdirSync(DB_DIR, { recursive: true });
+    } catch {}
   }
 
-  if (!fs.existsSync(DB_FILE)) {
-    const initialData: DatabaseSchema = {
-      users: [],
-      transactions: [],
-      coupons: [
-        {
-          code: 'WELCOME10K',
-          creditBonus: 10000,
-          maxUses: 1000,
-          usedCount: 0,
-          expiresAt: '2027-12-31T23:59:59.000Z',
-        },
-        {
-          code: 'NCKH2026',
-          creditBonus: 20000,
-          maxUses: 500,
-          usedCount: 0,
-          expiresAt: '2027-12-31T23:59:59.000Z',
-        },
-      ],
-      settings: {
-        adminEmails: ['levanthien21052004@gmail.com'],
-        pricePerResponse: {
-          ratio: 250, // 250 credits = 250 VND / submission
-          data: 180,
-          model: 350,
-          agent: 500,
-        },
-        bankInfo: {
-          bankName: 'VIETCOMBANK',
-          bankCode: 'VCB',
-          accountNumber: '9349850292',
-          accountName: 'LE VAN THIEN',
-        },
-        defaultDelayMin: 1.0,
-        defaultDelayMax: 2.5,
+  const initialData: DatabaseSchema = {
+    users: [],
+    transactions: [],
+    coupons: [
+      {
+        code: 'WELCOME10K',
+        creditBonus: 10000,
+        maxUses: 1000,
+        usedCount: 0,
+        expiresAt: '2027-12-31T23:59:59.000Z',
       },
-    };
-
-    fs.writeFileSync(DB_FILE, JSON.stringify(initialData, null, 2), 'utf8');
-    return initialData;
-  }
+      {
+        code: 'NCKH2026',
+        creditBonus: 20000,
+        maxUses: 500,
+        usedCount: 0,
+        expiresAt: '2027-12-31T23:59:59.000Z',
+      },
+    ],
+    settings: {
+      adminEmails: ['levanthien21052004@gmail.com'],
+      pricePerResponse: {
+        ratio: 250, // 250 credits = 250 VND / submission
+        data: 180,
+        model: 350,
+        agent: 500,
+      },
+      bankInfo: {
+        bankName: 'VIETCOMBANK',
+        bankCode: 'VCB',
+        accountNumber: '9349850292',
+        accountName: 'LE VAN THIEN',
+      },
+      defaultDelayMin: 1.0,
+      defaultDelayMax: 2.5,
+    },
+  };
 
   try {
-    const raw = fs.readFileSync(DB_FILE, 'utf8');
-    return JSON.parse(raw);
-  } catch (err) {
-    console.error('Error reading database, creating backup and reinitializing', err);
-    return initDb();
-  }
+    fs.writeFileSync(DB_FILE, JSON.stringify(initialData, null, 2), 'utf8');
+  } catch {}
+  return initialData;
 }
 
 // Password hashing helper using standard crypto
@@ -175,16 +193,30 @@ class DatabaseManager {
 
   public saveDb() {
     if (!this.cache) return;
+    const jsonStr = JSON.stringify(this.cache, null, 2);
+    // Write to /tmp on serverless environments
     try {
-      fs.writeFileSync(DB_FILE, JSON.stringify(this.cache, null, 2), 'utf8');
-    } catch (err) {
-      // In serverless environments like Vercel, write to /tmp
-      try {
-        const tmpFile = path.join('/tmp', 'database.json');
-        fs.writeFileSync(tmpFile, JSON.stringify(this.cache, null, 2), 'utf8');
-      } catch (tmpErr) {
-        // In-memory cache continues serving read/write operations seamlessly
-      }
+      fs.writeFileSync(TMP_FILE, jsonStr, 'utf8');
+    } catch {}
+    // Also attempt writing to project DB_FILE
+    try {
+      fs.writeFileSync(DB_FILE, jsonStr, 'utf8');
+    } catch {}
+  }
+
+  public upsertUser(user: User): User {
+    const db = this.getDb();
+    const idx = db.users.findIndex(
+      (u) => u.id === user.id || (user.email && u.email && u.email.toLowerCase() === user.email.toLowerCase())
+    );
+    if (idx !== -1) {
+      db.users[idx] = { ...db.users[idx], ...user, updatedAt: new Date().toISOString() };
+      this.saveDb();
+      return this.checkAndPromoteUser(db.users[idx])!;
+    } else {
+      db.users.push(user);
+      this.saveDb();
+      return this.checkAndPromoteUser(user)!;
     }
   }
 
