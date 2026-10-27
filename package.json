@@ -9,6 +9,7 @@
     "runner:24-7": "node scripts/runner-24-7.js"
   },
   "dependencies": {
+    "@vercel/blob": "^2.8.2",
     "clsx": "^2.1.1",
     "firebase": "^13.0.0",
     "lucide-react": "^0.453.0",

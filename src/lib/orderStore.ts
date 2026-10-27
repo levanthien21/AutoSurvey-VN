@@ -1,5 +1,6 @@
 import fs from 'fs';
 import path from 'path';
+import { put } from '@vercel/blob';
 import { submitGoogleFormResponse, SubmitResponsePayload, sleep } from './googleFormSubmitter';
 import { submitMicrosoftFormResponse } from './msFormSubmitter';
 import { db } from './db';
@@ -111,8 +112,48 @@ class OrderManager {
         }
         fs.writeFileSync(ORDERS_FILE, jsonStr, 'utf8');
       } catch {}
+
+      // 3. Persist to Vercel Blob cloud store asynchronously
+      this.saveToBlob().catch(() => {});
     } catch (err) {
       console.warn('Error saving orders to disk:', err);
+    }
+  }
+
+  async syncFromBlob(): Promise<void> {
+    if (!process.env.BLOB_READ_WRITE_TOKEN) return;
+    try {
+      const res = await fetch('https://meo68oenlhu0k0ib.public.blob.vercel-storage.com/orders.json', {
+        cache: 'no-store',
+      });
+      if (res.ok) {
+        const list: SurveyOrder[] = await res.json();
+        if (Array.isArray(list)) {
+          for (const ord of list) {
+            if (ord && ord.id) {
+              const existing = this.orders.get(ord.id);
+              if (!existing || (ord.completedCount || 0) >= (existing.completedCount || 0)) {
+                this.orders.set(ord.id, ord);
+              }
+            }
+          }
+        }
+      }
+    } catch (err) {
+      console.warn('Sync from blob notice:', err);
+    }
+  }
+
+  async saveToBlob(): Promise<void> {
+    if (!process.env.BLOB_READ_WRITE_TOKEN) return;
+    try {
+      const list = Array.from(this.orders.values());
+      await put('orders.json', JSON.stringify(list), {
+        access: 'public',
+        addRandomSuffix: false,
+      });
+    } catch (err) {
+      console.warn('Save to blob error:', err);
     }
   }
 

@@ -70,6 +70,9 @@ function OrdersContent() {
   const [copiedWebhook, setCopiedWebhook] = useState(false);
   const [pingStatus, setPingStatus] = useState<string | null>(null);
   const [isPinging, setIsPinging] = useState(false);
+  const [cronLogs, setCronLogs] = useState<any[]>([]);
+  const [showCronHistory, setShowCronHistory] = useState(false);
+  const [lastCronInfo, setLastCronInfo] = useState<{ source?: string; time?: string; count?: number } | null>(null);
 
   const displayOrders = orders.length > 0 ? orders : (activeOrder ? [activeOrder] : []);
   const currentOrder = activeOrder || (displayOrders.length > 0 ? displayOrders[0] : null);
@@ -138,6 +141,16 @@ function OrdersContent() {
           try {
             localStorage.setItem('autosurvey_orders', JSON.stringify(result));
           } catch {}
+
+          // Auto-sync active orders to Vercel Blob persistent store
+          if (result.length > 0) {
+            fetch('/api/cron/orders', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ orders: result }),
+            }).catch(() => {});
+          }
+
           return result;
         });
 
@@ -360,6 +373,16 @@ function OrdersContent() {
       const data = await res.json();
       if (data.success) {
         setPingStatus(`Ping thành công! Đã kiểm tra ${data.activeCount} đơn đang chạy (${data.steppedCount} đơn vừa nộp, ${data.skipped?.length || 0} đơn đang chờ hẹn giờ).`);
+        if (data.recentLogs) {
+          setCronLogs(data.recentLogs);
+          if (data.recentLogs[0]) {
+            setLastCronInfo({
+              source: data.recentLogs[0].source,
+              time: data.recentLogs[0].timeFormatted,
+              count: data.recentLogs[0].activeCount,
+            });
+          }
+        }
       } else {
         setPingStatus(`Lỗi ping: ${data.error}`);
       }
@@ -370,6 +393,48 @@ function OrdersContent() {
       setTimeout(() => setPingStatus(null), 8000);
     }
   };
+
+  const handleFetchCronHistory = async () => {
+    setIsPinging(true);
+    try {
+      const res = await fetch('/api/cron/orders');
+      const data = await res.json();
+      if (data.success && Array.isArray(data.recentLogs)) {
+        setCronLogs(data.recentLogs);
+        setShowCronHistory(true);
+        if (data.recentLogs[0]) {
+          setLastCronInfo({
+            source: data.recentLogs[0].source,
+            time: data.recentLogs[0].timeFormatted,
+            count: data.recentLogs[0].activeCount,
+          });
+        }
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsPinging(false);
+    }
+  };
+
+  // Check recent cron logs on mount
+  useEffect(() => {
+    fetch('/api/cron/orders')
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.success && Array.isArray(d.recentLogs)) {
+          setCronLogs(d.recentLogs);
+          if (d.recentLogs[0]) {
+            setLastCronInfo({
+              source: d.recentLogs[0].source,
+              time: d.recentLogs[0].timeFormatted,
+              count: d.recentLogs[0].activeCount,
+            });
+          }
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   return (
     <div className="max-w-6xl mx-auto space-y-6 pb-16">
@@ -511,8 +576,72 @@ function OrdersContent() {
             <RefreshCw className={`w-3.5 h-3.5 ${isPinging ? 'animate-spin' : ''}`} />
             <span>{isPinging ? 'Đang ping...' : 'Test Ping Cron'}</span>
           </button>
+
+          <button
+            onClick={() => setShowCronHistory(!showCronHistory)}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-200 hover:bg-slate-300 text-slate-800 font-semibold shadow-2xs transition-all cursor-pointer"
+          >
+            <Clock className="w-3.5 h-3.5" />
+            <span>{showCronHistory ? 'Đóng lịch sử' : `Lịch sử gọi (${cronLogs.length})`}</span>
+          </button>
         </div>
       </div>
+
+      {lastCronInfo && (
+        <div className="px-4 py-2 rounded-xl bg-emerald-50 border border-emerald-200/80 text-emerald-900 text-xs flex items-center justify-between">
+          <span className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+            <span><strong>Tín hiệu Cronjob mới nhất:</strong> Đã gọi lúc <strong>{lastCronInfo.time}</strong> từ <strong>{lastCronInfo.source}</strong> (Quét {lastCronInfo.count} đơn).</span>
+          </span>
+          <span className="text-[10px] bg-emerald-200/70 text-emerald-800 font-bold px-2 py-0.5 rounded-full">Đang kết nối 24/7</span>
+        </div>
+      )}
+
+      {showCronHistory && (
+        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-3">
+          <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+            <div className="font-bold text-xs text-slate-800 flex items-center gap-2">
+              <Terminal className="w-4 h-4 text-blue-600" />
+              <span>Nhật ký gọi Cronjob gần nhất ({cronLogs.length} lần ping)</span>
+            </div>
+            <button
+              onClick={handleFetchCronHistory}
+              disabled={isPinging}
+              className="text-[11px] text-blue-600 hover:underline font-semibold"
+            >
+              Làm mới lịch sử
+            </button>
+          </div>
+
+          <div className="space-y-1.5 max-h-[220px] overflow-y-auto text-xs font-mono">
+            {cronLogs.length === 0 ? (
+              <div className="text-slate-400 py-3 text-center text-[11px]">Chưa có lượt ping nào được ghi nhận.</div>
+            ) : (
+              cronLogs.map((log: any, idx: number) => (
+                <div key={idx} className="flex items-center justify-between py-1 px-2 rounded bg-slate-50 hover:bg-slate-100 transition-colors text-[11px]">
+                  <div className="flex items-center gap-2">
+                    <span className="text-slate-400">[{log.timeFormatted || log.timestamp}]</span>
+                    <span className="font-bold text-blue-700">{log.source}</span>
+                    <span className="text-slate-500 font-sans truncate max-w-[200px]">({log.userAgent})</span>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className="px-1.5 py-0.5 rounded bg-blue-100 text-blue-800 text-[10px] font-bold">
+                      {log.activeCount} đơn đang chạy
+                    </span>
+                    {log.steppedCount > 0 ? (
+                      <span className="px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 text-[10px] font-bold">
+                        +{log.steppedCount} vừa nộp
+                      </span>
+                    ) : (
+                      <span className="text-slate-400 text-[10px]">Đang đếm giờ</span>
+                    )}
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      )}
 
       {pingStatus && (
         <div className="p-3 rounded-xl bg-indigo-50 border border-indigo-200 text-indigo-900 text-xs font-semibold flex items-center gap-2">
