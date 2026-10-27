@@ -359,6 +359,32 @@ export default function CreateFormAgentPage() {
           }
         });
 
+        // ĐẢM BẢO 100% KHÔNG CÂU HỎI HAY DÒNG MA TRẬN NÀO BỊ BỎ SÓT:
+        currentForm.questions.forEach((chkQ) => {
+          if (chkQ.type === 'grid' && chkQ.gridRows) {
+            const opts = chkQ.options && chkQ.options.length > 0 ? chkQ.options : [{ value: '4' }, { value: '5' }];
+            chkQ.gridRows.forEach((r) => {
+              if (r.entryId && (payload[r.entryId] === undefined || payload[r.entryId] === null || payload[r.entryId] === '')) {
+                payload[r.entryId] = opts[Math.min(3, opts.length - 1)].value;
+              }
+            });
+          } else {
+            if (payload[chkQ.id] === undefined || payload[chkQ.id] === null || payload[chkQ.id] === '') {
+              if (chkQ.options && chkQ.options.length > 0) {
+                payload[chkQ.id] = chkQ.type === 'checkbox' ? [chkQ.options[0].value] : chkQ.options[Math.min(3, chkQ.options.length - 1)].value;
+              } else if (chkQ.type === 'scale') {
+                payload[chkQ.id] = '4';
+              } else if (chkQ.type === 'date') {
+                payload[chkQ.id] = new Date().toISOString().split('T')[0];
+              } else if (chkQ.type === 'time') {
+                payload[chkQ.id] = '10:00';
+              } else {
+                payload[chkQ.id] = 'Hoàn toàn đồng ý';
+              }
+            }
+          }
+        });
+
         queue.push(payload);
         }
       }

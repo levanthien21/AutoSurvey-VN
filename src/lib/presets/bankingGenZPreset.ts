@@ -603,21 +603,33 @@ export function generateLikertScore(
 export function matchLikertRule(text: string, statementIndexHint?: number): LikertStatementRule | null {
   const normalized = text.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 
-  // 1. Match by statement index hint if provided
+  // 1. Match by prefix number like "19. ", "19: ", "19 - ", "19) ", "câu 19", "pb 19"
+  const prefixMatch = normalized.match(/^(?:câu|cau|pb|phát biểu|phat bieu|statement)?\s*([0-9]{1,2})[\.\:\)\-\s]/);
+  if (prefixMatch && prefixMatch[1]) {
+    const num = parseInt(prefixMatch[1], 10);
+    if (num >= 1 && num <= 49) {
+      const byNum = BANKING_GENZ_LIKERT_RULES.find((r) => r.statementIndex === num);
+      if (byNum) return byNum;
+    }
+  }
+
+  // 2. Match by exact PB number anywhere in text (e.g., "pb1", "pb 39", "câu 39", "phát biểu 12")
+  const pbMatch = normalized.match(/(?:pb|phat bieu|phatbieu|cau|statement)\s*([0-9]{1,2})/);
+  if (pbMatch && pbMatch[1]) {
+    const num = parseInt(pbMatch[1], 10);
+    if (num >= 1 && num <= 49) {
+      const byNum = BANKING_GENZ_LIKERT_RULES.find((r) => r.statementIndex === num);
+      if (byNum) return byNum;
+    }
+  }
+
+  // 3. Match by statement index hint if provided
   if (statementIndexHint && statementIndexHint >= 1 && statementIndexHint <= 49) {
     const byIdx = BANKING_GENZ_LIKERT_RULES.find((r) => r.statementIndex === statementIndexHint);
     if (byIdx) return byIdx;
   }
 
-  // 2. Match by exact PB number in text (e.g., "pb1", "pb 39", "câu 39", "phát biểu 12")
-  const pbMatch = normalized.match(/(?:pb|phat bieu|phatbieu|cau|statement)\s*([0-9]{1,2})/);
-  if (pbMatch && pbMatch[1]) {
-    const num = parseInt(pbMatch[1], 10);
-    const byNum = BANKING_GENZ_LIKERT_RULES.find((r) => r.statementIndex === num);
-    if (byNum) return byNum;
-  }
-
-  // 3. Match by keywords
+  // 4. Match by keywords
   for (const rule of BANKING_GENZ_LIKERT_RULES) {
     for (const kw of rule.keywords) {
       const normKw = kw.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
@@ -632,7 +644,7 @@ export function matchLikertRule(text: string, statementIndexHint?: number): Like
 
 /**
  * Tạo toàn bộ hàng đợi phản hồi (Response Queue) chuyên biệt cho khách hàng này.
- * Đáp ứng đầy đủ 100% điều kiện trong file dự đoán kết quả dữ liệu.
+ * ĐẢM BẢO 100% TẤT CẢ CÁC CÂU HỎI VÀ DÒNG MA TRẬN ĐỀU ĐƯỢC ĐIỀN ĐỦ, KHÔNG SÓT MỤC NÀO!
  */
 export function buildBankingGenZQueue(
   questions: FormQuestion[],
@@ -702,9 +714,6 @@ export function buildBankingGenZQueue(
     };
   });
 
-  // Tách riêng các phát biểu Likert đã match để đảm bảo đủ cả 5 mức thang đo
-  let likertSequentialCounter = 0;
-
   for (let i = 0; i < targetCount; i++) {
     const persona = samplePersonas[i];
     const payload: Record<string, any> = {};
@@ -713,20 +722,59 @@ export function buildBankingGenZQueue(
     questions.forEach((q) => {
       const qText = (q.title || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 
+      // =========================================================================
+      // 0. BẢNG MA TRẬN / DÒNG LƯỚI LIKERT (GRID / MATRIX CHOICE)
+      // PHẢI XỬ LÝ ĐẦU TIÊN: ĐIỀN ĐỦ 100% TẤT CẢ CÁC DÒNG (GRID ROWS)
+      // TUYỆT ĐỐI KHÔNG ĐỂ CÁC BỘ SO KHỚP CÂU ĐƠN INTERCEPT NHẦM MATRIX GROUP!
+      // =========================================================================
+      if (q.type === 'grid' && q.gridRows && q.gridRows.length > 0) {
+        const opts =
+          q.options && q.options.length > 0
+            ? q.options
+            : [{ value: '1' }, { value: '2' }, { value: '3' }, { value: '4' }, { value: '5' }];
+
+        q.gridRows.forEach((row) => {
+          if (!row.entryId) return;
+
+          const matchedRule = matchLikertRule(row.title, personaLikertIndex);
+          const ruleToUse = matchedRule || BANKING_GENZ_LIKERT_RULES[Math.min(personaLikertIndex - 1, 48)];
+          personaLikertIndex++;
+
+          const score = generateLikertScore(ruleToUse, persona.theta, persona.isAttentionFail);
+
+          // Find option matching score 1..5
+          const matchedOpt =
+            opts.find((o) => o.value === String(score) || o.label.startsWith(String(score))) ||
+            opts[Math.min(score - 1, opts.length - 1)];
+
+          payload[row.entryId] = matchedOpt.value;
+        });
+
+        // Failsafe: Đảm bảo chắc chắn tất cả dòng trong Grid đều có đáp án
+        q.gridRows.forEach((row) => {
+          if (row.entryId && !payload[row.entryId]) {
+            payload[row.entryId] = opts[Math.min(3, opts.length - 1)].value;
+          }
+        });
+
+        return; // Xong bảng lưới, chuyển sang câu tiếp theo
+      }
+
       // ==========================================
       // PHẦN 1. CÂU HỎI MỞ ĐẦU (Câu 1 - 6)
+      // (Chỉ áp dụng cho câu đơn, không áp dụng cho grid)
       // ==========================================
 
       // Câu 1. Đồng ý tham gia khảo sát (Chọn "Không": dưới 2%)
       if (qText.includes('dong y') || qText.includes('tham gia') || qText.includes('consent')) {
         if (q.options && q.options.length > 0) {
-          const agreeOpt = q.options.find((o) => {
-            const l = o.label.toLowerCase();
-            return l.includes('dong y') || l.includes('co') || l.includes('yes') || l.includes('chap nhan');
-          }) || q.options[0];
+          const agreeOpt =
+            q.options.find((o) => {
+              const l = o.label.toLowerCase();
+              return l.includes('dong y') || l.includes('co') || l.includes('yes') || l.includes('chap nhan');
+            }) || q.options[0];
           const disagreeOpt = q.options.find((o) => o !== agreeOpt) || q.options[q.options.length - 1];
 
-          // Dưới 2% chọn Không
           payload[q.id] = Math.random() < 0.985 ? agreeOpt.value : disagreeOpt.value;
           return;
         }
@@ -735,10 +783,11 @@ export function buildBankingGenZQueue(
       // Câu 2. Đã đủ 18 tuổi (Chọn "Chưa": dưới 2%)
       if (qText.includes('18 tuoi') || qText.includes('du tuoi') || qText.includes('du 18')) {
         if (q.options && q.options.length > 0) {
-          const yesOpt = q.options.find((o) => {
-            const l = o.label.toLowerCase();
-            return l.includes('roi') || l.includes('da du') || l.includes('co') || l.includes('tren 18');
-          }) || q.options[0];
+          const yesOpt =
+            q.options.find((o) => {
+              const l = o.label.toLowerCase();
+              return l.includes('roi') || l.includes('da du') || l.includes('co') || l.includes('tren 18');
+            }) || q.options[0];
           const noOpt = q.options.find((o) => o !== yesOpt) || q.options[q.options.length - 1];
 
           payload[q.id] = Math.random() < 0.985 ? yesOpt.value : noOpt.value;
@@ -749,11 +798,11 @@ export function buildBankingGenZQueue(
       // Câu 3. Năm sinh / Độ tuổi (Gen Z 1998 - 2008, < 3% ngoài độ tuổi)
       if (qText.includes('nam sinh') || qText.includes('sinh nam') || qText.includes('do tuoi') || qText.includes('nhom tuoi')) {
         if (q.options && q.options.length > 0) {
-          // Thử tìm option khớp với nhóm tuổi hoặc năm sinh
-          const matchedOpt = q.options.find((o) => {
-            const l = o.label.toLowerCase();
-            return l.includes(String(persona.birthYear)) || l.includes(persona.ageGroup);
-          }) || q.options[Math.floor(Math.random() * q.options.length)];
+          const matchedOpt =
+            q.options.find((o) => {
+              const l = o.label.toLowerCase();
+              return l.includes(String(persona.birthYear)) || l.includes(persona.ageGroup);
+            }) || q.options[Math.floor(Math.random() * q.options.length)];
           payload[q.id] = matchedOpt.value;
           return;
         } else if (q.type === 'text' || q.type === 'paragraph') {
@@ -765,22 +814,28 @@ export function buildBankingGenZQueue(
       // Câu 4. Đang sống tại Việt Nam (Chọn "Không": gần 0%)
       if (qText.includes('viet nam') || qText.includes('song tai') || qText.includes('cu tru')) {
         if (q.options && q.options.length > 0) {
-          const vnOpt = q.options.find((o) => {
-            const l = o.label.toLowerCase();
-            return l.includes('co') || l.includes('viet nam') || l.includes('dang song');
-          }) || q.options[0];
+          const vnOpt =
+            q.options.find((o) => {
+              const l = o.label.toLowerCase();
+              return l.includes('co') || l.includes('viet nam') || l.includes('dang song');
+            }) || q.options[0];
           payload[q.id] = vnOpt.value;
           return;
         }
       }
 
       // Câu 5. Có dùng ứng dụng ngân hàng 3 tháng qua (Chọn "Không": dưới 3%)
-      if ((qText.includes('3 thang') || qText.includes('ung dung ngan hang')) && (qText.includes('dung') || qText.includes('su dung'))) {
+      // ĐẶC BIỆT: Bắt buộc kiểm tra "3 tháng" / "ba tháng" để không nhầm với "16. Thói quen dùng ứng dụng ngân hàng"
+      if (
+        (qText.includes('3 thang') || qText.includes('ba thang')) &&
+        (qText.includes('ung dung') || qText.includes('ngan hang') || qText.includes('app'))
+      ) {
         if (q.options && q.options.length > 0) {
-          const yesOpt = q.options.find((o) => {
-            const l = o.label.toLowerCase();
-            return l.includes('co') || l.includes('da dung') || l.includes('dang dung');
-          }) || q.options[0];
+          const yesOpt =
+            q.options.find((o) => {
+              const l = o.label.toLowerCase();
+              return l.includes('co') || l.includes('da dung') || l.includes('dang dung');
+            }) || q.options[0];
           const noOpt = q.options.find((o) => o !== yesOpt) || q.options[q.options.length - 1];
 
           payload[q.id] = Math.random() < 0.98 ? yesOpt.value : noOpt.value;
@@ -806,7 +861,6 @@ export function buildBankingGenZQueue(
               if (Math.random() < 0.88) picked.push(opt.value);
             }
           });
-          // Ít nhất 1 lựa chọn
           if (picked.length === 0) {
             picked.push(q.options[0].value);
           }
@@ -822,10 +876,11 @@ export function buildBankingGenZQueue(
       // Câu 7. Giới tính
       if (qText.includes('gioi tinh') || qText.includes('gender')) {
         if (q.options && q.options.length > 0) {
-          const opt = q.options.find((o) => {
-            const l = o.label.toLowerCase();
-            return l.includes(persona.gender.toLowerCase());
-          }) || q.options[0];
+          const opt =
+            q.options.find((o) => {
+              const l = o.label.toLowerCase();
+              return l.includes(persona.gender.toLowerCase());
+            }) || q.options[0];
           payload[q.id] = opt.value;
           return;
         }
@@ -834,10 +889,11 @@ export function buildBankingGenZQueue(
       // Câu 8. Thu nhập tự kiếm
       if (qText.includes('thu nhap') || qText.includes('income')) {
         if (q.options && q.options.length > 0) {
-          const opt = q.options.find((o) => {
-            const l = o.label.toLowerCase();
-            return l.includes(persona.incomeLevel.toLowerCase()) || l.includes(persona.incomeLevel.slice(0, 5).toLowerCase());
-          }) || q.options[Math.floor(Math.random() * q.options.length)];
+          const opt =
+            q.options.find((o) => {
+              const l = o.label.toLowerCase();
+              return l.includes(persona.incomeLevel.toLowerCase()) || l.includes(persona.incomeLevel.slice(0, 5).toLowerCase());
+            }) || q.options[Math.floor(Math.random() * q.options.length)];
           payload[q.id] = opt.value;
           return;
         }
@@ -846,39 +902,21 @@ export function buildBankingGenZQueue(
       // Câu 9. Số ngân hàng có thẻ tín dụng
       if (qText.includes('the tin dung') && (qText.includes('so ngan hang') || qText.includes('bao nhieu'))) {
         if (q.options && q.options.length > 0) {
-          const opt = q.options.find((o) => {
-            const l = o.label.toLowerCase();
-            return l.includes(persona.cardCount.toLowerCase());
-          }) || q.options[0];
+          const opt =
+            q.options.find((o) => {
+              const l = o.label.toLowerCase();
+              return l.includes(persona.cardCount.toLowerCase());
+            }) || q.options[0];
           payload[q.id] = opt.value;
           return;
         }
       }
 
       // ==========================================
-      // PHẦN 5 - 9. 49 PHÁT BIỂU LIKERT 1-5
+      // PHẦN 5 - 9. PHÁT BIỂU LIKERT ĐƠN (SCALE HOẶC RADIO)
       // ==========================================
 
-      // 1. Grid / Matrix question (Multi-statement Likert rows)
-      if (q.type === 'grid' && q.gridRows && q.gridRows.length > 0) {
-        const opts = q.options && q.options.length > 0 ? q.options : [{ value: '1' }, { value: '2' }, { value: '3' }, { value: '4' }, { value: '5' }];
-
-        q.gridRows.forEach((row) => {
-          if (!row.entryId) return;
-          const matchedRule = matchLikertRule(row.title, personaLikertIndex);
-          const ruleToUse = matchedRule || BANKING_GENZ_LIKERT_RULES[Math.min(personaLikertIndex - 1, 48)];
-          personaLikertIndex++;
-
-          const score = generateLikertScore(ruleToUse, persona.theta, persona.isAttentionFail);
-
-          // Find option matching score 1..5
-          const matchedOpt = opts.find((o) => o.value === String(score) || o.label.startsWith(String(score))) || opts[Math.min(score - 1, opts.length - 1)];
-          payload[row.entryId] = matchedOpt.value;
-        });
-        return;
-      }
-
-      // 2. Linear Scale question (q.type === 'scale')
+      // Linear Scale question (q.type === 'scale')
       if (q.type === 'scale') {
         const matchedRule = matchLikertRule(q.title, personaLikertIndex);
         const ruleToUse = matchedRule || BANKING_GENZ_LIKERT_RULES[Math.min(personaLikertIndex - 1, 48)];
@@ -889,24 +927,25 @@ export function buildBankingGenZQueue(
         return;
       }
 
-      // 3. Radio / Choice question representing a 5-point Likert statement
-      if (q.options && q.options.length >= 3 && q.type !== 'checkbox' && q.type !== 'grid') {
+      // Radio / Choice question representing a Likert statement
+      if (q.options && q.options.length >= 3 && q.type !== 'checkbox') {
         const matchedRule = matchLikertRule(q.title, personaLikertIndex);
         if (matchedRule) {
           personaLikertIndex++;
           const score = generateLikertScore(matchedRule, persona.theta, persona.isAttentionFail);
-          const matchedOpt = q.options.find((o) => o.value === String(score) || o.label.startsWith(String(score))) || q.options[Math.min(score - 1, q.options.length - 1)];
+          const matchedOpt =
+            q.options.find((o) => o.value === String(score) || o.label.startsWith(String(score))) ||
+            q.options[Math.min(score - 1, q.options.length - 1)];
           payload[q.id] = matchedOpt.value;
           return;
         }
 
-        // Generic radio fallback
-        const chosen = q.options[Math.floor(Math.random() * q.options.length)];
+        const chosen = q.options[Math.min(3, q.options.length - 1)];
         payload[q.id] = chosen.value;
         return;
       }
 
-      // 4. Fallback for text / open-ended questions
+      // Text / open-ended questions
       if (q.type === 'text' || q.type === 'paragraph') {
         const comments = [
           'Ứng dụng ngân hàng hiện nay rất tiện lợi, thao tác mở thẻ trực tuyến nhanh chóng.',
@@ -917,6 +956,39 @@ export function buildBankingGenZQueue(
         ];
         payload[q.id] = comments[Math.floor(Math.random() * comments.length)];
         return;
+      }
+    });
+
+    // =========================================================================
+    // LỚP BẢO VỆ 1: TỰ ĐỘNG RÀ SOÁT LẠI TOÀN BỘ CÂU HỎI VÀ DÒNG MA TRẬN
+    // ĐẢM BẢO 100% MỌI CÂU ĐỀU CÓ GIÁ TRỊ, TUYỆT ĐỐI KHÔNG BỎ TRỐNG CÂU NÀO!
+    // =========================================================================
+    questions.forEach((chkQ) => {
+      if (chkQ.type === 'grid' && chkQ.gridRows) {
+        const opts =
+          chkQ.options && chkQ.options.length > 0 ? chkQ.options : [{ value: '4' }, { value: '5' }];
+        chkQ.gridRows.forEach((r) => {
+          if (r.entryId && (payload[r.entryId] === undefined || payload[r.entryId] === null || payload[r.entryId] === '')) {
+            payload[r.entryId] = opts[Math.min(3, opts.length - 1)].value;
+          }
+        });
+      } else {
+        if (payload[chkQ.id] === undefined || payload[chkQ.id] === null || payload[chkQ.id] === '') {
+          if (chkQ.options && chkQ.options.length > 0) {
+            payload[chkQ.id] =
+              chkQ.type === 'checkbox'
+                ? [chkQ.options[0].value]
+                : chkQ.options[Math.min(3, chkQ.options.length - 1)].value;
+          } else if (chkQ.type === 'scale') {
+            payload[chkQ.id] = '4';
+          } else if (chkQ.type === 'date') {
+            payload[chkQ.id] = new Date().toISOString().split('T')[0];
+          } else if (chkQ.type === 'time') {
+            payload[chkQ.id] = '10:00';
+          } else {
+            payload[chkQ.id] = 'Hoàn toàn đồng ý';
+          }
+        }
       }
     });
 

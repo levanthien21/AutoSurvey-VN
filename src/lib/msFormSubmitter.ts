@@ -131,6 +131,40 @@ export async function submitMicrosoftFormResponse(
     answersArray.push({ questionId, answer1 });
   }
 
+  // 8. Failsafe Toàn Diện: Rà soát msSchema, đảm bảo 100% mọi câu hỏi và dòng ma trận đều có đáp án
+  if (msSchema) {
+    for (const [sId, meta] of Object.entries(msSchema)) {
+      if (!sId || meta.type === 'Question.MatrixChoiceGroup') {
+        continue;
+      }
+      const existing = answersArray.find((a) => a.questionId === sId);
+      if (!existing) {
+        let fallbackAnswer: any = '';
+        if (meta.type === 'Question.MatrixChoice') {
+          const ch =
+            meta.choices && meta.choices.length > 0
+              ? meta.choices[Math.min(3, meta.choices.length - 1)]
+              : { id: 4, key: '4' };
+          fallbackAnswer = { id: ch.id, key: ch.key ?? String(ch.id) };
+        } else if (meta.isCheckbox) {
+          const ch = meta.choices && meta.choices.length > 0 ? [meta.choices[0].value] : ['1'];
+          fallbackAnswer = JSON.stringify(ch);
+        } else if (meta.type === 'Question.Choice') {
+          const ch = meta.choices && meta.choices.length > 0 ? meta.choices[0] : { value: '1', label: '1' };
+          fallbackAnswer = ch.label || ch.value;
+        } else if (meta.type === 'Question.Rating') {
+          fallbackAnswer = '4';
+        } else if (meta.type === 'Question.DateTime') {
+          fallbackAnswer = new Date().toISOString().split('T')[0];
+        } else {
+          fallbackAnswer = 'Hoàn toàn đồng ý';
+        }
+
+        answersArray.push({ questionId: sId, answer1: fallbackAnswer });
+      }
+    }
+  }
+
   const now = new Date();
   // Simulate natural user reading and fill duration between 15s and 45s
   const durationMs = 15000 + Math.floor(Math.random() * 30000);
