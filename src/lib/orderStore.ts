@@ -37,6 +37,7 @@ export interface SurveyOrder {
   platform?: 'google' | 'microsoft';
   antiForgeryToken?: string;
   serverSessionId?: string;
+  msSchema?: Record<string, any>;
 }
 
 // In-memory global store with DB integration
@@ -62,6 +63,7 @@ class OrderManager {
     platform?: 'google' | 'microsoft';
     antiForgeryToken?: string;
     serverSessionId?: string;
+    msSchema?: Record<string, any>;
   }): SurveyOrder {
     const id = 'ord_' + Math.random().toString(36).substring(2, 9);
     const order: SurveyOrder = {
@@ -90,6 +92,7 @@ class OrderManager {
       pageHistory: params.pageHistory,
       antiForgeryToken: params.antiForgeryToken,
       serverSessionId: params.serverSessionId,
+      msSchema: params.msSchema,
     };
 
     this.orders.set(id, order);
@@ -164,7 +167,8 @@ class OrderManager {
             currentPayload,
             order.antiForgeryToken,
             order.serverSessionId,
-            order.formUrl
+            order.formUrl,
+            order.msSchema
           )
         : await submitGoogleFormResponse(order.submitUrl, currentPayload, order.fbzx, order.pageHistory);
 

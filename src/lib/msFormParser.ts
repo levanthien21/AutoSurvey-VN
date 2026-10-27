@@ -90,61 +90,182 @@ export async function parseMicrosoftForm(rawUrl: string): Promise<ParsedGoogleFo
   // https://forms.cloud.microsoft/formapi/api/{tenantId}/{groups|users}/{containerId}/light/runtimeForms('{formId}')?$expand=...
   // Submission endpoint removes /light/runtimeForms and replaces with /forms(...)/responses
   const withoutQuery = prefetchUrl.split('?')[0];
-  const submitBase = withoutQuery.replace('/light/runtimeForms(', '/forms(');
-  const submitUrl = `${submitBase}/responses`;
+  const submitBase = withoutQuery
+    .replace(/\/light\/runtimeForms\(/i, '/forms(')
+    .replace(/\/runtimeForms\(/i, '/forms(');
+  const submitUrl = submitBase.endsWith('/responses') ? submitBase : `${submitBase}/responses`;
 
   // Step 6: Map Microsoft questions to unified FormQuestion schema
   const rawQuestions: any[] = formJson.questions || [];
   rawQuestions.sort((a, b) => (a.order || 0) - (b.order || 0));
 
-  const questions: FormQuestion[] = rawQuestions.map((q, idx) => {
+  const rawById = new Map<string, any>();
+  rawQuestions.forEach((q) => rawById.set(q.id, q));
+
+  // Identify child matrix rows that belong to a matrix parent group
+  const matrixChildIds = new Set<string>();
+  rawQuestions.forEach((q) => {
+    if (q.groupId && rawById.has(q.groupId)) {
+      matrixChildIds.add(q.id);
+    }
+  });
+
+  // Microsoft question schema dictionary for submitter formatting
+  const msSchema: Record<string, {
+    id: string;
+    type: string;
+    isCheckbox?: boolean;
+    isMatrixRow?: boolean;
+    parentGroupId?: string;
+    choices?: { id?: any; key?: any; value: string; label: string }[];
+  }> = {};
+
+  const questions: FormQuestion[] = [];
+
+  for (const q of rawQuestions) {
     let qInfo: any = {};
     try {
-      if (q.questionInfo) qInfo = JSON.parse(q.questionInfo);
+      if (q.questionInfo) {
+        qInfo = typeof q.questionInfo === 'string' ? JSON.parse(q.questionInfo) : q.questionInfo;
+      }
     } catch {}
+
+    // Case 1: Parent Matrix / Likert Grid Question
+    if (q.type === 'Question.MatrixChoiceGroup') {
+      const rawChoices = qInfo.Choices || q.choices || [];
+      const options = rawChoices.map((c: any, cIdx: number) => {
+        const val = String(c.Description || c.FormsProDisplayRTText || c.displayText || c.Label || c.Text || (cIdx + 1));
+        return {
+          value: val,
+          label: val,
+          id: c.id ?? cIdx + 1,
+          key: c.key ?? (c.id !== undefined ? String(c.id) : String(cIdx + 1)),
+        };
+      });
+
+      // Find all child rows under this group
+      const childQuestions = rawQuestions.filter(
+        (child) => child.groupId === q.id || (child.type === 'Question.MatrixChoice' && child.groupId === q.id)
+      );
+      childQuestions.sort((a, b) => (a.order || 0) - (b.order || 0));
+
+      const gridRows = childQuestions.map((child) => {
+        // Register each row in msSchema as an answerable Matrix row
+        msSchema[child.id] = {
+          id: child.id,
+          type: 'Question.MatrixChoice',
+          isMatrixRow: true,
+          parentGroupId: q.id,
+          choices: options,
+        };
+        return {
+          title: child.title || child.formsProRTQuestionTitle || 'Tiêu chí đánh giá',
+          entryId: child.id,
+        };
+      });
+
+      // Register parent container in msSchema (flagged so submitter never posts it as an answer)
+      msSchema[q.id] = {
+        id: q.id,
+        type: 'Question.MatrixChoiceGroup',
+        choices: options,
+      };
+
+      questions.push({
+        id: q.id,
+        internalId: questions.length + 1,
+        title: q.title || q.formsProRTQuestionTitle || 'Bảng đánh giá ma trận',
+        description: q.subtitle || undefined,
+        type: 'grid',
+        subType: 'general',
+        defaultSampleAnswers: ['4', '5'],
+        rawType: 0,
+        required: !!q.required,
+        options,
+        gridRows,
+      });
+      continue;
+    }
+
+    // Skip child matrix rows here, since they are already nested in their parent gridRows
+    if (matrixChildIds.has(q.id)) {
+      continue;
+    }
 
     let type: FormQuestion['type'] = 'text';
     let options: FormQuestion['options'] = [];
     let scaleMin: number | undefined;
     let scaleMax: number | undefined;
+    let isCheckbox = false;
 
     if (q.type === 'Question.Choice') {
-      type = qInfo.ChoiceType === 2 ? 'checkbox' : 'radio';
+      isCheckbox = qInfo.ChoiceType === 2;
+      type = isCheckbox ? 'checkbox' : 'radio';
       const rawChoices = qInfo.Choices || q.choices || [];
-      options = rawChoices.map((c: any) => ({
-        value: c.Description || c.FormsProDisplayRTText || '',
-        label: c.Description || c.FormsProDisplayRTText || '',
-      }));
+      options = rawChoices.map((c: any, cIdx: number) => {
+        const val = String(c.Description || c.FormsProDisplayRTText || c.displayText || (cIdx + 1));
+        return {
+          value: val,
+          label: val,
+          id: c.id ?? cIdx + 1,
+          key: c.key ?? String(c.id ?? cIdx + 1),
+        };
+      });
+      msSchema[q.id] = {
+        id: q.id,
+        type: 'Question.Choice',
+        isCheckbox,
+        choices: options as any,
+      };
     } else if (q.type === 'Question.TextField') {
       type = qInfo.Multiline ? 'paragraph' : 'text';
+      msSchema[q.id] = { id: q.id, type: 'Question.TextField' };
     } else if (q.type === 'Question.Rating') {
       type = 'scale';
       scaleMin = 1;
-      scaleMax = qInfo.MaxRating || 5;
+      scaleMax = qInfo.MaxRating || qInfo.Length || 5;
       options = Array.from({ length: scaleMax }, (_, i) => ({
         value: String(i + 1),
         label: String(i + 1),
+        id: i + 1,
+        key: String(i + 1),
       }));
+      msSchema[q.id] = {
+        id: q.id,
+        type: 'Question.Rating',
+        choices: options as any,
+      };
     } else if (q.type === 'Question.DateTime') {
       type = 'date';
-    } else if (
-      q.type === 'Question.MatrixChoice' ||
-      q.type === 'Question.MatrixChoiceGroup'
-    ) {
-      type = 'grid';
+      msSchema[q.id] = { id: q.id, type: 'Question.DateTime' };
+    } else if (q.type === 'Question.MatrixChoice') {
+      // Standalone matrix row without group
+      type = 'scale';
+      scaleMin = 1;
+      scaleMax = 5;
       const rawChoices = qInfo.Choices || q.choices || [];
-      options = rawChoices.map((c: any) => ({
-        value: c.Description || c.FormsProDisplayRTText || '',
-        label: c.Description || c.FormsProDisplayRTText || '',
+      options = rawChoices.map((c: any, cIdx: number) => ({
+        value: String(c.Description || c.FormsProDisplayRTText || (cIdx + 1)),
+        label: String(c.Description || c.FormsProDisplayRTText || (cIdx + 1)),
+        id: c.id ?? cIdx + 1,
+        key: c.key ?? String(c.id ?? cIdx + 1),
       }));
+      msSchema[q.id] = {
+        id: q.id,
+        type: 'Question.MatrixChoice',
+        isMatrixRow: true,
+        choices: options as any,
+      };
+    } else {
+      msSchema[q.id] = { id: q.id, type: q.type || 'Question.TextField' };
     }
 
-    const title = q.title || q.formsProRTQuestionTitle || `Câu hỏi ${idx + 1}`;
+    const title = q.title || q.formsProRTQuestionTitle || `Câu hỏi ${questions.length + 1}`;
     const subTypeInfo = detectQuestionSubType(title);
 
-    return {
+    questions.push({
       id: q.id,
-      internalId: idx + 1,
+      internalId: questions.length + 1,
       title,
       description: q.subtitle || undefined,
       type,
@@ -155,8 +276,8 @@ export async function parseMicrosoftForm(rawUrl: string): Promise<ParsedGoogleFo
       options,
       scaleMin,
       scaleMax,
-    };
-  });
+    });
+  }
 
   return {
     formId: formJson.id || serverInfo.formId || '',
@@ -167,6 +288,7 @@ export async function parseMicrosoftForm(rawUrl: string): Promise<ParsedGoogleFo
     antiForgeryToken,
     serverSessionId,
     originalUrl: finalUrl,
+    msSchema,
     questions,
   };
 }

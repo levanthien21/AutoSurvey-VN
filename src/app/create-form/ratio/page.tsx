@@ -196,6 +196,26 @@ export default function CreateFormRatioPage() {
         const responseItem: Record<string, any> = {};
 
         form.questions.forEach((q) => {
+          if (q.type === 'grid' && q.gridRows && q.gridRows.length > 0) {
+            const optMap = config[q.id] || {};
+            q.gridRows.forEach((r) => {
+              if (r.entryId) {
+                const rand = Math.random() * 100;
+                let current = 0;
+                let chosen = q.options[0]?.value || '4';
+                for (const opt of q.options) {
+                  current += optMap[opt.value] || 0;
+                  if (rand <= current) {
+                    chosen = opt.value;
+                    break;
+                  }
+                }
+                responseItem[r.entryId] = chosen;
+              }
+            });
+            return;
+          }
+
           if (q.options && q.options.length > 0) {
             const optMap = config[q.id] || {};
             // Weighted random selection
@@ -238,6 +258,7 @@ export default function CreateFormRatioPage() {
           platform: form.platform,
           antiForgeryToken: form.antiForgeryToken,
           serverSessionId: form.serverSessionId,
+          msSchema: form.msSchema,
           pageHistory: form.pageHistory,
           mode: 'ratio',
           totalTarget: targetCount,

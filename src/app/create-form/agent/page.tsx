@@ -163,8 +163,29 @@ export default function CreateFormAgentPage() {
         const payload: Record<string, any> = {};
 
         currentForm.questions.forEach((q) => {
+          // 0. Grid / Matrix question rows (Likert scale multi-statement)
+          if (q.type === 'grid' && q.gridRows && q.gridRows.length > 0) {
+            const opts = q.options && q.options.length > 0 ? q.options : [{ value: '4' }, { value: '5' }];
+            q.gridRows.forEach((r) => {
+              if (r.entryId) {
+                let chosenIdx = 0;
+                if (personaType === 'student' || personaType === 'office') {
+                  const rand = Math.random();
+                  chosenIdx = rand < 0.7 ? opts.length - 1 : rand < 0.9 ? Math.max(0, opts.length - 2) : 0;
+                } else if (personaType === 'manager') {
+                  const rand = Math.random();
+                  chosenIdx = rand < 0.4 ? Math.max(0, opts.length - 2) : opts.length - 1;
+                } else {
+                  chosenIdx = Math.floor(Math.random() * opts.length);
+                }
+                payload[r.entryId] = opts[chosenIdx]?.value || '4';
+              }
+            });
+            return;
+          }
+
           // 1. Choice / Radio / Dropdown
-          if (q.options && q.options.length > 0 && q.type !== 'checkbox') {
+          if (q.options && q.options.length > 0 && q.type !== 'checkbox' && q.type !== 'grid') {
             const opts = q.options;
             let chosenIdx = 0;
             if (personaType === 'student' || personaType === 'office') {
@@ -320,6 +341,7 @@ export default function CreateFormAgentPage() {
           platform: currentForm.platform,
           antiForgeryToken: currentForm.antiForgeryToken,
           serverSessionId: currentForm.serverSessionId,
+          msSchema: currentForm.msSchema,
           pageHistory: currentForm.pageHistory,
           mode: 'agent',
           totalTarget: queue.length,

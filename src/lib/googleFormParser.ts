@@ -32,6 +32,7 @@ export interface ParsedGoogleForm {
   antiForgeryToken?: string;
   serverSessionId?: string;
   originalUrl?: string;
+  msSchema?: Record<string, any>;
   questions: FormQuestion[];
 }
 

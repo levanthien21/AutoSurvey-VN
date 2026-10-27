@@ -128,6 +128,15 @@ export default function CreateFormDataPage() {
       const queue = excelData.map((row) => {
         const payload: Record<string, any> = {};
         form.questions.forEach((q) => {
+          if (q.type === 'grid' && q.gridRows && q.gridRows.length > 0) {
+            q.gridRows.forEach((r) => {
+              const col = mappings[r.entryId] || mappings[q.id];
+              if (col && row[col] !== undefined && row[col] !== null) {
+                payload[r.entryId] = String(row[col]);
+              }
+            });
+            return;
+          }
           const col = mappings[q.id];
           if (col && row[col] !== undefined && row[col] !== null) {
             payload[q.id] = String(row[col]);
@@ -153,6 +162,7 @@ export default function CreateFormDataPage() {
           platform: form.platform,
           antiForgeryToken: form.antiForgeryToken,
           serverSessionId: form.serverSessionId,
+          msSchema: form.msSchema,
           pageHistory: form.pageHistory,
           mode: 'data',
           totalTarget: queue.length,

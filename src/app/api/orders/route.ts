@@ -33,6 +33,7 @@ export async function POST(req: NextRequest) {
       platform,
       antiForgeryToken,
       serverSessionId,
+      msSchema,
       autoStart = true,
     } = body;
 
@@ -113,6 +114,7 @@ export async function POST(req: NextRequest) {
       platform: isMs ? 'microsoft' : 'google',
       antiForgeryToken,
       serverSessionId,
+      msSchema,
       mode,
       totalTarget: count,
       delayMin: delayMin ? Number(delayMin) : settings.defaultDelayMin || 1.0,

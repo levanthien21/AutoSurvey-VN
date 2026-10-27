@@ -149,6 +149,16 @@ export default function CreateFormModelPage() {
         const payload: Record<string, any> = {};
         // Map available items to form questions
         form.questions.forEach((q, qIdx) => {
+          if (q.type === 'grid' && q.gridRows && q.gridRows.length > 0) {
+            q.gridRows.forEach((r, rIdx) => {
+              if (r.entryId) {
+                const itemKey = itemKeys[(qIdx + rIdx) % itemKeys.length];
+                const val = simulatedData[itemKey][i];
+                payload[r.entryId] = String(val);
+              }
+            });
+            return;
+          }
           const itemKey = itemKeys[qIdx % itemKeys.length];
           const val = simulatedData[itemKey][i];
           payload[q.id] = String(val);
@@ -173,6 +183,7 @@ export default function CreateFormModelPage() {
           platform: form.platform,
           antiForgeryToken: form.antiForgeryToken,
           serverSessionId: form.serverSessionId,
+          msSchema: form.msSchema,
           pageHistory: form.pageHistory,
           mode: 'model',
           totalTarget: queue.length,
