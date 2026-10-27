@@ -1,4 +1,5 @@
 import { submitGoogleFormResponse, SubmitResponsePayload, sleep } from './googleFormSubmitter';
+import { submitMicrosoftFormResponse } from './msFormSubmitter';
 import { db } from './db';
 
 export type OrderStatus = 'pending' | 'running' | 'paused' | 'completed' | 'failed' | 'cancelled';
@@ -32,6 +33,9 @@ export interface SurveyOrder {
   logs: OrderLog[];
   responsesQueue: SubmitResponsePayload[];
   fbzx?: string;
+  platform?: 'google' | 'microsoft';
+  antiForgeryToken?: string;
+  serverSessionId?: string;
 }
 
 // In-memory global store with DB integration
@@ -53,6 +57,9 @@ class OrderManager {
     totalCost?: number;
     responsesQueue: SubmitResponsePayload[];
     fbzx?: string;
+    platform?: 'google' | 'microsoft';
+    antiForgeryToken?: string;
+    serverSessionId?: string;
   }): SurveyOrder {
     const id = 'ord_' + Math.random().toString(36).substring(2, 9);
     const order: SurveyOrder = {
@@ -61,6 +68,7 @@ class OrderManager {
       title: params.title || 'Đơn điền form tự động',
       formUrl: params.formUrl,
       submitUrl: params.submitUrl,
+      platform: params.platform || (params.submitUrl.includes('forms.cloud.microsoft') || params.submitUrl.includes('forms.office.com') ? 'microsoft' : 'google'),
       mode: params.mode,
       totalTarget: params.totalTarget,
       completedCount: 0,
@@ -77,6 +85,8 @@ class OrderManager {
       logs: [],
       responsesQueue: params.responsesQueue,
       fbzx: params.fbzx,
+      antiForgeryToken: params.antiForgeryToken,
+      serverSessionId: params.serverSessionId,
     };
 
     this.orders.set(id, order);
@@ -140,7 +150,20 @@ class OrderManager {
       if (!currentPayload) break;
 
       const idx = order.completedCount + 1;
-      const res = await submitGoogleFormResponse(order.submitUrl, currentPayload, order.fbzx);
+      const isMs =
+        order.platform === 'microsoft' ||
+        order.submitUrl.includes('forms.cloud.microsoft') ||
+        order.submitUrl.includes('forms.office.com');
+
+      const res = isMs
+        ? await submitMicrosoftFormResponse(
+            order.submitUrl,
+            currentPayload,
+            order.antiForgeryToken,
+            order.serverSessionId,
+            order.formUrl
+          )
+        : await submitGoogleFormResponse(order.submitUrl, currentPayload, order.fbzx);
 
       const logItem: OrderLog = {
         timestamp: new Date().toLocaleTimeString(),

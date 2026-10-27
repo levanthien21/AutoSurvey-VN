@@ -287,7 +287,7 @@ export default function HomePage() {
                   </div>
                   <input
                     type="text"
-                    placeholder="Dán link Google Forms (https://docs.google.com/forms/d/e/.../viewform)..."
+                    placeholder="Dán link Google Forms hoặc Microsoft Forms (forms.cloud.microsoft/...)..."
                     value={ingestUrl}
                     onChange={(e) => setIngestUrl(e.target.value)}
                     className="w-full h-12 pl-10 pr-28 rounded-xl bg-white border-2 border-slate-300 text-slate-900 text-xs sm:text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all shadow-2xs font-medium"
@@ -1022,7 +1022,7 @@ export default function HomePage() {
             </div>
             <div className="text-sm font-bold text-slate-800">Chưa có chiến dịch nào đang chạy</div>
             <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
-              Hãy dán link Google Form vào thanh điều khiển ở trên để khởi tạo chiến dịch điền khảo sát đầu tiên.
+              Hãy dán link Google Form hoặc Microsoft Form vào thanh điều khiển ở trên để khởi tạo chiến dịch điền khảo sát đầu tiên.
             </p>
             <button
               onClick={() => handleIngestLaunch('model')}

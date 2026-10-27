@@ -72,7 +72,7 @@ export default function CreateFormAgentPage() {
 
   const handleParseForm = async () => {
     if (!formUrl.trim()) {
-      setError('Vui lòng nhập đường dẫn Google Form.');
+      setError('Vui lòng nhập đường dẫn Google Form hoặc Microsoft Form.');
       return;
     }
     setError('');
@@ -192,6 +192,9 @@ export default function CreateFormAgentPage() {
           title: `AI Agent (${personaType}) - ${form.title}`,
           formUrl,
           submitUrl: form.submitUrl,
+          platform: form.platform,
+          antiForgeryToken: form.antiForgeryToken,
+          serverSessionId: form.serverSessionId,
           mode: 'agent',
           totalTarget: queue.length,
           delayMin,
@@ -228,13 +231,13 @@ export default function CreateFormAgentPage() {
 
       {/* Step 1: Input URL */}
       <div className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-xs space-y-4">
-        <label className="block text-sm font-bold text-slate-900">1. Nhập đường dẫn Google Form</label>
+        <label className="block text-sm font-bold text-slate-900">1. Nhập đường dẫn Google Form hoặc Microsoft Form</label>
         <div className="flex flex-col sm:flex-row gap-3">
           <input
             type="text"
             value={formUrl}
             onChange={(e) => setFormUrl(e.target.value)}
-            placeholder="https://docs.google.com/forms/d/e/.../viewform"
+            placeholder="https://docs.google.com/forms/d/e/.../viewform hoặc https://forms.cloud.microsoft/..."
             className="flex-1 h-11 px-4 text-sm rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-purple-500"
           />
           <button

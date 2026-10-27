@@ -84,7 +84,7 @@ export default function CreateFormPage() {
             Chọn Động Cơ Điền Form Cho Khảo Sát Của Bạn
           </h1>
           <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
-            Dán link Google Forms trước hoặc chọn một trong 4 phương thức chuyên biệt bên dưới để bắt đầu cấu hình chiến dịch.
+            Dán link Google Forms hoặc Microsoft Forms trước hoặc chọn một trong 4 phương thức chuyên biệt bên dưới để bắt đầu cấu hình chiến dịch.
           </p>
         </div>
 
@@ -92,7 +92,7 @@ export default function CreateFormPage() {
         <div className="bg-slate-50 border border-slate-200 rounded-2xl p-3 sm:p-4 flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
           <input
             type="text"
-            placeholder="Dán link Google Form (https://docs.google.com/forms/d/e/.../viewform) nếu đã có..."
+            placeholder="Dán link Google Forms hoặc Microsoft Forms (forms.cloud.microsoft/...) nếu đã có..."
             value={url}
             onChange={(e) => setUrl(e.target.value)}
             className="flex-1 h-11 px-4 rounded-xl bg-white border border-slate-300 text-slate-900 text-xs sm:text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all font-medium"

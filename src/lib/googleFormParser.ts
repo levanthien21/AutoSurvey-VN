@@ -27,6 +27,10 @@ export interface ParsedGoogleForm {
   description: string;
   submitUrl: string;
   fbzx?: string;
+  platform?: 'google' | 'microsoft';
+  antiForgeryToken?: string;
+  serverSessionId?: string;
+  originalUrl?: string;
   questions: FormQuestion[];
 }
 
@@ -96,6 +100,7 @@ export function getSampleGoogleForm(): ParsedGoogleForm {
     description: 'Phiếu khảo sát phục vụ đề tài nghiên cứu khoa học. Thang đo Likert 5 mức độ từ 1 (Hoàn toàn không đồng ý) đến 5 (Hoàn toàn đồng ý). Mọi thông tin phản hồi đều được bảo mật 100%.',
     submitUrl: 'https://docs.google.com/forms/d/e/1FAIpQLScP_SampleSurvey_NCKH_AutoSurveyVN/formResponse',
     fbzx: '179234892349812903',
+    platform: 'google',
     questions: [
       {
         id: 'entry.1001',
@@ -481,6 +486,8 @@ export async function parseGoogleForm(formUrl: string): Promise<ParsedGoogleForm
     description,
     submitUrl,
     fbzx,
+    platform: 'google',
+    originalUrl: resolvedUrl,
     questions,
   };
 }

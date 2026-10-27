@@ -62,7 +62,7 @@ export default function CreateFormModelPage() {
   // Parse Form
   const handleParseForm = async () => {
     if (!formUrl.trim()) {
-      setError('Vui lòng nhập đường dẫn Google Form.');
+      setError('Vui lòng nhập đường dẫn Google Form hoặc Microsoft Form.');
       return;
     }
     setError('');
@@ -170,6 +170,9 @@ export default function CreateFormModelPage() {
           title: `NCKH SmartPLS/SPSS - ${form.title}`,
           formUrl,
           submitUrl: form.submitUrl,
+          platform: form.platform,
+          antiForgeryToken: form.antiForgeryToken,
+          serverSessionId: form.serverSessionId,
           mode: 'model',
           totalTarget: queue.length,
           delayMin: 1.0,
@@ -230,13 +233,13 @@ export default function CreateFormModelPage() {
 
       {/* Step 1: Input URL */}
       <div className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-xs space-y-4">
-        <label className="block text-sm font-bold text-slate-900">1. Nhập đường dẫn Google Form</label>
+        <label className="block text-sm font-bold text-slate-900">1. Nhập đường dẫn Google Form hoặc Microsoft Form</label>
         <div className="flex flex-col sm:flex-row gap-3">
           <input
             type="text"
             value={formUrl}
             onChange={(e) => setFormUrl(e.target.value)}
-            placeholder="https://docs.google.com/forms/d/e/.../viewform"
+            placeholder="https://docs.google.com/forms/d/e/.../viewform hoặc https://forms.cloud.microsoft/..."
             className="flex-1 h-11 px-4 text-sm rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-amber-500"
           />
           <button
@@ -447,7 +450,7 @@ export default function CreateFormModelPage() {
                     className="flex-1 sm:flex-initial h-11 px-6 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-md shadow-blue-500/20 flex items-center justify-center gap-2 transition-colors"
                   >
                     {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-                    <span>Nộp vào Google Form</span>
+                    <span>Nộp vào biểu mẫu khảo sát</span>
                   </button>
                 )}
               </div>

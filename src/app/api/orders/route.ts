@@ -29,6 +29,9 @@ export async function POST(req: NextRequest) {
       delayMax,
       responsesQueue,
       fbzx,
+      platform,
+      antiForgeryToken,
+      serverSessionId,
       autoStart = true,
     } = body;
 
@@ -57,6 +60,9 @@ export async function POST(req: NextRequest) {
     const costPerResponse = settings.pricePerResponse[modeKey] || 100;
     const totalCost = count * costPerResponse;
 
+    const isMs = platform === 'microsoft' || submitUrl.includes('forms.cloud.microsoft') || submitUrl.includes('forms.office.com');
+    const formBrand = isMs ? 'Microsoft Form' : 'Google Form';
+
     // Credit verification
     const isAdmin = user.role === 'admin';
     if (!isAdmin) {
@@ -82,7 +88,7 @@ export async function POST(req: NextRequest) {
         type: 'order_charge',
         amount: totalCost,
         credits: -totalCost,
-        memo: `Thanh toán khảo sát: ${title || 'Google Form'} (${count} phản hồi)`,
+        memo: `Thanh toán khảo sát: ${title || formBrand} (${count} phản hồi)`,
         status: 'completed',
       });
     } else {
@@ -93,7 +99,7 @@ export async function POST(req: NextRequest) {
         type: 'order_charge',
         amount: 0,
         credits: 0,
-        memo: `[Đặc quyền Admin - Miễn phí] Khảo sát: ${title || 'Google Form'} (${count} phản hồi)`,
+        memo: `[Đặc quyền Admin - Miễn phí] Khảo sát: ${title || formBrand} (${count} phản hồi)`,
         status: 'completed',
       });
     }
@@ -103,6 +109,9 @@ export async function POST(req: NextRequest) {
       title: title || 'Đơn điền form tự động',
       formUrl,
       submitUrl,
+      platform: isMs ? 'microsoft' : 'google',
+      antiForgeryToken,
+      serverSessionId,
       mode,
       totalTarget: count,
       delayMin: delayMin ? Number(delayMin) : settings.defaultDelayMin || 1.0,

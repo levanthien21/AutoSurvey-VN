@@ -61,7 +61,7 @@ export default function CreateFormRatioPage() {
   const handleParseForm = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (!formUrl.trim()) {
-      setError('Vui lòng nhập đường dẫn Google Form hợp lệ.');
+      setError('Vui lòng nhập đường dẫn Google Form hoặc Microsoft Form hợp lệ.');
       return;
     }
     setError('');
@@ -108,7 +108,7 @@ export default function CreateFormRatioPage() {
       setConfig(initialConfig);
       setTextAnswers(initialText);
     } catch (err: any) {
-      setError(err.message || 'Lỗi khi tải Google Form');
+      setError(err.message || 'Lỗi khi tải biểu mẫu khảo sát');
     } finally {
       setLoading(false);
     }
@@ -235,6 +235,9 @@ export default function CreateFormRatioPage() {
           title: `Điền theo tỉ lệ - ${form.title}`,
           formUrl,
           submitUrl: form.submitUrl,
+          platform: form.platform,
+          antiForgeryToken: form.antiForgeryToken,
+          serverSessionId: form.serverSessionId,
           mode: 'ratio',
           totalTarget: targetCount,
           delayMin,
@@ -268,14 +271,14 @@ export default function CreateFormRatioPage() {
         </div>
         <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">Điền theo tỉ lệ mong muốn</h1>
         <p className="text-sm text-slate-500 mt-1">
-          Bóc tách toàn bộ câu hỏi của Google Form và tuỳ biến tỉ lệ phần trăm xuất hiện của từng đáp án.
+          Bóc tách toàn bộ câu hỏi của Google Form hoặc Microsoft Form và tuỳ biến tỉ lệ phần trăm xuất hiện của từng đáp án.
         </p>
       </div>
 
       {/* Step 1: Input URL Card */}
       <div className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-xs space-y-4">
         <label className="block text-sm font-bold text-slate-900">
-          Nhập đường dẫn Google Form (URL hoặc forms.gle)
+          Nhập đường dẫn Google Form hoặc Microsoft Form (forms.gle, forms.cloud.microsoft, forms.office.com)
         </label>
         <div className="flex flex-col sm:flex-row gap-3">
           <div className="relative flex-1">
@@ -283,7 +286,7 @@ export default function CreateFormRatioPage() {
               type="text"
               value={formUrl}
               onChange={(e) => setFormUrl(e.target.value)}
-              placeholder="https://docs.google.com/forms/d/e/.../viewform hoặc https://forms.gle/..."
+              placeholder="https://docs.google.com/forms/d/e/.../viewform hoặc https://forms.cloud.microsoft/..."
               className="w-full h-11 px-4 text-sm rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
             />
           </div>

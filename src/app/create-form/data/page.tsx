@@ -48,7 +48,7 @@ export default function CreateFormDataPage() {
   // Parse Form
   const handleParseForm = async () => {
     if (!formUrl.trim()) {
-      setError('Vui lòng nhập đường dẫn Google Form.');
+      setError('Vui lòng nhập đường dẫn Google Form hoặc Microsoft Form.');
       return;
     }
     setError('');
@@ -65,7 +65,7 @@ export default function CreateFormDataPage() {
 
       setForm(data.form);
     } catch (err: any) {
-      setError(err.message || 'Lỗi đọc Google Form');
+      setError(err.message || 'Lỗi đọc biểu mẫu khảo sát');
     } finally {
       setLoading(false);
     }
@@ -150,6 +150,9 @@ export default function CreateFormDataPage() {
           title: `Điền data có trước (${fileName}) - ${form.title}`,
           formUrl,
           submitUrl: form.submitUrl,
+          platform: form.platform,
+          antiForgeryToken: form.antiForgeryToken,
+          serverSessionId: form.serverSessionId,
           mode: 'data',
           totalTarget: queue.length,
           delayMin,
@@ -180,19 +183,19 @@ export default function CreateFormDataPage() {
         </div>
         <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">Điền data có trước (Excel / CSV)</h1>
         <p className="text-sm text-slate-500 mt-1">
-          Nhập file bảng tính sẵn có, ánh xạ các cột vào câu hỏi Google Form và submit từng dòng tự động.
+          Nhập file bảng tính sẵn có, ánh xạ các cột vào câu hỏi Google Form hoặc Microsoft Form và submit từng dòng tự động.
         </p>
       </div>
 
       {/* Step 1: Input Form URL */}
       <div className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-xs space-y-4">
-        <label className="block text-sm font-bold text-slate-900">1. Nhập đường dẫn Google Form</label>
+        <label className="block text-sm font-bold text-slate-900">1. Nhập đường dẫn Google Form hoặc Microsoft Form</label>
         <div className="flex flex-col sm:flex-row gap-3">
           <input
             type="text"
             value={formUrl}
             onChange={(e) => setFormUrl(e.target.value)}
-            placeholder="https://docs.google.com/forms/d/e/.../viewform"
+            placeholder="https://docs.google.com/forms/d/e/.../viewform hoặc https://forms.cloud.microsoft/..."
             className="flex-1 h-11 px-4 text-sm rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500"
           />
           <button
@@ -255,7 +258,7 @@ export default function CreateFormDataPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider">
-                    3. Ánh xạ cột Excel sang câu hỏi Google Form
+                    3. Ánh xạ cột Excel sang câu hỏi biểu mẫu khảo sát
                   </h3>
                   <p className="text-xs text-slate-500 mt-0.5">Chọn cột trong file tương ứng với mỗi câu hỏi</p>
                 </div>
