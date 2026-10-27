@@ -187,7 +187,7 @@ function OrdersContent() {
     setIsRefreshing(true);
     try {
       await loadOrders();
-      setRefreshToast('Đã làm mới danh sách đơn hàng thành công!');
+      setRefreshToast('Đã đồng bộ và cập nhật danh sách đơn hàng từ Cloud thành công!');
       setTimeout(() => setRefreshToast(null), 3500);
     } catch (err) {
       console.error(err);
