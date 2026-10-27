@@ -1,0 +1,15 @@
+name: Auto-Survey 24/7 Cloud Cron Runner
+
+on:
+  schedule:
+    # Chạy tự động mỗi 5 phút trên server của GitHub
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+
+jobs:
+  ping-cron:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Auto-Survey Cron Endpoint
+        run: |
+          curl -s -X GET "https://auto-survey-vn.vercel.app/api/cron/orders"

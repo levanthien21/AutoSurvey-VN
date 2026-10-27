@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState, Suspense } from 'react';
+import React, { useEffect, useState, useRef, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import {
   ClipboardList,
@@ -14,11 +14,13 @@ import {
   Layers,
   Terminal,
   RefreshCw,
-  Sliders,
   Download,
   RotateCcw,
   Sparkles,
-  ShieldCheck,
+  Globe,
+  Copy,
+  Check,
+  Zap,
 } from 'lucide-react';
 import { SurveyOrder } from '@/lib/orderStore';
 
@@ -58,12 +60,23 @@ function OrdersContent() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [refreshToast, setRefreshToast] = useState<string | null>(null);
 
-  // Natural delay countdown timer
-  const [nextStepTime, setNextStepTime] = useState<number | null>(null);
-  const [countdownSeconds, setCountdownSeconds] = useState<number>(0);
+  // Multi-order independent countdown and runner tracking
+  const [countdownMap, setCountdownMap] = useState<Record<string, number>>({});
+  const [steppingMap, setSteppingMap] = useState<Record<string, boolean>>({});
+  const nextStepTimesRef = useRef<Record<string, number>>({});
+  const isSteppingRef = useRef<Record<string, boolean>>({});
+
+  // 24/7 Cloud Background runner helper state
+  const [copiedWebhook, setCopiedWebhook] = useState(false);
+  const [pingStatus, setPingStatus] = useState<string | null>(null);
+  const [isPinging, setIsPinging] = useState(false);
 
   const displayOrders = orders.length > 0 ? orders : (activeOrder ? [activeOrder] : []);
   const currentOrder = activeOrder || (displayOrders.length > 0 ? displayOrders[0] : null);
+
+  const runningOrders = displayOrders.filter(
+    (o) => o.status === 'running' && o.completedCount < o.totalTarget
+  );
 
   // Sync active order selection when selectedId changes or orders change
   useEffect(() => {
@@ -86,7 +99,7 @@ function OrdersContent() {
     }
   }, [activeOrder]);
 
-  // Fetch all orders
+  // Fetch all orders from server and merge with localStorage
   const loadOrders = async () => {
     try {
       const res = await fetch('/api/orders');
@@ -165,7 +178,7 @@ function OrdersContent() {
 
   useEffect(() => {
     loadOrders();
-    const interval = setInterval(loadOrders, 3000);
+    const interval = setInterval(loadOrders, 4000);
     return () => clearInterval(interval);
   }, [selectedId]);
 
@@ -177,13 +190,15 @@ function OrdersContent() {
     sse.onmessage = (event) => {
       try {
         const updated: SurveyOrder = JSON.parse(event.data);
-        setActiveOrder(updated);
+        setActiveOrder((prev) => (prev?.id === updated.id ? updated : prev));
         setOrders((prev) => {
           const list = prev.map((o) => (o.id === updated.id ? updated : o));
           if (!list.find((o) => o.id === updated.id)) {
             list.unshift(updated);
           }
-          try { localStorage.setItem('autosurvey_orders', JSON.stringify(list)); } catch {}
+          try {
+            localStorage.setItem('autosurvey_orders', JSON.stringify(list));
+          } catch {}
           return list;
         });
       } catch (err) {
@@ -196,8 +211,12 @@ function OrdersContent() {
     };
   }, [currentOrder?.id]);
 
-  // Step execution helper
+  // Step execution helper for an individual order
   const triggerStep = async (orderToStep: SurveyOrder) => {
+    if (isSteppingRef.current[orderToStep.id]) return;
+    isSteppingRef.current[orderToStep.id] = true;
+    setSteppingMap((prev) => ({ ...prev, [orderToStep.id]: true }));
+
     try {
       const res = await fetch(`/api/orders/${orderToStep.id}/step`, {
         method: 'POST',
@@ -206,85 +225,93 @@ function OrdersContent() {
       });
       const data = await res.json();
       if (data.success && data.order) {
-        setActiveOrder(data.order);
+        const updated: SurveyOrder = data.order;
         setOrders((prev) => {
-          const list = prev.map((o) => (o.id === data.order.id ? data.order : o));
-          if (!list.find((o) => o.id === data.order.id)) {
-            list.unshift(data.order);
+          const list = prev.map((o) => (o.id === updated.id ? updated : o));
+          if (!list.find((o) => o.id === updated.id)) {
+            list.unshift(updated);
           }
-          try { localStorage.setItem('autosurvey_orders', JSON.stringify(list)); } catch {}
+          try {
+            localStorage.setItem('autosurvey_orders', JSON.stringify(list));
+          } catch {}
           return list;
         });
 
-        // Set next step time if in natural delay mode (delayMin >= 10)
-        if (data.order.status === 'running' && data.order.completedCount < data.order.totalTarget) {
-          if (data.order.delayMin && data.order.delayMin >= 10) {
-            const minSec = data.order.delayMin;
-            const maxSec = data.order.delayMax || minSec;
-            const nextSec = minSec + Math.random() * (maxSec - minSec);
-            setNextStepTime(Date.now() + nextSec * 1000);
-          } else {
-            setNextStepTime(null);
-          }
+        if (activeOrder?.id === updated.id) {
+          setActiveOrder(updated);
+        }
+
+        // Schedule next step time for THIS specific order
+        if (updated.status === 'running' && updated.completedCount < updated.totalTarget) {
+          const minSec = updated.delayMin || 1;
+          const maxSec = updated.delayMax || minSec;
+          const nextSec = minSec + Math.random() * (maxSec - minSec);
+          const nextTime = Date.now() + nextSec * 1000;
+          nextStepTimesRef.current[updated.id] = nextTime;
+          setCountdownMap((prev) => ({
+            ...prev,
+            [updated.id]: Math.round(nextSec),
+          }));
         } else {
-          setNextStepTime(null);
+          delete nextStepTimesRef.current[updated.id];
+          setCountdownMap((prev) => {
+            const next = { ...prev };
+            delete next[updated.id];
+            return next;
+          });
         }
       }
     } catch (err) {
-      console.warn('Step runner:', err);
+      console.warn(`Error stepping order ${orderToStep.id}:`, err);
+    } finally {
+      isSteppingRef.current[orderToStep.id] = false;
+      setSteppingMap((prev) => ({ ...prev, [orderToStep.id]: false }));
     }
   };
 
   const handleForceStepNow = () => {
     if (currentOrder && currentOrder.status === 'running' && currentOrder.completedCount < currentOrder.totalTarget) {
-      setNextStepTime(Date.now());
+      nextStepTimesRef.current[currentOrder.id] = Date.now();
       triggerStep(currentOrder);
     }
   };
 
-  // Countdown ticker for natural delay
+  // MULTI-ORDER CONCURRENT HEARTBEAT LOOP
+  // Runs every 1 second, independently stepping EACH running order when its individual timer hits 0
   useEffect(() => {
-    if (!nextStepTime) {
-      setCountdownSeconds(0);
-      return;
-    }
-    const updateCountdown = () => {
-      const remaining = Math.max(0, Math.ceil((nextStepTime - Date.now()) / 1000));
-      setCountdownSeconds(remaining);
-    };
-    updateCountdown();
-    const ticker = setInterval(updateCountdown, 1000);
-    return () => clearInterval(ticker);
-  }, [nextStepTime]);
+    const timer = setInterval(() => {
+      const now = Date.now();
+      const currentCountdowns: Record<string, number> = {};
 
-  // Client-driven runner heartbeat to ensure continuous progress even if serverless function sleeps
-  useEffect(() => {
-    if (!currentOrder || currentOrder.status !== 'running' || currentOrder.completedCount >= currentOrder.totalTarget) {
-      setNextStepTime(null);
-      return;
-    }
+      runningOrders.forEach((ord) => {
+        let targetTime = nextStepTimesRef.current[ord.id];
 
-    const isNaturalDelay = Boolean(currentOrder.delayMin && currentOrder.delayMin >= 10);
+        if (!targetTime) {
+          if (ord.nextScheduledAt) {
+            targetTime = new Date(ord.nextScheduledAt).getTime();
+          } else if (ord.lastSubmittedAt && ord.delayMin && ord.delayMin >= 10) {
+            targetTime = new Date(ord.lastSubmittedAt).getTime() + ord.delayMin * 1000;
+          } else {
+            // First time or immediately due
+            targetTime = now;
+          }
+          nextStepTimesRef.current[ord.id] = targetTime;
+        }
 
-    let isStepping = false;
-    const interval = setInterval(async () => {
-      if (isStepping) return;
+        const remainingSec = Math.max(0, Math.ceil((targetTime - now) / 1000));
+        currentCountdowns[ord.id] = remainingSec;
 
-      // If in natural delay mode, wait until nextStepTime is reached
-      if (isNaturalDelay && nextStepTime && Date.now() < nextStepTime) {
-        return;
-      }
+        // If time is up and not currently stepping, step this order!
+        if (remainingSec <= 0 && !isSteppingRef.current[ord.id]) {
+          triggerStep(ord);
+        }
+      });
 
-      isStepping = true;
-      try {
-        await triggerStep(currentOrder);
-      } finally {
-        isStepping = false;
-      }
-    }, isNaturalDelay ? 1000 : 1800);
+      setCountdownMap(currentCountdowns);
+    }, 1000);
 
-    return () => clearInterval(interval);
-  }, [currentOrder?.id, currentOrder?.status, currentOrder?.completedCount, currentOrder?.totalTarget, nextStepTime]);
+    return () => clearInterval(timer);
+  }, [displayOrders, runningOrders.length]);
 
   // Order action
   const handleAction = async (id: string, action: 'start' | 'pause' | 'cancel') => {
@@ -296,8 +323,20 @@ function OrdersContent() {
       });
       const data = await res.json();
       if (data.success && data.order) {
-        setActiveOrder(data.order);
-        setOrders((prev) => prev.map((o) => (o.id === data.order.id ? data.order : o)));
+        const updated = data.order;
+        if (action === 'start') {
+          nextStepTimesRef.current[id] = Date.now() + 1000;
+        } else {
+          delete nextStepTimesRef.current[id];
+        }
+        setActiveOrder((prev) => (prev?.id === updated.id ? updated : prev));
+        setOrders((prev) => {
+          const list = prev.map((o) => (o.id === updated.id ? updated : o));
+          try {
+            localStorage.setItem('autosurvey_orders', JSON.stringify(list));
+          } catch {}
+          return list;
+        });
       }
       loadOrders();
     } catch (err) {
@@ -305,10 +344,37 @@ function OrdersContent() {
     }
   };
 
+  const handleCopyWebhook = () => {
+    const origin = typeof window !== 'undefined' ? window.location.origin : 'https://auto-survey-vn.vercel.app';
+    const url = `${origin}/api/cron/orders`;
+    navigator.clipboard.writeText(url);
+    setCopiedWebhook(true);
+    setTimeout(() => setCopiedWebhook(false), 3000);
+  };
+
+  const handleTestPingCron = async () => {
+    setIsPinging(true);
+    setPingStatus(null);
+    try {
+      const res = await fetch('/api/cron/orders');
+      const data = await res.json();
+      if (data.success) {
+        setPingStatus(`Ping thành công! Đã kiểm tra ${data.activeCount} đơn đang chạy (${data.steppedCount} đơn vừa nộp, ${data.skipped?.length || 0} đơn đang chờ hẹn giờ).`);
+      } else {
+        setPingStatus(`Lỗi ping: ${data.error}`);
+      }
+    } catch (err: any) {
+      setPingStatus(`Lỗi kết nối: ${err.message}`);
+    } finally {
+      setIsPinging(false);
+      setTimeout(() => setPingStatus(null), 8000);
+    }
+  };
+
   return (
-    <div className="max-w-6xl mx-auto space-y-8 pb-16">
+    <div className="max-w-6xl mx-auto space-y-6 pb-16">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 text-xs font-semibold mb-2">
             <ClipboardList className="w-3.5 h-3.5" />
@@ -316,24 +382,142 @@ function OrdersContent() {
           </div>
           <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">Quản lý đơn hàng điền form</h1>
           <p className="text-sm text-slate-500 mt-1">
-            Theo dõi tiến trình nộp câu trả lời lên Google Forms theo thời gian thực (Real-time SSE) và xuất báo cáo khoa học.
+            Hỗ trợ chạy song song độc lập nhiều đơn hàng, duy trì tiến độ 24/7 và xuất báo cáo khoa học.
           </p>
         </div>
 
-        <button
-          onClick={handleRefresh}
-          disabled={isRefreshing}
-          className="inline-flex items-center gap-2 h-9 px-3.5 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-600 text-xs font-semibold transition-colors disabled:opacity-50 cursor-pointer shadow-2xs"
-        >
-          <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin text-blue-600' : ''}`} />
-          <span>{isRefreshing ? 'Đang cập nhật...' : 'Làm mới'}</span>
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleRefresh}
+            disabled={isRefreshing}
+            className="inline-flex items-center gap-2 h-9 px-3.5 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-600 text-xs font-semibold transition-colors disabled:opacity-50 cursor-pointer shadow-2xs"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin text-blue-600' : ''}`} />
+            <span>{isRefreshing ? 'Đang cập nhật...' : 'Làm mới'}</span>
+          </button>
+        </div>
       </div>
 
       {refreshToast && (
         <div className="p-3.5 rounded-2xl bg-blue-50 border border-blue-200 text-blue-800 text-xs font-bold flex items-center gap-2 animate-fadeIn shadow-xs">
           <CheckCircle2 className="w-4 h-4 text-blue-600 shrink-0" />
           <span>{refreshToast}</span>
+        </div>
+      )}
+
+      {/* MULTI-ORDER CONCURRENT RUNNER BANNER */}
+      {runningOrders.length > 0 && (
+        <div className="p-5 rounded-3xl bg-gradient-to-r from-slate-900 via-indigo-950 to-blue-950 text-white shadow-xl border border-indigo-800/40 space-y-3.5">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center shrink-0 shadow-lg shadow-indigo-500/25">
+                <Zap className="w-5 h-5 text-white animate-pulse" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h3 className="text-sm font-black tracking-tight text-white">
+                    Hệ thống đang chạy song song: {runningOrders.length} đơn hàng độc lập
+                  </h3>
+                  <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                    Tách biệt thời gian 100%
+                  </span>
+                </div>
+                <p className="text-xs text-indigo-200/80 mt-0.5">
+                  Mỗi đơn chạy trên đồng hồ đếm ngược riêng, không phụ thuộc nhau, đảm bảo hoàn thành đúng tiến độ cả 3 form.
+                </p>
+              </div>
+            </div>
+
+            <button
+              onClick={handleCopyWebhook}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/15 text-xs text-indigo-100 font-semibold border border-white/10 transition-all cursor-pointer shrink-0"
+              title="Copy link Webhook Cron để chạy ngầm 24/7 kể cả khi tắt máy"
+            >
+              {copiedWebhook ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+              <span>{copiedWebhook ? 'Đã copy URL 24/7' : 'URL Cron 24/7'}</span>
+            </button>
+          </div>
+
+          {/* Quick pills of running orders */}
+          <div className="flex items-center gap-2.5 flex-wrap pt-1 border-t border-white/10">
+            {runningOrders.map((ro) => {
+              const sec = countdownMap[ro.id] || 0;
+              const isStepping = steppingMap[ro.id];
+              const isSelected = currentOrder?.id === ro.id;
+              const pct = Math.round((ro.completedCount / ro.totalTarget) * 100) || 0;
+
+              return (
+                <button
+                  key={ro.id}
+                  onClick={() => setActiveOrder(ro)}
+                  className={`px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-2.5 transition-all cursor-pointer ${
+                    isSelected
+                      ? 'bg-blue-600 text-white shadow-md ring-2 ring-blue-400'
+                      : 'bg-white/10 hover:bg-white/20 text-indigo-100 border border-white/10'
+                  }`}
+                >
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping shrink-0"></span>
+                  <span className="truncate max-w-[140px] text-left">{ro.title || `Đơn #${ro.id}`}</span>
+                  <span className="text-[11px] font-mono text-indigo-300 bg-black/20 px-1.5 py-0.5 rounded">
+                    {ro.completedCount}/{ro.totalTarget} ({pct}%)
+                  </span>
+                  <span className="font-mono text-emerald-300 font-bold shrink-0">
+                    {isStepping
+                      ? '🚀 Nộp...'
+                      : sec > 0
+                      ? `⏱️ ${Math.floor(sec / 60)}:${(sec % 60).toString().padStart(2, '0')}`
+                      : '⚡ Nộp ngay'}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* 24/7 CLOUD BACKGROUND RUNNER NOTICE */}
+      <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 text-slate-700 flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center shrink-0">
+            <Globe className="w-4 h-4" />
+          </div>
+          <div>
+            <div className="font-bold text-slate-900 flex items-center gap-2">
+              <span>Chế độ chạy ngầm 24/7 khi tắt máy tính</span>
+              <span className="text-[10px] font-extrabold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800">
+                Cloud Webhook Sẵn sàng
+              </span>
+            </div>
+            <p className="text-slate-500 mt-0.5">
+              Để đơn chạy liên tục 24/7 ngay cả khi bạn tắt máy tính, bạn chỉ cần dán URL Webhook vào dịch vụ hẹn giờ miễn phí như <strong>cron-job.org</strong> (ping 1 phút/lần). Khi mở lại máy, web cũng sẽ tự động tiếp tục tiến trình ngay lập tức.
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 shrink-0">
+          <button
+            onClick={handleCopyWebhook}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white border border-slate-200 hover:bg-slate-100 text-slate-700 font-semibold shadow-2xs transition-all cursor-pointer"
+          >
+            {copiedWebhook ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+            <span>{copiedWebhook ? 'Đã copy URL' : 'Copy URL Webhook'}</span>
+          </button>
+
+          <button
+            onClick={handleTestPingCron}
+            disabled={isPinging}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold shadow-2xs transition-all disabled:opacity-50 cursor-pointer"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${isPinging ? 'animate-spin' : ''}`} />
+            <span>{isPinging ? 'Đang ping...' : 'Test Ping Cron'}</span>
+          </button>
+        </div>
+      </div>
+
+      {pingStatus && (
+        <div className="p-3 rounded-xl bg-indigo-50 border border-indigo-200 text-indigo-900 text-xs font-semibold flex items-center gap-2">
+          <Sparkles className="w-4 h-4 text-indigo-600 shrink-0" />
+          <span>{pingStatus}</span>
         </div>
       )}
 
@@ -359,6 +543,8 @@ function OrdersContent() {
               {displayOrders.map((ord) => {
                 const isSelected = currentOrder?.id === ord.id;
                 const pct = Math.round((ord.completedCount / ord.totalTarget) * 100) || 0;
+                const sec = countdownMap[ord.id];
+                const isStepping = steppingMap[ord.id];
 
                 return (
                   <div
@@ -383,7 +569,7 @@ function OrdersContent() {
                             : 'bg-slate-100 text-slate-600'
                         }`}
                       >
-                        {ord.status === 'running' ? 'Đang gửi' : ord.status === 'completed' ? 'Hoàn thành' : ord.status}
+                        {ord.status === 'running' ? 'Đang chạy' : ord.status === 'completed' ? 'Hoàn thành' : ord.status}
                       </span>
                     </div>
 
@@ -404,6 +590,23 @@ function OrdersContent() {
                         ></div>
                       </div>
                     </div>
+
+                    {/* Live Parallel Status Badge */}
+                    {ord.status === 'running' && (
+                      <div className="mt-2.5 flex items-center justify-between text-[11px] font-semibold text-blue-700 bg-blue-50/80 px-2 py-1 rounded-lg">
+                        <span className="flex items-center gap-1.5">
+                          <span className="w-2 h-2 rounded-full bg-blue-600 animate-pulse"></span>
+                          <span>{isStepping ? 'Đang gửi phản hồi...' : 'Đang chạy song song'}</span>
+                        </span>
+                        <span className="font-mono font-bold">
+                          {sec !== undefined && sec > 0
+                            ? `⏱️ ${Math.floor(sec / 60)}:${(sec % 60).toString().padStart(2, '0')}`
+                            : isStepping
+                            ? '🚀 Đang nộp'
+                            : '⚡ Chuẩn bị nộp'}
+                        </span>
+                      </div>
+                    )}
                   </div>
                 );
               })}
@@ -418,8 +621,13 @@ function OrdersContent() {
                 <div className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-xs space-y-5">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div>
-                      <div className="text-xs font-bold text-blue-600 uppercase tracking-wider">
-                        Chi tiết đơn #{currentOrder.id}
+                      <div className="text-xs font-bold text-blue-600 uppercase tracking-wider flex items-center gap-2">
+                        <span>Chi tiết đơn #{currentOrder.id}</span>
+                        {currentOrder.status === 'running' && (
+                          <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold">
+                            Chạy độc lập
+                          </span>
+                        )}
                       </div>
                       <h2 className="text-lg font-bold text-slate-900 mt-0.5">{currentOrder.title}</h2>
                       <div className="text-xs text-slate-500 mt-1 flex flex-wrap items-center gap-3">
@@ -453,7 +661,7 @@ function OrdersContent() {
                       {currentOrder.status === 'running' ? (
                         <button
                           onClick={() => handleAction(currentOrder.id, 'pause')}
-                          className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-amber-50 hover:bg-amber-100 border border-amber-200 text-amber-800 text-xs font-bold transition-all shadow-xs"
+                          className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-amber-50 hover:bg-amber-100 border border-amber-200 text-amber-800 text-xs font-bold transition-all shadow-xs cursor-pointer"
                         >
                           <Pause className="w-3.5 h-3.5" />
                           <span>Tạm dừng</span>
@@ -461,7 +669,7 @@ function OrdersContent() {
                       ) : currentOrder.status === 'paused' || currentOrder.status === 'pending' ? (
                         <button
                           onClick={() => handleAction(currentOrder.id, 'start')}
-                          className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white text-xs font-bold transition-all shadow-md shadow-blue-500/20 hover:scale-[1.02]"
+                          className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white text-xs font-bold transition-all shadow-md shadow-blue-500/20 hover:scale-[1.02] cursor-pointer"
                         >
                           <Play className="w-3.5 h-3.5" />
                           <span>Tiếp tục gửi</span>
@@ -471,7 +679,7 @@ function OrdersContent() {
                       {currentOrder.status !== 'completed' && currentOrder.status !== 'cancelled' && (
                         <button
                           onClick={() => handleAction(currentOrder.id, 'cancel')}
-                          className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl border border-rose-200 hover:bg-rose-50 text-rose-700 text-xs font-bold transition-all shadow-xs"
+                          className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl border border-rose-200 hover:bg-rose-50 text-rose-700 text-xs font-bold transition-all shadow-xs cursor-pointer"
                         >
                           <XCircle className="w-3.5 h-3.5" />
                           <span>Hủy & Hoàn tiền</span>
@@ -531,9 +739,18 @@ function OrdersContent() {
                             </span>
                           </div>
                           <div className="text-[11px] text-purple-700/90 mt-0.5">
-                            {countdownSeconds > 0 ? (
+                            {steppingMap[currentOrder.id] ? (
+                              <span className="text-indigo-800 font-bold flex items-center gap-1.5">
+                                <span className="w-2 h-2 rounded-full bg-indigo-600 animate-ping"></span>
+                                Đang nộp câu trả lời lên Google/Microsoft Forms...
+                              </span>
+                            ) : countdownMap[currentOrder.id] !== undefined && countdownMap[currentOrder.id] > 0 ? (
                               <span>
-                                Lần nộp tiếp theo sau: <strong className="font-mono text-purple-900 font-bold">{Math.floor(countdownSeconds / 60)}:{(countdownSeconds % 60).toString().padStart(2, '0')}</strong>
+                                Lần nộp tiếp theo của đơn này sau:{' '}
+                                <strong className="font-mono text-purple-900 font-bold">
+                                  {Math.floor(countdownMap[currentOrder.id] / 60)}:
+                                  {(countdownMap[currentOrder.id] % 60).toString().padStart(2, '0')}
+                                </strong>
                               </span>
                             ) : (
                               <span>Đang chuẩn bị gửi phản hồi tiếp theo...</span>
@@ -545,10 +762,11 @@ function OrdersContent() {
                       {currentOrder.status === 'running' && currentOrder.completedCount < currentOrder.totalTarget && (
                         <button
                           onClick={handleForceStepNow}
-                          className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold transition-all shadow-xs hover:scale-[1.02] shrink-0 cursor-pointer"
+                          disabled={steppingMap[currentOrder.id]}
+                          className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold transition-all shadow-xs hover:scale-[1.02] shrink-0 cursor-pointer disabled:opacity-50"
                         >
                           <Sparkles className="w-3.5 h-3.5" />
-                          <span>Nộp ngay phản hồi này</span>
+                          <span>{steppingMap[currentOrder.id] ? 'Đang gửi...' : 'Nộp ngay phản hồi này'}</span>
                         </button>
                       )}
                     </div>

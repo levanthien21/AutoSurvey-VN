@@ -36,6 +36,8 @@ export interface SurveyOrder {
   refundedAmount?: number;
   createdAt: string;
   updatedAt: string;
+  lastSubmittedAt?: string;
+  nextScheduledAt?: string;
   logs: OrderLog[];
   responsesQueue: SubmitResponsePayload[];
   fbzx?: string;
@@ -258,12 +260,20 @@ class OrderManager {
     const newLogs = [logItem, ...order.logs].slice(0, 50);
     const newStatus: OrderStatus = newCompleted >= order.totalTarget ? 'completed' : 'running';
 
+    const nowIso = new Date().toISOString();
+    const minSec = order.delayMin || 1;
+    const maxSec = order.delayMax || minSec;
+    const nextDelaySec = minSec + Math.random() * (maxSec - minSec);
+    const nextScheduledIso = new Date(Date.now() + nextDelaySec * 1000).toISOString();
+
     this.updateOrder(id, {
       completedCount: newCompleted,
       successCount: newSuccess,
       errorCount: newError,
       status: newStatus,
       logs: newLogs,
+      lastSubmittedAt: nowIso,
+      nextScheduledAt: newStatus === 'running' ? nextScheduledIso : undefined,
     });
 
     // Auto-refund for errors if completed
@@ -295,6 +305,41 @@ class OrderManager {
     return () => {
       this.listeners.get(id)?.delete(cb);
     };
+  }
+
+  getActiveRunningOrders(): SurveyOrder[] {
+    return this.getAllOrders().filter(
+      (o) => (o.status === 'running' || o.status === 'pending') && o.completedCount < o.totalTarget
+    );
+  }
+
+  async stepDueOrders(): Promise<{ stepped: SurveyOrder[]; skipped: SurveyOrder[] }> {
+    const active = this.getActiveRunningOrders();
+    const stepped: SurveyOrder[] = [];
+    const skipped: SurveyOrder[] = [];
+    const now = Date.now();
+
+    for (const order of active) {
+      const isReady =
+        !order.nextScheduledAt ||
+        new Date(order.nextScheduledAt).getTime() <= now ||
+        !order.lastSubmittedAt ||
+        now - new Date(order.lastSubmittedAt).getTime() >= (order.delayMin || 1) * 1000;
+
+      if (isReady) {
+        try {
+          const updated = await this.executeStep(order.id);
+          if (updated) stepped.push(updated);
+        } catch (e) {
+          console.error(`Error stepping order ${order.id}:`, e);
+          skipped.push(order);
+        }
+      } else {
+        skipped.push(order);
+      }
+    }
+
+    return { stepped, skipped };
   }
 
   private notify(id: string, order: SurveyOrder) {
