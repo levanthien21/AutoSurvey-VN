@@ -73,23 +73,8 @@ export async function signInWithGoogleFirebase(): Promise<{
     };
   }
 
-  // Detect mobile devices (iOS Safari, Android Chrome, mobile webviews)
-  const isMobile =
-    typeof navigator !== 'undefined' &&
-    (/iPhone|iPad|iPod|Android|Mobile|Silk|BlackBerry/i.test(navigator.userAgent) ||
-      (navigator.maxTouchPoints && navigator.maxTouchPoints > 2));
-
-  // On mobile browsers, always prefer redirect flow to prevent popup blocker blocking
-  if (isMobile) {
-    try {
-      await signInWithRedirect(auth, googleProvider);
-      return { success: false }; // Handled by redirect
-    } catch (err: any) {
-      console.warn('Mobile redirect failed, trying popup fallback:', err);
-    }
-  }
-
   try {
+    // Attempt standard popup first (works directly on both desktop & mobile touch events)
     const result = await signInWithPopup(auth, googleProvider);
     const fbUser = result.user;
     if (!fbUser.email) {
@@ -108,15 +93,20 @@ export async function signInWithGoogleFirebase(): Promise<{
   } catch (err: any) {
     console.error('Firebase Google Sign-In Error:', err);
 
-    // If popup was blocked by browser, automatically fallback to redirect flow
-    if (err.code === 'auth/popup-blocked' || err.code === 'auth/cancelled-popup-request') {
+    // If popup was blocked or closed on mobile, fallback to redirect flow
+    if (
+      err.code === 'auth/popup-blocked' ||
+      err.code === 'auth/cancelled-popup-request' ||
+      err.code === 'auth/popup-closed-by-user' ||
+      err.code === 'auth/internal-error'
+    ) {
       try {
         await signInWithRedirect(auth, googleProvider);
-        return { success: false };
+        return { success: false }; // Page will redirect to Google
       } catch (redirectErr: any) {
         return {
           success: false,
-          error: 'Trình duyệt đã chặn cửa sổ pop-up. Vui lòng mở trang bằng trình duyệt Safari hoặc Chrome.',
+          error: 'Trình duyệt đã chặn cửa sổ đăng nhập. Vui lòng thử mở bằng trình duyệt Safari hoặc Chrome.',
         };
       }
     }
@@ -131,8 +121,8 @@ export async function signInWithGoogleFirebase(): Promise<{
     ) {
       msg = 'Khóa Firebase API Key không hợp lệ hoặc chưa được kích hoạt Google Sign-In trên Firebase Console.';
       needConfig = true;
-    } else if (err.code === 'auth/popup-closed-by-user') {
-      msg = 'Cửa sổ đăng nhập Google đã bị đóng. Hãy thử lại hoặc dùng chuyển hướng trên điện thoại.';
+    } else if (err.code === 'auth/unauthorized-domain') {
+      msg = 'Tên miền auto-survey-vn.vercel.app chưa được cấp quyền (Authorized Domain) trên Firebase Console.';
     } else if (err.code === 'auth/network-request-failed') {
       msg = 'Lỗi kết nối mạng đến máy chủ Google.';
     } else if (err.message) {
@@ -174,7 +164,11 @@ export async function handleGoogleRedirectResult(): Promise<{
     return { success: false };
   } catch (err: any) {
     console.error('Redirect Result Error:', err);
-    return { success: false, error: err.message || 'Lỗi nhận diện tài khoản Google sau chuyển trang.' };
+    let msg = err.message || 'Lỗi nhận diện tài khoản Google sau chuyển trang.';
+    if (err.code === 'auth/unauthorized-domain') {
+      msg = 'Tên miền chưa được thêm vào mục Authorized Domains trên Firebase Console.';
+    }
+    return { success: false, error: msg };
   }
 }
 

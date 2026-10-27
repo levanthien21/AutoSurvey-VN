@@ -130,25 +130,36 @@ function LoginFormContent() {
 
   // Check redirect result on mount (for mobile flow)
   useEffect(() => {
-    handleGoogleRedirectResult().then(async (res) => {
-      if (res.success && res.user) {
-        await loginWithGoogle({
-          email: res.user.email,
-          name: res.user.displayName,
-          avatar: res.user.photoURL,
-          googleId: res.user.uid,
-        });
-        router.push('/');
-      }
-    });
-  }, [loginWithGoogle, router]);
+    handleGoogleRedirectResult()
+      .then(async (res) => {
+        if (res.success && res.user) {
+          setSuccessMsg('Đăng nhập Google thành công! Đang chuyển đến trang chủ...');
+          const googleRes = await loginWithGoogle({
+            email: res.user.email,
+            name: res.user.displayName,
+            avatar: res.user.photoURL,
+            googleId: res.user.uid,
+          });
+          if (googleRes.success) {
+            window.location.replace('/');
+          } else {
+            setErrorMsg(googleRes.error || 'Lỗi đăng nhập tài khoản Google.');
+          }
+        } else if (res.error) {
+          setErrorMsg(res.error);
+        }
+      })
+      .catch((err) => {
+        console.error('Redirect check error:', err);
+      });
+  }, [loginWithGoogle]);
 
   // If already logged in, redirect to home
   useEffect(() => {
     if (user) {
-      router.push('/');
+      window.location.replace('/');
     }
-  }, [user, router]);
+  }, [user]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -164,8 +175,8 @@ function LoginFormContent() {
       if (res.success) {
         setSuccessMsg('Đăng nhập thành công! Đang chuyển hướng...');
         setTimeout(() => {
-          router.push('/');
-        }, 600);
+          window.location.replace('/');
+        }, 400);
       } else {
         setErrorMsg(res.error || 'Đăng nhập không thành công');
         if (res.notRegistered) {
@@ -194,8 +205,8 @@ function LoginFormContent() {
             : 'Đăng ký tài khoản thành công! Tặng ngay 5.000 Credits.'
         );
         setTimeout(() => {
-          router.push('/');
-        }, 800);
+          window.location.replace('/');
+        }, 600);
       } else {
         setErrorMsg(res.error || 'Đăng ký không thành công');
       }
@@ -254,17 +265,19 @@ function LoginFormContent() {
     try {
       const fbRes = await signInWithGoogleFirebase();
       if (fbRes.success && fbRes.user) {
-        await loginWithGoogle({
+        setSuccessMsg('Đăng nhập Google thành công! Đang chuyển đến trang chủ...');
+        const googleRes = await loginWithGoogle({
           email: fbRes.user.email,
           name: fbRes.user.displayName,
           avatar: fbRes.user.photoURL,
           googleId: fbRes.user.uid,
         });
-        setSuccessMsg('Đăng nhập Google thành công! Đang chuyển tiếp...');
-        setTimeout(() => {
-          router.push('/');
-        }, 600);
-        return;
+        if (googleRes.success) {
+          window.location.replace('/');
+          return;
+        } else {
+          setErrorMsg(googleRes.error || 'Lỗi đăng nhập Google');
+        }
       }
 
       if (fbRes.needConfig) {
@@ -848,45 +861,29 @@ function LoginFormContent() {
 
                   {/* Remember Me & Forgot Password Row */}
                   {mode === 'login' && (
-                    <div className="space-y-2 pt-0.5">
-                      <div className="flex items-center justify-between text-xs sm:text-sm">
-                        <label className="flex items-center gap-2 text-slate-600 cursor-pointer">
-                          <input
-                            type="checkbox"
-                            checked={rememberMe}
-                            onChange={(e) => setRememberMe(e.target.checked)}
-                            className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
-                          />
-                          <span>Ghi nhớ</span>
-                        </label>
+                    <div className="flex items-center justify-between text-xs sm:text-sm pt-0.5">
+                      <label className="flex items-center gap-2 text-slate-600 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={rememberMe}
+                          onChange={(e) => setRememberMe(e.target.checked)}
+                          className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                        />
+                        <span>Ghi nhớ</span>
+                      </label>
 
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setMode('forgot');
-                            setForgotSent(false);
-                            setErrorMsg(null);
-                            setSuccessMsg(null);
-                          }}
-                          className="text-blue-600 hover:text-blue-700 font-bold hover:underline transition-colors"
-                        >
-                          Quên mật khẩu?
-                        </button>
-                      </div>
-
-                      <div className="p-2.5 rounded-xl bg-blue-50/70 border border-blue-100 text-[11px] text-blue-900 flex items-center justify-between">
-                        <span>💡 Tài khoản Quản trị viên: <strong>thienlv</strong> hoặc <strong>thienlv.bbh@gmail.com</strong></span>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setUsername('thienlv');
-                            setEmail('thienlv.bbh@gmail.com');
-                          }}
-                          className="text-blue-700 font-bold hover:underline shrink-0 ml-2 cursor-pointer"
-                        >
-                          Điền nhanh
-                        </button>
-                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setMode('forgot');
+                          setForgotSent(false);
+                          setErrorMsg(null);
+                          setSuccessMsg(null);
+                        }}
+                        className="text-blue-600 hover:text-blue-700 font-bold hover:underline transition-colors"
+                      >
+                        Quên mật khẩu?
+                      </button>
                     </div>
                   )}
 
