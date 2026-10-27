@@ -152,9 +152,13 @@ export default function CreateFormDataPage() {
         return;
       }
 
+      const token = typeof window !== 'undefined' ? localStorage.getItem('autosurvey_token') : null;
       const res = await fetch('/api/orders', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
         body: JSON.stringify({
           title: `Điền data có trước (${fileName}) - ${form.title}`,
           formUrl,

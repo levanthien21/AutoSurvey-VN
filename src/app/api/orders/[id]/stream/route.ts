@@ -4,7 +4,11 @@ import { orderManager } from '@/lib/orderStore';
 export const dynamic = 'force-dynamic';
 
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
-  const order = orderManager.getOrder(params.id);
+  let order = orderManager.getOrder(params.id);
+  if (!order) {
+    await orderManager.syncFromBlob();
+    order = orderManager.getOrder(params.id);
+  }
   if (!order) {
     return new Response('Order not found', { status: 404 });
   }

@@ -136,7 +136,7 @@ function initDb(): DatabaseSchema {
       },
     ],
     settings: {
-      adminEmails: ['levanthien21052004@gmail.com'],
+      adminEmails: ['levanthien21052004@gmail.com', 'thienlv.bbh@gmail.com'],
       pricePerResponse: {
         ratio: 250, // 250 credits = 250 VND / submission
         data: 180,
@@ -261,6 +261,7 @@ class DatabaseManager {
       await put('database.json', JSON.stringify(this.cache, null, 2), {
         access: 'public',
         addRandomSuffix: false,
+        allowOverwrite: true,
       });
     } catch (err) {
       console.warn('Save database to blob error:', err);
@@ -286,9 +287,21 @@ class DatabaseManager {
   // --- Admin Email Whitelist ---
   getAdminEmails(): string[] {
     const db = this.getDb();
+    const defaultAdmins = ['levanthien21052004@gmail.com', 'thienlv.bbh@gmail.com'];
     if (!db.settings.adminEmails || !Array.isArray(db.settings.adminEmails)) {
-      db.settings.adminEmails = ['levanthien21052004@gmail.com'];
+      db.settings.adminEmails = defaultAdmins;
       this.saveDb();
+    } else {
+      let changed = false;
+      for (const adminEmail of defaultAdmins) {
+        if (!db.settings.adminEmails.some((a) => a.toLowerCase() === adminEmail.toLowerCase())) {
+          db.settings.adminEmails.push(adminEmail);
+          changed = true;
+        }
+      }
+      if (changed) {
+        this.saveDb();
+      }
     }
     return db.settings.adminEmails;
   }

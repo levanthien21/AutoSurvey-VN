@@ -21,6 +21,8 @@ export interface OrderLog {
 export interface SurveyOrder {
   id: string;
   userId?: string;
+  userEmail?: string;
+  username?: string;
   title: string;
   formUrl: string;
   submitUrl: string;
@@ -151,6 +153,7 @@ class OrderManager {
       await put('orders.json', JSON.stringify(list), {
         access: 'public',
         addRandomSuffix: false,
+        allowOverwrite: true,
       });
     } catch (err) {
       console.warn('Save to blob error:', err);
@@ -159,6 +162,8 @@ class OrderManager {
 
   createOrder(params: {
     userId?: string;
+    userEmail?: string;
+    username?: string;
     title: string;
     formUrl: string;
     submitUrl: string;
@@ -180,6 +185,8 @@ class OrderManager {
     const order: SurveyOrder = {
       id,
       userId: params.userId,
+      userEmail: params.userEmail,
+      username: params.username,
       title: params.title || 'Đơn điền form tự động',
       formUrl: params.formUrl,
       submitUrl: params.submitUrl,
@@ -243,6 +250,7 @@ class OrderManager {
   saveOrder(order: SurveyOrder): SurveyOrder {
     this.orders.set(order.id, order);
     this.saveToDisk();
+    this.saveToBlob().catch(() => {});
     this.notify(order.id, order);
     return order;
   }
@@ -333,6 +341,9 @@ class OrderManager {
       });
       this.updateOrder(id, { refundedAmount: order.refundedAmount });
     }
+
+    // Await saving to cloud blob storage so state is immediately persistent
+    await this.saveToBlob();
 
     return this.getOrder(id);
   }

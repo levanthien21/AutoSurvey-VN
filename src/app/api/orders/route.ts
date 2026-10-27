@@ -6,14 +6,22 @@ import { db } from '@/lib/db';
 export const dynamic = 'force-dynamic';
 
 export async function GET(req: NextRequest) {
+  // Always synchronize orders from Vercel Blob persistent store first
+  await orderManager.syncFromBlob();
+
   const user = getUserFromRequest(req);
   if (user && user.role !== 'admin') {
-    // Regular users see their own orders + demo orders if any
-    const orders = orderManager.getAllOrders().filter((o) => !o.userId || o.userId === user.id);
+    // Regular users see their own orders (matching userId or userEmail) + legacy/demo orders
+    const orders = orderManager.getAllOrders().filter(
+      (o) =>
+        !o.userId ||
+        o.userId === user.id ||
+        (user.email && o.userEmail && o.userEmail.toLowerCase() === user.email.toLowerCase())
+    );
     return NextResponse.json({ success: true, orders });
   }
 
-  // Admins see all orders
+  // Admins or unauthenticated dashboard requests see all active orders
   const orders = orderManager.getAllOrders();
   return NextResponse.json({ success: true, orders });
 }
@@ -110,6 +118,8 @@ export async function POST(req: NextRequest) {
 
     const order = orderManager.createOrder({
       userId: user.id,
+      userEmail: user.email,
+      username: user.username,
       title: title || 'Đơn điền form tự động',
       formUrl,
       submitUrl,
@@ -127,6 +137,9 @@ export async function POST(req: NextRequest) {
       fbzx,
       pageHistory,
     });
+
+    // Explicitly await cloud Blob persistence so state survives container cold starts
+    await orderManager.saveToBlob();
 
     if (autoStart) {
       // Trigger background worker

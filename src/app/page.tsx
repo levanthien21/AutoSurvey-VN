@@ -140,7 +140,11 @@ export default function HomePage() {
   const estimatedMinutes = Math.max(1, Math.round((calcCount * 1.6) / 60));
 
   useEffect(() => {
-    fetch('/api/orders')
+    const token = typeof window !== 'undefined' ? localStorage.getItem('autosurvey_token') : null;
+    const headers: Record<string, string> = {};
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+
+    fetch('/api/orders', { headers })
       .then((res) => res.json())
       .then((data) => {
         if (data.success) {

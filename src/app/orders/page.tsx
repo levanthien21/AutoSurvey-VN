@@ -105,7 +105,13 @@ function OrdersContent() {
   // Fetch all orders from server and merge with localStorage
   const loadOrders = async () => {
     try {
-      const res = await fetch('/api/orders');
+      const token = typeof window !== 'undefined' ? localStorage.getItem('autosurvey_token') : null;
+      const headers: Record<string, string> = {};
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
+      const res = await fetch('/api/orders', { headers });
       const data = await res.json();
       if (data.success && Array.isArray(data.orders)) {
         setOrders((prev) => {
@@ -146,28 +152,29 @@ function OrdersContent() {
           if (result.length > 0) {
             fetch('/api/cron/orders', {
               method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
+              headers: {
+                'Content-Type': 'application/json',
+                ...(token ? { Authorization: `Bearer ${token}` } : {}),
+              },
               body: JSON.stringify({ orders: result }),
             }).catch(() => {});
           }
 
+          // Keep activeOrder synchronized with newest status, count, and logs
+          setActiveOrder((prevActive) => {
+            if (selectedId) {
+              const match = result.find((o) => o.id === selectedId);
+              if (match) return match;
+            }
+            if (prevActive) {
+              const match = result.find((o) => o.id === prevActive.id);
+              if (match) return match;
+            }
+            return result[0] || null;
+          });
+
           return result;
         });
-
-        if (selectedId) {
-          setOrders((currentOrders) => {
-            const match = currentOrders.find((o) => o.id === selectedId);
-            if (match) {
-              setActiveOrder((prevActive) => {
-                if (!prevActive || match.completedCount >= prevActive.completedCount) {
-                  return match;
-                }
-                return prevActive;
-              });
-            }
-            return currentOrders;
-          });
-        }
       }
     } catch (err) {
       console.error(err);
@@ -231,9 +238,13 @@ function OrdersContent() {
     setSteppingMap((prev) => ({ ...prev, [orderToStep.id]: true }));
 
     try {
+      const token = typeof window !== 'undefined' ? localStorage.getItem('autosurvey_token') : null;
       const res = await fetch(`/api/orders/${orderToStep.id}/step`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
         body: JSON.stringify({ order: orderToStep }),
       });
       const data = await res.json();

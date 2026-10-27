@@ -60,6 +60,7 @@ async function recordCronLog(entry: CronLogEntry) {
       await put('cron_logs.json', JSON.stringify(updated), {
         access: 'public',
         addRandomSuffix: false,
+        allowOverwrite: true,
       }).catch(() => {});
     }
   } catch (e) {

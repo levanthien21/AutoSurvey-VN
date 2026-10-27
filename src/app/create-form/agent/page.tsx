@@ -398,9 +398,13 @@ export default function CreateFormAgentPage() {
 
       const { min: finalDelayMin, max: finalDelayMax } = getComputedDelays();
 
+      const token = typeof window !== 'undefined' ? localStorage.getItem('autosurvey_token') : null;
       const res = await fetch('/api/orders', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
         body: JSON.stringify({
           title: isCustomerSpecialPreset
             ? `[VIP Preset] Khảo sát Thẻ tín dụng & Ngân hàng số Gen Z - ${currentForm.title}`

@@ -4,7 +4,11 @@ import { orderManager } from '@/lib/orderStore';
 export const dynamic = 'force-dynamic';
 
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
-  const order = orderManager.getOrder(params.id);
+  let order = orderManager.getOrder(params.id);
+  if (!order) {
+    await orderManager.syncFromBlob();
+    order = orderManager.getOrder(params.id);
+  }
   if (!order) {
     return NextResponse.json({ success: false, error: 'Không tìm thấy đơn hàng' }, { status: 404 });
   }
@@ -13,7 +17,11 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   const { action } = await req.json();
-  const order = orderManager.getOrder(params.id);
+  let order = orderManager.getOrder(params.id);
+  if (!order) {
+    await orderManager.syncFromBlob();
+    order = orderManager.getOrder(params.id);
+  }
   if (!order) {
     return NextResponse.json({ success: false, error: 'Không tìm thấy đơn hàng' }, { status: 404 });
   }
@@ -27,6 +35,8 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   } else {
     return NextResponse.json({ success: false, error: 'Hành động không hợp lệ' }, { status: 400 });
   }
+
+  await orderManager.saveToBlob();
 
   return NextResponse.json({ success: true, order: orderManager.getOrder(params.id) });
 }
