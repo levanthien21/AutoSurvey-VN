@@ -3,6 +3,8 @@ import { orderManager } from '@/lib/orderStore';
 import { getUserFromRequest } from '@/lib/auth';
 import { db } from '@/lib/db';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(req: NextRequest) {
   const user = getUserFromRequest(req);
   if (user && user.role !== 'admin') {

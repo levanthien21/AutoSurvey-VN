@@ -1,8 +1,14 @@
+import fs from 'fs';
+import path from 'path';
 import { submitGoogleFormResponse, SubmitResponsePayload, sleep } from './googleFormSubmitter';
 import { submitMicrosoftFormResponse } from './msFormSubmitter';
 import { db } from './db';
 
 export type OrderStatus = 'pending' | 'running' | 'paused' | 'completed' | 'failed' | 'cancelled';
+
+const ORDERS_DIR = path.join(process.cwd(), 'data');
+const ORDERS_FILE = path.join(ORDERS_DIR, 'orders.json');
+const TMP_ORDERS_FILE = path.join('/tmp', 'orders.json');
 
 export interface OrderLog {
   timestamp: string;
@@ -40,11 +46,73 @@ export interface SurveyOrder {
   msSchema?: Record<string, any>;
 }
 
-// In-memory global store with DB integration
+// Persistent global store with DB integration
 class OrderManager {
   private orders: Map<string, SurveyOrder> = new Map();
   private runningWorkers: Map<string, boolean> = new Map();
   private listeners: Map<string, Set<(order: SurveyOrder) => void>> = new Map();
+
+  constructor() {
+    this.loadFromDisk();
+  }
+
+  private loadFromDisk() {
+    // 1. Try reading /tmp/orders.json (created in runtime)
+    try {
+      if (fs.existsSync(TMP_ORDERS_FILE)) {
+        const raw = fs.readFileSync(TMP_ORDERS_FILE, 'utf8');
+        const list: SurveyOrder[] = JSON.parse(raw);
+        if (Array.isArray(list)) {
+          for (const ord of list) {
+            if (ord && ord.id && !this.orders.has(ord.id)) {
+              this.orders.set(ord.id, ord);
+            }
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('Error reading /tmp/orders.json:', e);
+    }
+
+    // 2. Try reading data/orders.json
+    try {
+      if (fs.existsSync(ORDERS_FILE)) {
+        const raw = fs.readFileSync(ORDERS_FILE, 'utf8');
+        const list: SurveyOrder[] = JSON.parse(raw);
+        if (Array.isArray(list)) {
+          for (const ord of list) {
+            if (ord && ord.id && !this.orders.has(ord.id)) {
+              this.orders.set(ord.id, ord);
+            }
+          }
+        }
+      }
+    } catch {}
+  }
+
+  private saveToDisk() {
+    try {
+      const list = Array.from(this.orders.values());
+      const jsonStr = JSON.stringify(list, null, 2);
+
+      // 1. Write to /tmp/orders.json (always writable on serverless)
+      try {
+        fs.writeFileSync(TMP_ORDERS_FILE, jsonStr, 'utf8');
+      } catch (err) {
+        console.warn('Error writing /tmp/orders.json:', err);
+      }
+
+      // 2. Try writing to data/orders.json
+      try {
+        if (!fs.existsSync(ORDERS_DIR)) {
+          fs.mkdirSync(ORDERS_DIR, { recursive: true });
+        }
+        fs.writeFileSync(ORDERS_FILE, jsonStr, 'utf8');
+      } catch {}
+    } catch (err) {
+      console.warn('Error saving orders to disk:', err);
+    }
+  }
 
   createOrder(params: {
     userId?: string;
@@ -96,29 +164,126 @@ class OrderManager {
     };
 
     this.orders.set(id, order);
+    this.saveToDisk();
     return order;
   }
 
   getOrder(id: string): SurveyOrder | undefined {
-    return this.orders.get(id);
+    let order = this.orders.get(id);
+    if (!order) {
+      this.loadFromDisk();
+      order = this.orders.get(id);
+    }
+    return order;
   }
 
   getAllOrders(): SurveyOrder[] {
+    this.loadFromDisk();
     return Array.from(this.orders.values()).sort(
       (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
     );
   }
 
   getOrdersByUser(userId: string): SurveyOrder[] {
-    return this.getAllOrders().filter((o) => o.userId === userId);
+    return this.getAllOrders().filter((o) => !o.userId || o.userId === userId);
   }
 
   updateOrder(id: string, patch: Partial<SurveyOrder>): SurveyOrder | undefined {
-    const order = this.orders.get(id);
+    let order = this.getOrder(id);
     if (!order) return undefined;
     Object.assign(order, patch, { updatedAt: new Date().toISOString() });
+    this.saveToDisk();
     this.notify(id, order);
     return order;
+  }
+
+  saveOrder(order: SurveyOrder): SurveyOrder {
+    this.orders.set(order.id, order);
+    this.saveToDisk();
+    this.notify(order.id, order);
+    return order;
+  }
+
+  async executeStep(id: string): Promise<SurveyOrder | undefined> {
+    const order = this.getOrder(id);
+    if (!order) return undefined;
+
+    if (order.status !== 'running' && order.status !== 'pending') {
+      return order;
+    }
+
+    if (order.completedCount >= order.totalTarget || order.responsesQueue.length === 0) {
+      this.updateOrder(id, { status: 'completed' });
+      return this.getOrder(id);
+    }
+
+    // Ensure status is marked as running
+    if (order.status !== 'running') {
+      this.updateOrder(id, { status: 'running' });
+    }
+
+    const currentPayload = order.responsesQueue[order.completedCount];
+    if (!currentPayload) {
+      this.updateOrder(id, { status: 'completed' });
+      return this.getOrder(id);
+    }
+
+    const idx = order.completedCount + 1;
+    const isMs =
+      order.platform === 'microsoft' ||
+      order.submitUrl.includes('forms.cloud.microsoft') ||
+      order.submitUrl.includes('forms.office.com');
+
+    const res = isMs
+      ? await submitMicrosoftFormResponse(
+          order.submitUrl,
+          currentPayload,
+          order.antiForgeryToken,
+          order.serverSessionId,
+          order.formUrl,
+          order.msSchema
+        )
+      : await submitGoogleFormResponse(order.submitUrl, currentPayload, order.fbzx, order.pageHistory);
+
+    const logItem: OrderLog = {
+      timestamp: new Date().toLocaleTimeString(),
+      index: idx,
+      status: res.success ? 'success' : 'error',
+      message: res.message,
+    };
+
+    const newCompleted = order.completedCount + 1;
+    const newSuccess = res.success ? order.successCount + 1 : order.successCount;
+    const newError = !res.success ? order.errorCount + 1 : order.errorCount;
+    const newLogs = [logItem, ...order.logs].slice(0, 50);
+    const newStatus: OrderStatus = newCompleted >= order.totalTarget ? 'completed' : 'running';
+
+    this.updateOrder(id, {
+      completedCount: newCompleted,
+      successCount: newSuccess,
+      errorCount: newError,
+      status: newStatus,
+      logs: newLogs,
+    });
+
+    // Auto-refund for errors if completed
+    if (newStatus === 'completed' && newError > 0 && order.userId && (order.costPerResponse || 100) > 0) {
+      const errorRefund = newError * (order.costPerResponse || 100);
+      order.refundedAmount = (order.refundedAmount || 0) + errorRefund;
+      db.updateUserCredits(order.userId, errorRefund);
+      db.createTransaction({
+        userId: order.userId,
+        username: 'system',
+        type: 'refund',
+        amount: errorRefund,
+        credits: errorRefund,
+        memo: `Tự động hoàn tiền ${newError} phản hồi lỗi ở đơn #${order.id}`,
+        status: 'completed',
+      });
+      this.updateOrder(id, { refundedAmount: order.refundedAmount });
+    }
+
+    return this.getOrder(id);
   }
 
   // Subscribe to real-time events
@@ -141,7 +306,7 @@ class OrderManager {
 
   // Start background worker
   async startWorker(id: string) {
-    const order = this.orders.get(id);
+    let order = this.getOrder(id);
     if (!order || this.runningWorkers.get(id)) return;
 
     this.runningWorkers.set(id, true);
@@ -149,56 +314,15 @@ class OrderManager {
 
     while (
       this.runningWorkers.get(id) &&
-      order.completedCount < order.totalTarget &&
-      order.responsesQueue.length > 0
+      order &&
+      order.status === 'running' &&
+      order.completedCount < order.totalTarget
     ) {
-      const currentPayload = order.responsesQueue[order.completedCount];
-      if (!currentPayload) break;
-
-      const idx = order.completedCount + 1;
-      const isMs =
-        order.platform === 'microsoft' ||
-        order.submitUrl.includes('forms.cloud.microsoft') ||
-        order.submitUrl.includes('forms.office.com');
-
-      const res = isMs
-        ? await submitMicrosoftFormResponse(
-            order.submitUrl,
-            currentPayload,
-            order.antiForgeryToken,
-            order.serverSessionId,
-            order.formUrl,
-            order.msSchema
-          )
-        : await submitGoogleFormResponse(order.submitUrl, currentPayload, order.fbzx, order.pageHistory);
-
-      const logItem: OrderLog = {
-        timestamp: new Date().toLocaleTimeString(),
-        index: idx,
-        status: res.success ? 'success' : 'error',
-        message: res.message,
-      };
-
-      order.logs.unshift(logItem);
-      if (order.logs.length > 50) order.logs.pop(); // keep last 50 logs
-
-      order.completedCount += 1;
-      if (res.success) {
-        order.successCount += 1;
-      } else {
-        order.errorCount += 1;
-      }
-
-      this.updateOrder(id, {
-        completedCount: order.completedCount,
-        successCount: order.successCount,
-        errorCount: order.errorCount,
-        logs: order.logs,
-      });
-
-      if (order.completedCount >= order.totalTarget) {
+      const updated = await this.executeStep(id);
+      if (!updated || updated.status !== 'running' || updated.completedCount >= updated.totalTarget) {
         break;
       }
+      order = updated;
 
       // Random jitter delay
       const delay =
@@ -206,25 +330,6 @@ class OrderManager {
       await sleep(delay);
     }
 
-    // Auto-refund for any failed submissions upon completion
-    if (order.errorCount > 0 && order.userId && (order.costPerResponse || 100) > 0) {
-      const errorRefund = order.errorCount * (order.costPerResponse || 100);
-      order.refundedAmount = (order.refundedAmount || 0) + errorRefund;
-      db.updateUserCredits(order.userId, errorRefund);
-      db.createTransaction({
-        userId: order.userId,
-        username: 'system',
-        type: 'refund',
-        amount: errorRefund,
-        credits: errorRefund,
-        memo: `Tự động hoàn tiền ${order.errorCount} phản hồi lỗi ở đơn #${order.id}`,
-        status: 'completed',
-      });
-    }
-
-    if (order.status === 'running' && order.completedCount >= order.totalTarget) {
-      this.updateOrder(id, { status: 'completed' });
-    }
     this.runningWorkers.set(id, false);
   }
 

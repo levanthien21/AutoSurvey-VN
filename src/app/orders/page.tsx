@@ -26,24 +26,115 @@ function OrdersContent() {
   const searchParams = useSearchParams();
   const selectedId = searchParams.get('id');
 
-  const [orders, setOrders] = useState<SurveyOrder[]>([]);
-  const [activeOrder, setActiveOrder] = useState<SurveyOrder | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [orders, setOrders] = useState<SurveyOrder[]>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const cached = localStorage.getItem('autosurvey_orders');
+        return cached ? JSON.parse(cached) : [];
+      } catch {}
+    }
+    return [];
+  });
+
+  const [activeOrder, setActiveOrder] = useState<SurveyOrder | null>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        if (selectedId) {
+          const cached = localStorage.getItem('autosurvey_orders');
+          const list: SurveyOrder[] = cached ? JSON.parse(cached) : [];
+          const match = list.find((o) => o.id === selectedId);
+          if (match) return match;
+        }
+        const activeCached = localStorage.getItem('autosurvey_active_order');
+        if (activeCached) return JSON.parse(activeCached);
+      } catch {}
+    }
+    return null;
+  });
+
+  const [loading, setLoading] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [refreshToast, setRefreshToast] = useState<string | null>(null);
+
+  const displayOrders = orders.length > 0 ? orders : (activeOrder ? [activeOrder] : []);
+  const currentOrder = activeOrder || (displayOrders.length > 0 ? displayOrders[0] : null);
+
+  // Sync active order selection when selectedId changes or orders change
+  useEffect(() => {
+    if (selectedId) {
+      const match = displayOrders.find((o) => o.id === selectedId);
+      if (match) {
+        setActiveOrder(match);
+      }
+    } else if (displayOrders.length > 0 && !activeOrder) {
+      setActiveOrder(displayOrders[0]);
+    }
+  }, [selectedId, displayOrders.length]);
+
+  // Save active order to localStorage whenever it changes
+  useEffect(() => {
+    if (activeOrder) {
+      try {
+        localStorage.setItem('autosurvey_active_order', JSON.stringify(activeOrder));
+      } catch {}
+    }
+  }, [activeOrder]);
 
   // Fetch all orders
   const loadOrders = async () => {
     try {
       const res = await fetch('/api/orders');
       const data = await res.json();
-      if (data.success) {
-        setOrders(data.orders || []);
+      if (data.success && Array.isArray(data.orders)) {
+        setOrders((prev) => {
+          const mergedMap = new Map<string, SurveyOrder>();
+          const prevMap = new Map<string, SurveyOrder>();
+          prev.forEach((o) => prevMap.set(o.id, o));
+
+          data.orders.forEach((serverOrder: SurveyOrder) => {
+            const localOrder = prevMap.get(serverOrder.id);
+            if (localOrder) {
+              if (
+                localOrder.completedCount > serverOrder.completedCount ||
+                (localOrder.logs?.length || 0) > (serverOrder.logs?.length || 0)
+              ) {
+                mergedMap.set(serverOrder.id, localOrder);
+              } else {
+                mergedMap.set(serverOrder.id, serverOrder);
+              }
+              prevMap.delete(serverOrder.id);
+            } else {
+              mergedMap.set(serverOrder.id, serverOrder);
+            }
+          });
+
+          // Keep local orders that server has not yet seen
+          prevMap.forEach((localOrder) => {
+            mergedMap.set(localOrder.id, localOrder);
+          });
+
+          const result = Array.from(mergedMap.values()).sort(
+            (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+          );
+          try {
+            localStorage.setItem('autosurvey_orders', JSON.stringify(result));
+          } catch {}
+          return result;
+        });
+
         if (selectedId) {
-          const match = data.orders.find((o: SurveyOrder) => o.id === selectedId);
-          if (match) setActiveOrder(match);
-        } else if (data.orders.length > 0 && !activeOrder) {
-          setActiveOrder(data.orders[0]);
+          setOrders((currentOrders) => {
+            const match = currentOrders.find((o) => o.id === selectedId);
+            if (match) {
+              setActiveOrder((prevActive) => {
+                if (!prevActive || match.completedCount >= prevActive.completedCount) {
+                  return match;
+                }
+                return prevActive;
+              });
+            }
+            return currentOrders;
+          });
         }
       }
     } catch (err) {
@@ -74,14 +165,21 @@ function OrdersContent() {
 
   // Connect SSE for active order
   useEffect(() => {
-    if (!activeOrder) return;
-    const sse = new EventSource(`/api/orders/${activeOrder.id}/stream`);
+    if (!currentOrder) return;
+    const sse = new EventSource(`/api/orders/${currentOrder.id}/stream`);
 
     sse.onmessage = (event) => {
       try {
         const updated: SurveyOrder = JSON.parse(event.data);
         setActiveOrder(updated);
-        setOrders((prev) => prev.map((o) => (o.id === updated.id ? updated : o)));
+        setOrders((prev) => {
+          const list = prev.map((o) => (o.id === updated.id ? updated : o));
+          if (!list.find((o) => o.id === updated.id)) {
+            list.unshift(updated);
+          }
+          try { localStorage.setItem('autosurvey_orders', JSON.stringify(list)); } catch {}
+          return list;
+        });
       } catch (err) {
         console.error(err);
       }
@@ -90,16 +188,59 @@ function OrdersContent() {
     return () => {
       sse.close();
     };
-  }, [activeOrder?.id]);
+  }, [currentOrder?.id]);
+
+  // Client-driven runner heartbeat to ensure continuous progress even if serverless function sleeps
+  useEffect(() => {
+    if (!currentOrder || currentOrder.status !== 'running' || currentOrder.completedCount >= currentOrder.totalTarget) {
+      return;
+    }
+
+    let isStepping = false;
+    const interval = setInterval(async () => {
+      if (isStepping) return;
+      isStepping = true;
+      try {
+        const res = await fetch(`/api/orders/${currentOrder.id}/step`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ order: currentOrder }),
+        });
+        const data = await res.json();
+        if (data.success && data.order) {
+          setActiveOrder(data.order);
+          setOrders((prev) => {
+            const list = prev.map((o) => (o.id === data.order.id ? data.order : o));
+            if (!list.find((o) => o.id === data.order.id)) {
+              list.unshift(data.order);
+            }
+            try { localStorage.setItem('autosurvey_orders', JSON.stringify(list)); } catch {}
+            return list;
+          });
+        }
+      } catch (err) {
+        console.warn('Step runner:', err);
+      } finally {
+        isStepping = false;
+      }
+    }, 1800);
+
+    return () => clearInterval(interval);
+  }, [currentOrder?.id, currentOrder?.status, currentOrder?.completedCount, currentOrder?.totalTarget]);
 
   // Order action
   const handleAction = async (id: string, action: 'start' | 'pause' | 'cancel') => {
     try {
-      await fetch(`/api/orders/${id}`, {
+      const res = await fetch(`/api/orders/${id}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action }),
       });
+      const data = await res.json();
+      if (data.success && data.order) {
+        setActiveOrder(data.order);
+        setOrders((prev) => prev.map((o) => (o.id === data.order.id ? data.order : o)));
+      }
       loadOrders();
     } catch (err) {
       console.error(err);
@@ -138,9 +279,9 @@ function OrdersContent() {
         </div>
       )}
 
-      {loading ? (
+      {loading && displayOrders.length === 0 ? (
         <div className="p-12 text-center text-xs text-slate-400">Đang tải danh sách đơn hàng...</div>
-      ) : orders.length === 0 ? (
+      ) : displayOrders.length === 0 ? (
         <div className="bg-white rounded-2xl border border-slate-200/80 p-12 text-center">
           <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 mx-auto mb-3">
             <Layers className="w-6 h-6" />
@@ -153,12 +294,12 @@ function OrdersContent() {
           {/* Orders List (Left Col) */}
           <div className="lg:col-span-1 space-y-3">
             <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 px-1">
-              Danh sách đơn ({orders.length})
+              Danh sách đơn ({displayOrders.length})
             </h3>
 
             <div className="space-y-2.5 max-h-[700px] overflow-y-auto pr-1">
-              {orders.map((ord) => {
-                const isSelected = activeOrder?.id === ord.id;
+              {displayOrders.map((ord) => {
+                const isSelected = currentOrder?.id === ord.id;
                 const pct = Math.round((ord.completedCount / ord.totalTarget) * 100) || 0;
 
                 return (
@@ -213,26 +354,26 @@ function OrdersContent() {
 
           {/* Active Order Details (Right Col) */}
           <div className="lg:col-span-2 space-y-5">
-            {activeOrder && (
+            {currentOrder && (
               <>
                 {/* Header Card */}
                 <div className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-xs space-y-5">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div>
                       <div className="text-xs font-bold text-blue-600 uppercase tracking-wider">
-                        Chi tiết đơn #{activeOrder.id}
+                        Chi tiết đơn #{currentOrder.id}
                       </div>
-                      <h2 className="text-lg font-bold text-slate-900 mt-0.5">{activeOrder.title}</h2>
+                      <h2 className="text-lg font-bold text-slate-900 mt-0.5">{currentOrder.title}</h2>
                       <div className="text-xs text-slate-500 mt-1 flex flex-wrap items-center gap-3">
-                        <span>Chế độ: <strong className="text-slate-800 capitalize">{activeOrder.mode}</strong></span>
+                        <span>Chế độ: <strong className="text-slate-800 capitalize">{currentOrder.mode}</strong></span>
                         <span>•</span>
-                        <span>Tạo lúc: {new Date(activeOrder.createdAt).toLocaleTimeString()}</span>
-                        {activeOrder.refundedAmount && activeOrder.refundedAmount > 0 ? (
+                        <span>Tạo lúc: {new Date(currentOrder.createdAt).toLocaleTimeString()}</span>
+                        {currentOrder.refundedAmount && currentOrder.refundedAmount > 0 ? (
                           <>
                             <span>•</span>
                             <span className="text-emerald-700 font-semibold bg-emerald-50 px-2 py-0.5 rounded-full flex items-center gap-1">
                               <RotateCcw className="w-3 h-3" />
-                              Đã hoàn lại: {activeOrder.refundedAmount.toLocaleString()} Credits
+                              Đã hoàn lại: {currentOrder.refundedAmount.toLocaleString()} Credits
                             </span>
                           </>
                         ) : null}
@@ -243,7 +384,7 @@ function OrdersContent() {
                     <div className="flex flex-wrap items-center gap-2.5">
                       {/* Excel Export Button */}
                       <a
-                        href={`/api/orders/${activeOrder.id}/export`}
+                        href={`/api/orders/${currentOrder.id}/export`}
                         download
                         className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-bold transition-all shadow-md shadow-emerald-600/20 hover:scale-[1.02]"
                       >
@@ -251,17 +392,17 @@ function OrdersContent() {
                         <span>Xuất Excel (.xlsx)</span>
                       </a>
 
-                      {activeOrder.status === 'running' ? (
+                      {currentOrder.status === 'running' ? (
                         <button
-                          onClick={() => handleAction(activeOrder.id, 'pause')}
+                          onClick={() => handleAction(currentOrder.id, 'pause')}
                           className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-amber-50 hover:bg-amber-100 border border-amber-200 text-amber-800 text-xs font-bold transition-all shadow-xs"
                         >
                           <Pause className="w-3.5 h-3.5" />
                           <span>Tạm dừng</span>
                         </button>
-                      ) : activeOrder.status === 'paused' || activeOrder.status === 'pending' ? (
+                      ) : currentOrder.status === 'paused' || currentOrder.status === 'pending' ? (
                         <button
-                          onClick={() => handleAction(activeOrder.id, 'start')}
+                          onClick={() => handleAction(currentOrder.id, 'start')}
                           className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white text-xs font-bold transition-all shadow-md shadow-blue-500/20 hover:scale-[1.02]"
                         >
                           <Play className="w-3.5 h-3.5" />
@@ -269,9 +410,9 @@ function OrdersContent() {
                         </button>
                       ) : null}
 
-                      {activeOrder.status !== 'completed' && activeOrder.status !== 'cancelled' && (
+                      {currentOrder.status !== 'completed' && currentOrder.status !== 'cancelled' && (
                         <button
-                          onClick={() => handleAction(activeOrder.id, 'cancel')}
+                          onClick={() => handleAction(currentOrder.id, 'cancel')}
                           className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl border border-rose-200 hover:bg-rose-50 text-rose-700 text-xs font-bold transition-all shadow-xs"
                         >
                           <XCircle className="w-3.5 h-3.5" />
@@ -285,15 +426,15 @@ function OrdersContent() {
                   <div className="grid grid-cols-3 gap-3 p-4 rounded-2xl bg-slate-50/80 border border-slate-100 text-center">
                     <div>
                       <div className="text-[11px] font-semibold text-slate-500">Mục tiêu</div>
-                      <div className="text-lg font-black text-slate-900 mt-0.5 font-mono">{activeOrder.totalTarget}</div>
+                      <div className="text-lg font-black text-slate-900 mt-0.5 font-mono">{currentOrder.totalTarget}</div>
                     </div>
                     <div>
                       <div className="text-[11px] font-semibold text-emerald-600">Thành công</div>
-                      <div className="text-lg font-black text-emerald-700 mt-0.5 font-mono">{activeOrder.successCount}</div>
+                      <div className="text-lg font-black text-emerald-700 mt-0.5 font-mono">{currentOrder.successCount}</div>
                     </div>
                     <div>
                       <div className="text-[11px] font-semibold text-rose-500">Lỗi / Bị chặn</div>
-                      <div className="text-lg font-black text-rose-600 mt-0.5 font-mono">{activeOrder.errorCount}</div>
+                      <div className="text-lg font-black text-rose-600 mt-0.5 font-mono">{currentOrder.errorCount}</div>
                     </div>
                   </div>
 
@@ -302,14 +443,14 @@ function OrdersContent() {
                     <div className="flex items-center justify-between text-xs font-bold text-slate-700 mb-1.5">
                       <span>Tiến độ hoàn thành</span>
                       <span className="font-extrabold text-blue-700 font-mono">
-                        {Math.round((activeOrder.completedCount / activeOrder.totalTarget) * 100) || 0}%
+                        {Math.round((currentOrder.completedCount / currentOrder.totalTarget) * 100) || 0}%
                       </span>
                     </div>
                     <div className="w-full h-3.5 rounded-full bg-slate-100 overflow-hidden p-0.5">
                       <div
                         className="h-full bg-gradient-to-r from-blue-600 via-indigo-600 to-emerald-500 rounded-full transition-all duration-300"
                         style={{
-                          width: `${Math.round((activeOrder.completedCount / activeOrder.totalTarget) * 100) || 0}%`,
+                          width: `${Math.round((currentOrder.completedCount / currentOrder.totalTarget) * 100) || 0}%`,
                         }}
                       ></div>
                     </div>
@@ -330,10 +471,10 @@ function OrdersContent() {
                   </div>
 
                   <div className="space-y-1.5 max-h-[350px] overflow-y-auto pr-1">
-                    {activeOrder.logs.length === 0 ? (
+                    {currentOrder.logs.length === 0 ? (
                       <div className="text-slate-600 py-8 text-center">Đang kết nối tín hiệu phản hồi từ máy chủ...</div>
                     ) : (
-                      activeOrder.logs.map((log, lIdx) => (
+                      currentOrder.logs.map((log, lIdx) => (
                         <div key={lIdx} className="flex items-start gap-2.5 text-[11px] hover:bg-white/5 px-2 py-0.5 rounded transition-colors">
                           <span className="text-slate-500 shrink-0 font-mono">{log.timestamp}</span>
                           <span

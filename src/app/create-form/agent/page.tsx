@@ -356,6 +356,15 @@ export default function CreateFormAgentPage() {
       const resData = await res.json();
       if (!resData.success) throw new Error(resData.error);
 
+      if (resData.order) {
+        try {
+          const cur = JSON.parse(localStorage.getItem('autosurvey_orders') || '[]');
+          const updated = [resData.order, ...cur.filter((o: any) => o.id !== resData.order.id)];
+          localStorage.setItem('autosurvey_orders', JSON.stringify(updated));
+          localStorage.setItem('autosurvey_active_order', JSON.stringify(resData.order));
+        } catch {}
+      }
+
       router.push(`/orders?id=${resData.order.id}`);
     } catch (err: any) {
       setError(err.message || 'Lỗi khi kích hoạt AI Agent');

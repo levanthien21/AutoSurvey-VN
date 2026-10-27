@@ -1,6 +1,8 @@
 import { NextRequest } from 'next/server';
 import { orderManager } from '@/lib/orderStore';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
   const order = orderManager.getOrder(params.id);
   if (!order) {
