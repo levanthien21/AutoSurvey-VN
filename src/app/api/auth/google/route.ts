@@ -32,6 +32,9 @@ export async function POST(req: NextRequest) {
 
     const cleanEmail = email.trim().toLowerCase();
 
+    // Ensure database is in sync with Vercel Blob cloud store
+    await db.syncFromBlob();
+
     // Create or retrieve Google user with automatic Admin role check
     const user = db.createGoogleUser({
       email: cleanEmail,

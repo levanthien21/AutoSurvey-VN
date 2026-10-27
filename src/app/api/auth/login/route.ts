@@ -10,6 +10,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: 'Vui lòng nhập tên đăng nhập và mật khẩu.' }, { status: 400 });
     }
 
+    // Ensure database is in sync with Vercel Blob cloud store
+    await db.syncFromBlob();
+
     const cleanInput = username.trim().toLowerCase();
     // Allow login with either username or email
     const user = db.findUserByUsername(cleanInput) || db.findUserByEmail(cleanInput);

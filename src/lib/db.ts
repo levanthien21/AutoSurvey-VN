@@ -1,6 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
+import { put } from '@vercel/blob';
 
 export interface User {
   id: string;
@@ -202,6 +203,68 @@ class DatabaseManager {
     try {
       fs.writeFileSync(DB_FILE, jsonStr, 'utf8');
     } catch {}
+    // Persist to Vercel Blob cloud store asynchronously
+    this.saveToBlob().catch(() => {});
+  }
+
+  public async syncFromBlob(): Promise<void> {
+    if (!process.env.BLOB_READ_WRITE_TOKEN) return;
+    try {
+      const res = await fetch('https://meo68oenlhu0k0ib.public.blob.vercel-storage.com/database.json', {
+        cache: 'no-store',
+      });
+      if (res.ok) {
+        const remoteDb: DatabaseSchema = await res.json();
+        if (remoteDb && Array.isArray(remoteDb.users)) {
+          if (!this.cache) {
+            this.cache = remoteDb;
+          } else {
+            // Merge users
+            const userMap = new Map<string, User>();
+            remoteDb.users.forEach((u) => {
+              if (u && u.id) userMap.set(u.id, u);
+            });
+            this.cache.users.forEach((u) => {
+              if (u && u.id) {
+                const existing = userMap.get(u.id);
+                if (
+                  !existing ||
+                  new Date(u.updatedAt || u.createdAt).getTime() >=
+                    new Date(existing.updatedAt || existing.createdAt).getTime()
+                ) {
+                  userMap.set(u.id, u);
+                }
+              }
+            });
+            this.cache.users = Array.from(userMap.values());
+            if (remoteDb.transactions) {
+              const txMap = new Map();
+              (remoteDb.transactions || []).forEach((t) => txMap.set(t.id, t));
+              (this.cache.transactions || []).forEach((t) => txMap.set(t.id, t));
+              this.cache.transactions = Array.from(txMap.values());
+            }
+          }
+          // Also save to /tmp
+          try {
+            fs.writeFileSync(TMP_FILE, JSON.stringify(this.cache, null, 2), 'utf8');
+          } catch {}
+        }
+      }
+    } catch (err) {
+      console.warn('Sync database from blob notice:', err);
+    }
+  }
+
+  public async saveToBlob(): Promise<void> {
+    if (!process.env.BLOB_READ_WRITE_TOKEN || !this.cache) return;
+    try {
+      await put('database.json', JSON.stringify(this.cache, null, 2), {
+        access: 'public',
+        addRandomSuffix: false,
+      });
+    } catch (err) {
+      console.warn('Save database to blob error:', err);
+    }
   }
 
   public upsertUser(user: User): User {

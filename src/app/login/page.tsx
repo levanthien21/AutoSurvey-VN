@@ -81,6 +81,16 @@ function LoginFormContent() {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [notRegistered, setNotRegistered] = useState(false);
+  const [isInAppBrowser, setIsInAppBrowser] = useState(false);
+  const [copiedLink, setCopiedLink] = useState(false);
+
+  useEffect(() => {
+    if (typeof navigator !== 'undefined') {
+      const ua = navigator.userAgent || '';
+      const inApp = /Zalo|FBAN|FBAV|Messenger|Instagram|TikTok|Line|Snapchat/i.test(ua);
+      setIsInAppBrowser(inApp);
+    }
+  }, []);
 
   useEffect(() => {
     if (refParam) {
@@ -148,7 +158,9 @@ function LoginFormContent() {
     setLoading(true);
 
     if (mode === 'login') {
-      const res = await login(username, password);
+      const cleanUsername = username.trim();
+      const cleanPassword = password.trim();
+      const res = await login(cleanUsername, cleanPassword);
       if (res.success) {
         setSuccessMsg('Đăng nhập thành công! Đang chuyển hướng...');
         setTimeout(() => {
@@ -166,8 +178,11 @@ function LoginFormContent() {
         setLoading(false);
         return;
       }
-      const registerEmail = email.trim() || (username.includes('@') ? username : `${username}@autosurvey.vn`);
-      const res = await register(username, registerEmail, password, refCode.trim() || undefined);
+      const cleanUsername = username.trim();
+      const cleanEmail = email.trim();
+      const cleanPassword = password.trim();
+      const registerEmail = cleanEmail || (cleanUsername.includes('@') ? cleanUsername : `${cleanUsername}@autosurvey.vn`);
+      const res = await register(cleanUsername, registerEmail, cleanPassword, refCode.trim() || undefined);
       if (res.success) {
         // Also register with Firebase Auth so Firebase password reset is enabled
         if (registerEmail.includes('@')) {
@@ -255,8 +270,8 @@ function LoginFormContent() {
       if (fbRes.needConfig) {
         // Need official Firebase Project config from user
         setShowConfigModal(true);
-      } else {
-        setErrorMsg(fbRes.error || 'Đăng nhập Google không thành công.');
+      } else if (fbRes.error) {
+        setErrorMsg(fbRes.error);
       }
     } catch (err: any) {
       console.error('Firebase Google Auth error:', err);
@@ -496,6 +511,33 @@ function LoginFormContent() {
                 </div>
               )}
 
+              {/* In-App Browser Warning (Zalo / Facebook / Messenger / TikTok) */}
+              {isInAppBrowser && (
+                <div className="mb-4 p-3.5 rounded-2xl bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-300 text-amber-950 text-xs space-y-2 animate-fadeIn text-left shadow-2xs">
+                  <div className="flex items-center gap-2 font-bold text-amber-900">
+                    <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
+                    <span>Đang mở qua ứng dụng Zalo / Facebook</span>
+                  </div>
+                  <p className="text-[11px] text-amber-800 leading-relaxed">
+                    Trình duyệt nhúng của Zalo/Facebook có thể chặn đăng nhập Google hoặc không lưu phiên. Vui lòng bấm vào dấu <strong>⋯ (3 chấm)</strong> ở góc trên bên phải và chọn <strong>&quot;Mở bằng trình duyệt&quot; (Safari hoặc Chrome)</strong> để sử dụng tốt nhất.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (typeof window !== 'undefined') {
+                        navigator.clipboard.writeText(window.location.href);
+                        setCopiedLink(true);
+                        setTimeout(() => setCopiedLink(false), 3000);
+                      }
+                    }}
+                    className="w-full py-2 px-3 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs transition-all flex items-center justify-center gap-1.5 shadow-2xs cursor-pointer"
+                  >
+                    {copiedLink ? <CheckCircle2 className="w-3.5 h-3.5" /> : <ExternalLink className="w-3.5 h-3.5" />}
+                    <span>{copiedLink ? 'Đã copy link! Hãy mở Safari/Chrome và dán vào' : 'Copy link để mở bằng Safari / Chrome'}</span>
+                  </button>
+                </div>
+              )}
+
               {/* Notifications */}
               {errorMsg && !notRegistered && (
                 <div className="mb-4 p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center gap-2 font-medium animate-fadeIn">
@@ -655,6 +697,9 @@ function LoginFormContent() {
                         <input
                           type="text"
                           required
+                          autoCapitalize="words"
+                          autoCorrect="off"
+                          spellCheck={false}
                           placeholder="Ví dụ: Nguyễn Văn A"
                           value={username}
                           onChange={(e) => setUsername(e.target.value)}
@@ -678,6 +723,9 @@ function LoginFormContent() {
                       <input
                         type={mode === 'forgot' ? 'text' : mode === 'register' ? 'email' : 'text'}
                         required
+                        autoCapitalize="none"
+                        autoCorrect="off"
+                        spellCheck={false}
                         placeholder={
                           mode === 'login'
                             ? 'Nhập tên đăng nhập hoặc Gmail'
@@ -713,6 +761,9 @@ function LoginFormContent() {
                         <input
                           type={showPassword ? 'text' : 'password'}
                           required
+                          autoCapitalize="none"
+                          autoCorrect="off"
+                          spellCheck={false}
                           placeholder="Nhập mật khẩu"
                           value={password}
                           onChange={(e) => setPassword(e.target.value)}
@@ -741,6 +792,9 @@ function LoginFormContent() {
                         <input
                           type={showConfirmPassword ? 'text' : 'password'}
                           required
+                          autoCapitalize="none"
+                          autoCorrect="off"
+                          spellCheck={false}
                           placeholder="Nhập lại mật khẩu"
                           value={confirmPassword}
                           onChange={(e) => setConfirmPassword(e.target.value)}
@@ -779,6 +833,9 @@ function LoginFormContent() {
                           <Gift className="w-5 h-5 text-amber-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
                           <input
                             type="text"
+                            autoCapitalize="characters"
+                            autoCorrect="off"
+                            spellCheck={false}
                             placeholder="Nhập mã giới thiệu (VD: ASV...)"
                             value={refCode}
                             onChange={(e) => setRefCode(e.target.value.toUpperCase())}
@@ -791,29 +848,45 @@ function LoginFormContent() {
 
                   {/* Remember Me & Forgot Password Row */}
                   {mode === 'login' && (
-                    <div className="flex items-center justify-between text-xs sm:text-sm pt-0.5">
-                      <label className="flex items-center gap-2 text-slate-600 cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={rememberMe}
-                          onChange={(e) => setRememberMe(e.target.checked)}
-                          className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
-                        />
-                        <span>Ghi nhớ</span>
-                      </label>
+                    <div className="space-y-2 pt-0.5">
+                      <div className="flex items-center justify-between text-xs sm:text-sm">
+                        <label className="flex items-center gap-2 text-slate-600 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={rememberMe}
+                            onChange={(e) => setRememberMe(e.target.checked)}
+                            className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                          />
+                          <span>Ghi nhớ</span>
+                        </label>
 
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setMode('forgot');
-                          setForgotSent(false);
-                          setErrorMsg(null);
-                          setSuccessMsg(null);
-                        }}
-                        className="text-blue-600 hover:text-blue-700 font-bold hover:underline transition-colors"
-                      >
-                        Quên mật khẩu?
-                      </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setMode('forgot');
+                            setForgotSent(false);
+                            setErrorMsg(null);
+                            setSuccessMsg(null);
+                          }}
+                          className="text-blue-600 hover:text-blue-700 font-bold hover:underline transition-colors"
+                        >
+                          Quên mật khẩu?
+                        </button>
+                      </div>
+
+                      <div className="p-2.5 rounded-xl bg-blue-50/70 border border-blue-100 text-[11px] text-blue-900 flex items-center justify-between">
+                        <span>💡 Tài khoản Quản trị viên: <strong>thienlv</strong> hoặc <strong>thienlv.bbh@gmail.com</strong></span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setUsername('thienlv');
+                            setEmail('thienlv.bbh@gmail.com');
+                          }}
+                          className="text-blue-700 font-bold hover:underline shrink-0 ml-2 cursor-pointer"
+                        >
+                          Điền nhanh
+                        </button>
+                      </div>
                     </div>
                   )}
 

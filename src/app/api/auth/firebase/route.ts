@@ -12,6 +12,9 @@ export async function POST(req: NextRequest) {
 
     const cleanEmail = email.trim().toLowerCase();
 
+    // Ensure database is in sync with Vercel Blob cloud store
+    await db.syncFromBlob();
+
     // Check if user already exists or create new
     let user = db.findUserByEmail(cleanEmail);
     if (!user) {

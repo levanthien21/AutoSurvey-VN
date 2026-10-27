@@ -18,6 +18,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: 'Mật khẩu phải có ít nhất 6 ký tự.' }, { status: 400 });
     }
 
+    // Ensure database is in sync with Vercel Blob cloud store
+    await db.syncFromBlob();
+
     const cleanUsername = username.trim().toLowerCase();
     const cleanEmail = email.trim().toLowerCase();
 
