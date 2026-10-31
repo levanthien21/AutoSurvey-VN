@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { analytics } from '@/lib/analytics';
 import { getUserFromRequest } from '@/lib/auth';
+import { db } from '@/lib/db';
 
 export async function POST(req: NextRequest) {
   try {
@@ -9,18 +10,39 @@ export async function POST(req: NextRequest) {
     const path = body.path || '/';
     const device = body.device || 'desktop';
     const referrer = body.referrer || '';
+    const ip =
+      req.headers.get('x-forwarded-for') ||
+      req.headers.get('x-real-ip') ||
+      '';
+    const ua = req.headers.get('user-agent') || '';
+
+    const authUser = getUserFromRequest(req);
+    const userId = authUser?.id || body.userId || undefined;
+    const username = authUser?.username || body.username || undefined;
+    const email = authUser?.email || body.email || undefined;
+
+    if (userId) {
+      db.touchUserActivity(userId, ip, ua);
+    }
 
     const result = analytics.recordVisit({
       visitorId,
       path,
       device,
       referrer,
+      userId,
+      username,
+      email,
+      ip,
     });
+
+    const settings = db.getSettings();
 
     return NextResponse.json({
       success: true,
       activeNow: result.activeNow,
       todayUnique: result.todayUnique,
+      announcement: settings?.announcement || null,
     });
   } catch (err: any) {
     return NextResponse.json(
@@ -41,9 +63,17 @@ export async function GET(req: NextRequest) {
     }
     const testPath = searchParams.get('path') || '/';
     const stats = analytics.simulateTestVisit(testPath);
-    return NextResponse.json({ success: true, stats, message: 'Đã giả lập 1 lượt truy cập thành công!' });
+    return NextResponse.json({
+      success: true,
+      stats,
+      message: 'Đã giả lập 1 lượt truy cập thành công!',
+    });
   }
 
   const stats = analytics.getStats();
-  return NextResponse.json({ success: true, stats });
+  return NextResponse.json({
+    success: true,
+    stats,
+    announcement: db.getSettings()?.announcement || null,
+  });
 }

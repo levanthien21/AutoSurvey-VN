@@ -1,36 +1,44 @@
 import fs from 'fs';
 import path from 'path';
 
-export interface VisitEvent {
-  id: string;
-  visitorId: string;
-  path: string;
-  device: 'desktop' | 'mobile' | 'tablet';
-  referrer?: string;
-  timestamp: string; // ISO
-  date: string; // YYYY-MM-DD in Vietnam GMT+7
-  hour: number; // 0..23 in Vietnam GMT+7
-}
-
 export interface DailySummary {
   date: string; // YYYY-MM-DD
   totalViews: number;
   uniqueVisitors: number;
   visitors: string[]; // List of visitorIds seen this day
+  loggedInUsers?: string[]; // List of userIds active this day
   hourlyViews: number[]; // Array of 24 numbers
   topPages: Record<string, number>; // path -> count
   deviceBreakdown: { desktop: number; mobile: number; tablet: number };
 }
 
+export interface RecentVisitItem {
+  id: string;
+  visitorId: string;
+  userId?: string;
+  username?: string;
+  email?: string;
+  ip?: string;
+  path: string;
+  device: string;
+  time: string;
+}
+
+export interface ActiveSessionItem {
+  visitorId: string;
+  userId?: string;
+  username?: string;
+  email?: string;
+  ip?: string;
+  path: string;
+  device: string;
+  secondsAgo: number;
+  isLoggedIn: boolean;
+}
+
 export interface AnalyticsSchema {
   dailySummaries: Record<string, DailySummary>; // date -> DailySummary
-  recentVisits: {
-    id: string;
-    visitorId: string;
-    path: string;
-    device: string;
-    time: string;
-  }[];
+  recentVisits: RecentVisitItem[];
   totalAllTimeViews: number;
   totalAllTimeUnique: number;
   allTimeVisitorIds: string[];
@@ -38,24 +46,30 @@ export interface AnalyticsSchema {
 
 export interface VisitorStats {
   todayUnique: number;
+  todayLoggedInUnique: number;
   todayViews: number;
   activeNow: number;
+  loggedInOnlineCount: number;
+  guestOnlineCount: number;
+  activeSessions: ActiveSessionItem[];
   totalAllTimeViews: number;
   totalAllTimeUnique: number;
   hourly: number[];
+  dailyHistory7d: {
+    date: string;
+    label: string;
+    views: number;
+    unique: number;
+    loggedIn: number;
+  }[];
   topPages: { path: string; count: number }[];
   deviceBreakdown: { desktop: number; mobile: number; tablet: number };
-  recentVisits: {
-    id: string;
-    visitorId: string;
-    path: string;
-    device: string;
-    time: string;
-  }[];
+  recentVisits: RecentVisitItem[];
 }
 
 const DATA_DIR = path.join(process.cwd(), 'data');
 const ANALYTICS_FILE = path.join(DATA_DIR, 'analytics.json');
+const TMP_ANALYTICS_FILE = path.join('/tmp', 'analytics.json');
 
 // Helper to get current date/hour in Vietnam (GMT+7)
 export function getVietnamDate(d = new Date()): string {
@@ -86,62 +100,66 @@ export function getVietnamTimeStr(d = new Date()): string {
   }).format(d);
 }
 
+interface ActivePing {
+  lastActive: number;
+  path: string;
+  device: string;
+  userId?: string;
+  username?: string;
+  email?: string;
+  ip?: string;
+}
+
 class AnalyticsManager {
   private cache: AnalyticsSchema | null = null;
-  // Map of visitorId -> { lastActive: number, path: string, device: string }
-  private activePings: Map<string, { lastActive: number; path: string; device: string }> = new Map();
+  private activePings: Map<string, ActivePing> = new Map();
 
   private initAnalytics(): AnalyticsSchema {
-    if (!fs.existsSync(DATA_DIR)) {
+    // 1. First check /tmp on serverless (latest runtime writes)
+    if (fs.existsSync(TMP_ANALYTICS_FILE)) {
       try {
-        fs.mkdirSync(DATA_DIR, { recursive: true });
-      } catch (e) {}
+        const raw = fs.readFileSync(TMP_ANALYTICS_FILE, 'utf8');
+        const parsed = JSON.parse(raw);
+        if (parsed && parsed.dailySummaries) return parsed;
+      } catch {}
     }
 
-    // Try reading existing file
+    // 2. Check project data/analytics.json
     if (fs.existsSync(ANALYTICS_FILE)) {
       try {
         const raw = fs.readFileSync(ANALYTICS_FILE, 'utf8');
-        return JSON.parse(raw);
+        const parsed = JSON.parse(raw);
+        if (parsed && parsed.dailySummaries) return parsed;
       } catch (err) {
         console.error('Error reading analytics.json, initializing fresh store:', err);
       }
     }
 
-    // Try reading from /tmp on serverless
-    const tmpFile = path.join('/tmp', 'analytics.json');
-    if (fs.existsSync(tmpFile)) {
+    if (!fs.existsSync(DATA_DIR)) {
       try {
-        const raw = fs.readFileSync(tmpFile, 'utf8');
-        return JSON.parse(raw);
-      } catch (e) {}
+        fs.mkdirSync(DATA_DIR, { recursive: true });
+      } catch {}
     }
 
     const today = getVietnamDate();
-    const initial: AnalyticsSchema = {
+    return {
       dailySummaries: {
         [today]: {
           date: today,
-          totalViews: 42,
-          uniqueVisitors: 28,
+          totalViews: 0,
+          uniqueVisitors: 0,
           visitors: [],
+          loggedInUsers: [],
           hourlyViews: Array(24).fill(0),
-          topPages: {
-            '/': 24,
-            '/credit': 8,
-            '/create-form/model': 6,
-            '/orders': 4,
-          },
-          deviceBreakdown: { desktop: 18, mobile: 10, tablet: 0 },
+          topPages: {},
+          deviceBreakdown: { desktop: 0, mobile: 0, tablet: 0 },
         },
       },
       recentVisits: [],
-      totalAllTimeViews: 380,
-      totalAllTimeUnique: 215,
+      totalAllTimeViews: 0,
+      totalAllTimeUnique: 0,
       allTimeVisitorIds: [],
     };
-
-    return initial;
   }
 
   private getStore(): AnalyticsSchema {
@@ -153,17 +171,15 @@ class AnalyticsManager {
 
   private saveStore() {
     if (!this.cache) return;
+    const raw = JSON.stringify(this.cache, null, 2);
+    // Write to /tmp first (always succeeds on Vercel serverless)
     try {
-      fs.writeFileSync(ANALYTICS_FILE, JSON.stringify(this.cache, null, 2), 'utf8');
-    } catch (err) {
-      // In serverless environments like Vercel, write to /tmp
-      try {
-        const tmpFile = path.join('/tmp', 'analytics.json');
-        fs.writeFileSync(tmpFile, JSON.stringify(this.cache, null, 2), 'utf8');
-      } catch (tmpErr) {
-        // In-memory cache continues serving read/write operations seamlessly
-      }
-    }
+      fs.writeFileSync(TMP_ANALYTICS_FILE, raw, 'utf8');
+    } catch {}
+    // Try writing to local data/analytics.json (for local dev)
+    try {
+      fs.writeFileSync(ANALYTICS_FILE, raw, 'utf8');
+    } catch {}
   }
 
   public recordVisit(params: {
@@ -171,6 +187,10 @@ class AnalyticsManager {
     path: string;
     device?: 'desktop' | 'mobile' | 'tablet';
     referrer?: string;
+    userId?: string;
+    username?: string;
+    email?: string;
+    ip?: string;
   }): { success: boolean; activeNow: number; todayUnique: number } {
     const store = this.getStore();
     const now = new Date();
@@ -181,12 +201,18 @@ class AnalyticsManager {
     const visitorId = params.visitorId || 'anon_' + Math.random().toString(36).substring(2, 8);
     const pathName = params.path || '/';
     const device = params.device || 'desktop';
+    const cleanIp = params.ip ? params.ip.split(',')[0].trim() : undefined;
 
     // 1. Update in-memory active pings (Active in last 5 minutes)
+    const prevPing = this.activePings.get(visitorId);
     this.activePings.set(visitorId, {
       lastActive: Date.now(),
       path: pathName,
       device,
+      userId: params.userId || prevPing?.userId,
+      username: params.username || prevPing?.username,
+      email: params.email || prevPing?.email,
+      ip: cleanIp || prevPing?.ip,
     });
 
     // 2. Ensure daily summary exists for today
@@ -196,6 +222,7 @@ class AnalyticsManager {
         totalViews: 0,
         uniqueVisitors: 0,
         visitors: [],
+        loggedInUsers: [],
         hourlyViews: Array(24).fill(0),
         topPages: {},
         deviceBreakdown: { desktop: 0, mobile: 0, tablet: 0 },
@@ -210,6 +237,12 @@ class AnalyticsManager {
     if (!day.visitors.includes(visitorId)) {
       day.visitors.push(visitorId);
       day.uniqueVisitors = day.visitors.length;
+    }
+
+    // Track logged-in unique customer today
+    if (!day.loggedInUsers) day.loggedInUsers = [];
+    if (params.userId && !day.loggedInUsers.includes(params.userId)) {
+      day.loggedInUsers.push(params.userId);
     }
 
     // Check unique visitor all time
@@ -232,41 +265,66 @@ class AnalyticsManager {
     if (!day.deviceBreakdown) day.deviceBreakdown = { desktop: 0, mobile: 0, tablet: 0 };
     day.deviceBreakdown[device] = (day.deviceBreakdown[device] || 0) + 1;
 
-    // Recent visits log (keep top 50)
+    // Recent visits log (keep top 60)
     if (!store.recentVisits) store.recentVisits = [];
+    const maskedVid =
+      visitorId.length > 8 ? visitorId.substring(0, 4) + '***' + visitorId.slice(-4) : visitorId;
     store.recentVisits.unshift({
       id: 'vst_' + Date.now().toString(36) + Math.random().toString(36).substring(2, 5),
-      visitorId: visitorId.length > 8 ? visitorId.substring(0, 4) + '***' + visitorId.slice(-4) : visitorId,
+      visitorId: maskedVid,
+      userId: params.userId,
+      username: params.username,
+      email: params.email,
+      ip: cleanIp,
       path: pathName,
       device,
       time: timeStr,
     });
 
-    if (store.recentVisits.length > 50) {
-      store.recentVisits = store.recentVisits.slice(0, 50);
+    if (store.recentVisits.length > 60) {
+      store.recentVisits = store.recentVisits.slice(0, 60);
     }
 
     this.saveStore();
 
-    const activeNow = this.getActiveNowCount();
+    const activeSessions = this.getActiveSessions();
     return {
       success: true,
-      activeNow,
+      activeNow: Math.max(1, activeSessions.length),
       todayUnique: day.uniqueVisitors,
     };
   }
 
-  public getActiveNowCount(): number {
-    const cutoff = Date.now() - 5 * 60 * 1000; // 5 minutes window
-    let count = 0;
+  public getActiveSessions(): ActiveSessionItem[] {
+    const now = Date.now();
+    const cutoff = now - 5 * 60 * 1000; // 5 minutes window
+    const sessions: ActiveSessionItem[] = [];
+
     this.activePings.forEach((val, key) => {
       if (val.lastActive >= cutoff) {
-        count++;
+        const maskedVid = key.length > 8 ? key.substring(0, 4) + '***' + key.slice(-4) : key;
+        sessions.push({
+          visitorId: maskedVid,
+          userId: val.userId,
+          username: val.username,
+          email: val.email,
+          ip: val.ip,
+          path: val.path,
+          device: val.device,
+          secondsAgo: Math.max(0, Math.round((now - val.lastActive) / 1000)),
+          isLoggedIn: Boolean(val.userId || val.username),
+        });
       } else {
         this.activePings.delete(key);
       }
     });
-    return Math.max(1, count); // At least 1 (the current viewing admin)
+
+    sessions.sort((a, b) => a.secondsAgo - b.secondsAgo);
+    return sessions;
+  }
+
+  public getActiveNowCount(): number {
+    return Math.max(1, this.getActiveSessions().length);
   }
 
   public getStats(): VisitorStats {
@@ -277,39 +335,74 @@ class AnalyticsManager {
       totalViews: 0,
       uniqueVisitors: 0,
       visitors: [],
+      loggedInUsers: [],
       hourlyViews: Array(24).fill(0),
       topPages: {},
       deviceBreakdown: { desktop: 0, mobile: 0, tablet: 0 },
     };
 
-    // Format top pages as sorted array
     const topPagesArray: { path: string; count: number }[] = Object.entries(day.topPages || {})
       .map(([pagePath, count]) => ({ path: pagePath, count: Number(count) || 0 }))
       .sort((a, b) => b.count - a.count)
-      .slice(0, 6);
+      .slice(0, 8);
 
-    const activeNow = this.getActiveNowCount();
+    const activeSessions = this.getActiveSessions();
+    const loggedInOnlineCount = activeSessions.filter((s) => s.isLoggedIn).length;
+    const guestOnlineCount = Math.max(0, activeSessions.length - loggedInOnlineCount);
+    const activeNow = Math.max(1, activeSessions.length);
+
+    // Build 7-day daily history
+    const dailyHistory7d: VisitorStats['dailyHistory7d'] = [];
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(Date.now() - i * 86400000);
+      const dateStr = getVietnamDate(d);
+      const parts = dateStr.split('-');
+      const label = parts.length === 3 ? `${parts[2]}/${parts[1]}` : dateStr;
+      const summary = store.dailySummaries[dateStr];
+      dailyHistory7d.push({
+        date: dateStr,
+        label,
+        views: summary?.totalViews || 0,
+        unique: summary?.uniqueVisitors || 0,
+        loggedIn: summary?.loggedInUsers?.length || 0,
+      });
+    }
 
     return {
       todayUnique: day.uniqueVisitors,
+      todayLoggedInUnique: day.loggedInUsers?.length || 0,
       todayViews: day.totalViews,
       activeNow,
+      loggedInOnlineCount,
+      guestOnlineCount,
+      activeSessions: activeSessions.slice(0, 40),
       totalAllTimeViews: Math.max(store.totalAllTimeViews, day.totalViews),
       totalAllTimeUnique: Math.max(store.totalAllTimeUnique, day.uniqueVisitors),
       hourly: day.hourlyViews || Array(24).fill(0),
+      dailyHistory7d,
       topPages: topPagesArray,
       deviceBreakdown: day.deviceBreakdown || { desktop: 0, mobile: 0, tablet: 0 },
-      recentVisits: (store.recentVisits || []).slice(0, 15),
+      recentVisits: (store.recentVisits || []).slice(0, 25),
     };
   }
 
-  public simulateTestVisit(path: string = '/'): VisitorStats {
+  public simulateTestVisit(pathName: string = '/'): VisitorStats {
     const randomId = 'test_' + Math.random().toString(36).substring(2, 9);
     const devices: ('desktop' | 'mobile' | 'tablet')[] = ['desktop', 'mobile', 'tablet'];
     const device = devices[Math.floor(Math.random() * devices.length)];
-    this.recordVisit({ visitorId: randomId, path, device });
+    this.recordVisit({ visitorId: randomId, path: pathName, device });
     return this.getStats();
   }
 }
 
+const globalForAnalytics = global as unknown as { analyticsManager?: AnalyticsManager };
 export const analytics = new AnalyticsManager();
+if (globalForAnalytics.analyticsManager) {
+  if ((globalForAnalytics.analyticsManager as any).cache) {
+    (analytics as any).cache = (globalForAnalytics.analyticsManager as any).cache;
+  }
+  if ((globalForAnalytics.analyticsManager as any).activePings) {
+    (analytics as any).activePings = (globalForAnalytics.analyticsManager as any).activePings;
+  }
+}
+globalForAnalytics.analyticsManager = analytics;

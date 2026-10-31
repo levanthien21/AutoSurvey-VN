@@ -10,6 +10,8 @@ export interface User {
   passwordHash: string;
   salt: string;
   role: 'user' | 'admin';
+  status?: 'active' | 'vip' | 'banned';
+  authProvider?: 'local' | 'google' | 'firebase';
   credits: number;
   referralCode?: string;
   referredBy?: string; // ID of the user who referred them
@@ -17,10 +19,46 @@ export interface User {
   referralCount?: number; // Number of referred friends
   googleId?: string;
   avatar?: string;
+  loginCount?: number;
+  lastLoginAt?: string;
+  lastActiveAt?: string;
+  lastLoginIp?: string;
+  lastLoginDevice?: string;
+  note?: string; // Internal CRM note by Admin
   resetOtp?: string;
   resetOtpExpiry?: string;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface LoginEvent {
+  id: string;
+  userId: string;
+  username: string;
+  email: string;
+  role: 'user' | 'admin';
+  action: 'login_password' | 'login_google' | 'login_firebase' | 'register';
+  ip: string;
+  device: string;
+  timestamp: string;
+}
+
+export interface AdminAuditLog {
+  id: string;
+  adminId: string;
+  adminUsername: string;
+  action: string;
+  target?: string;
+  details: string;
+  timestamp: string;
+}
+
+export interface SystemAnnouncement {
+  enabled: boolean;
+  text: string;
+  type: 'info' | 'promo' | 'warning';
+  linkText?: string;
+  linkUrl?: string;
 }
 
 export interface ReferralRecord {
@@ -62,6 +100,8 @@ export interface DatabaseSchema {
   transactions: Transaction[];
   coupons: Coupon[];
   referrals?: ReferralRecord[];
+  loginHistory?: LoginEvent[];
+  auditLogs?: AdminAuditLog[];
   settings: {
     adminEmails: string[];
     pricePerResponse: {
@@ -78,7 +118,38 @@ export interface DatabaseSchema {
     };
     defaultDelayMin: number;
     defaultDelayMax: number;
+    welcomeCredits?: number;
+    referralBonusCredits?: number;
+    announcement?: SystemAnnouncement;
+    maintenanceMode?: boolean;
   };
+}
+
+export function parseDeviceFromUA(ua?: string): string {
+  if (!ua) return '💻 Trình duyệt Web';
+  const low = ua.toLowerCase();
+  const isZalo = low.includes('zalo');
+  const isFb = low.includes('fban') || low.includes('fbav') || low.includes('messenger');
+  const isIphone = low.includes('iphone') || low.includes('ipad');
+  const isAndroid = low.includes('android');
+  const isMac = low.includes('macintosh') || low.includes('mac os');
+  const isWin = low.includes('windows');
+
+  let browser = 'Web';
+  if (isZalo) browser = 'Zalo App';
+  else if (isFb) browser = 'Facebook App';
+  else if (low.includes('edg/')) browser = 'Edge';
+  else if (low.includes('coccoc')) browser = 'Cốc Cốc';
+  else if (low.includes('chrome') && !low.includes('edg/')) browser = 'Chrome';
+  else if (low.includes('safari') && !low.includes('chrome')) browser = 'Safari';
+  else if (low.includes('firefox')) browser = 'Firefox';
+
+  if (isIphone) return `📱 iPhone/iOS (${browser})`;
+  if (isAndroid) return `📱 Android (${browser})`;
+  if (low.includes('mobile')) return `📱 Điện thoại (${browser})`;
+  if (isWin) return `💻 Windows PC (${browser})`;
+  if (isMac) return `💻 MacOS (${browser})`;
+  return `💻 Desktop (${browser})`;
 }
 
 const DB_DIR = path.join(process.cwd(), 'data');
@@ -172,6 +243,7 @@ export function verifyPassword(password: string, hash: string, salt: string): bo
 // Database helper operations
 class DatabaseManager {
   private cache: DatabaseSchema | null = null;
+  private lastBlobSyncAt: number = 0;
 
   private getDb(): DatabaseSchema {
     if (!this.cache) {
@@ -186,6 +258,21 @@ class DatabaseManager {
       for (const dc of defaultCoupons) {
         if (!this.cache.coupons.some((c) => c.code.toUpperCase() === dc.code)) {
           this.cache.coupons.push(dc);
+        }
+      }
+      if (!this.cache.loginHistory) this.cache.loginHistory = [];
+      if (!this.cache.auditLogs) this.cache.auditLogs = [];
+      if (this.cache.settings) {
+        if (this.cache.settings.welcomeCredits === undefined) this.cache.settings.welcomeCredits = 5000;
+        if (this.cache.settings.referralBonusCredits === undefined) this.cache.settings.referralBonusCredits = 5000;
+        if (!this.cache.settings.announcement) {
+          this.cache.settings.announcement = {
+            enabled: false,
+            text: 'Chào mừng mùa NCKH! Tặng ngay 5.000 Credits trải nghiệm cho tài khoản đăng ký mới.',
+            type: 'promo',
+            linkText: 'Nạp ngay',
+            linkUrl: '/credit',
+          };
         }
       }
     }
@@ -207,14 +294,20 @@ class DatabaseManager {
     this.saveToBlob().catch(() => {});
   }
 
-  public async syncFromBlob(): Promise<void> {
+  public async syncFromBlob(force = false): Promise<void> {
     if (!process.env.BLOB_READ_WRITE_TOKEN) return;
+    const now = Date.now();
+    if (!force && now - this.lastBlobSyncAt < 45000) return;
+    this.lastBlobSyncAt = now;
+
     try {
       const res = await fetch('https://meo68oenlhu0k0ib.public.blob.vercel-storage.com/database.json', {
         cache: 'no-store',
       });
       if (res.ok) {
-        const remoteDb: DatabaseSchema = await res.json();
+        const text = await res.text();
+        if (!text || !text.trim().startsWith('{')) return;
+        const remoteDb: DatabaseSchema = JSON.parse(text);
         if (remoteDb && Array.isArray(remoteDb.users)) {
           if (!this.cache) {
             this.cache = remoteDb;
@@ -237,11 +330,30 @@ class DatabaseManager {
               }
             });
             this.cache.users = Array.from(userMap.values());
+
             if (remoteDb.transactions) {
               const txMap = new Map();
               (remoteDb.transactions || []).forEach((t) => txMap.set(t.id, t));
               (this.cache.transactions || []).forEach((t) => txMap.set(t.id, t));
-              this.cache.transactions = Array.from(txMap.values());
+              this.cache.transactions = Array.from(txMap.values()).sort(
+                (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+              );
+            }
+            if (remoteDb.loginHistory) {
+              const lhMap = new Map();
+              (remoteDb.loginHistory || []).forEach((l) => lhMap.set(l.id, l));
+              (this.cache.loginHistory || []).forEach((l) => lhMap.set(l.id, l));
+              this.cache.loginHistory = Array.from(lhMap.values())
+                .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+                .slice(0, 300);
+            }
+            if (remoteDb.auditLogs) {
+              const alMap = new Map();
+              (remoteDb.auditLogs || []).forEach((l) => alMap.set(l.id, l));
+              (this.cache.auditLogs || []).forEach((l) => alMap.set(l.id, l));
+              this.cache.auditLogs = Array.from(alMap.values())
+                .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+                .slice(0, 200);
             }
           }
           // Also save to /tmp
@@ -395,7 +507,8 @@ class DatabaseManager {
     const isFirstUser = db.users.length === 0;
     const isWhitelistedAdmin = this.isAdminEmail(email);
     const finalRole: 'user' | 'admin' = role === 'admin' || isWhitelistedAdmin || isFirstUser ? 'admin' : 'user';
-    const initialCredits = finalRole === 'admin' ? 999999999 : 5000;
+    const welcomeCredits = db.settings?.welcomeCredits ?? 5000;
+    const initialCredits = finalRole === 'admin' ? 999999999 : welcomeCredits;
 
     const user: User = {
       id: 'usr_' + crypto.randomBytes(6).toString('hex'),
@@ -404,7 +517,10 @@ class DatabaseManager {
       passwordHash,
       salt,
       role: finalRole,
+      status: 'active',
+      authProvider: 'local',
       credits: initialCredits,
+      loginCount: 0,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
@@ -426,6 +542,9 @@ class DatabaseManager {
       }
       if (params.avatar && !existing.avatar) {
         existing.avatar = params.avatar;
+      }
+      if (!existing.authProvider) {
+        existing.authProvider = 'google';
       }
       this.checkAndPromoteUser(existing);
       this.saveDb();
@@ -455,7 +574,8 @@ class DatabaseManager {
     const isFirstUser = db.users.length === 0;
     const isWhitelistedAdmin = this.isAdminEmail(cleanEmail);
     const finalRole: 'user' | 'admin' = isWhitelistedAdmin || isFirstUser ? 'admin' : 'user';
-    const initialCredits = finalRole === 'admin' ? 999999999 : 5000;
+    const welcomeCredits = db.settings?.welcomeCredits ?? 5000;
+    const initialCredits = finalRole === 'admin' ? 999999999 : welcomeCredits;
 
     const user: User = {
       id: 'usr_' + crypto.randomBytes(6).toString('hex'),
@@ -464,9 +584,12 @@ class DatabaseManager {
       passwordHash,
       salt,
       role: finalRole,
+      status: 'active',
+      authProvider: 'google',
       credits: initialCredits,
       googleId: params.googleId,
       avatar: params.avatar,
+      loginCount: 0,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
@@ -597,6 +720,20 @@ class DatabaseManager {
     return tx;
   }
 
+  rejectTransaction(txId: string, reason?: string): Transaction | undefined {
+    const db = this.getDb();
+    const tx = db.transactions.find((t) => t.id === txId);
+    if (!tx || tx.status !== 'pending') return undefined;
+
+    tx.status = 'rejected';
+    tx.approvedAt = new Date().toISOString();
+    if (reason && reason.trim()) {
+      tx.memo = `${tx.memo} [Từ chối: ${reason.trim()}]`;
+    }
+    this.saveDb();
+    return tx;
+  }
+
   getUserTransactions(userId: string): Transaction[] {
     const db = this.getDb();
     return db.transactions.filter((t) => t.userId === userId);
@@ -644,6 +781,39 @@ class DatabaseManager {
 
   getCoupons(): Coupon[] {
     return this.getDb().coupons;
+  }
+
+  createCoupon(params: { code: string; creditBonus: number; maxUses: number; expiresAt: string }): Coupon {
+    const db = this.getDb();
+    const cleanCode = params.code.trim().toUpperCase();
+    const existing = db.coupons.find((c) => c.code.toUpperCase() === cleanCode);
+    if (existing) {
+      existing.creditBonus = params.creditBonus;
+      existing.maxUses = params.maxUses;
+      existing.expiresAt = params.expiresAt;
+      this.saveDb();
+      return existing;
+    }
+    const coupon: Coupon = {
+      code: cleanCode,
+      creditBonus: params.creditBonus,
+      maxUses: params.maxUses,
+      usedCount: 0,
+      expiresAt: params.expiresAt,
+    };
+    db.coupons.unshift(coupon);
+    this.saveDb();
+    return coupon;
+  }
+
+  deleteCoupon(code: string): boolean {
+    const db = this.getDb();
+    const cleanCode = code.trim().toUpperCase();
+    const idx = db.coupons.findIndex((c) => c.code.toUpperCase() === cleanCode);
+    if (idx === -1) return false;
+    db.coupons.splice(idx, 1);
+    this.saveDb();
+    return true;
   }
 
   // --- Settings ---
@@ -797,6 +967,261 @@ class DatabaseManager {
     const db = this.getDb();
     return db.referrals || [];
   }
+
+  // --- Login History, User Activity & Security Audit Logs ---
+  recordLoginEvent(
+    user: User,
+    params: { action: LoginEvent['action']; ip?: string; userAgent?: string }
+  ): LoginEvent {
+    const db = this.getDb();
+    if (!db.loginHistory) db.loginHistory = [];
+
+    const now = new Date().toISOString();
+    const cleanIp = (params.ip || '127.0.0.1').split(',')[0].trim();
+    const device = parseDeviceFromUA(params.userAgent);
+
+    const target = db.users.find((u) => u.id === user.id) || user;
+    target.loginCount = (target.loginCount || 0) + 1;
+    target.lastLoginAt = now;
+    target.lastActiveAt = now;
+    target.lastLoginIp = cleanIp;
+    target.lastLoginDevice = device;
+    target.updatedAt = now;
+
+    const evt: LoginEvent = {
+      id: 'lgn_' + crypto.randomBytes(6).toString('hex'),
+      userId: target.id,
+      username: target.username,
+      email: target.email,
+      role: target.role,
+      action: params.action,
+      ip: cleanIp,
+      device,
+      timestamp: now,
+    };
+
+    db.loginHistory.unshift(evt);
+    if (db.loginHistory.length > 400) {
+      db.loginHistory = db.loginHistory.slice(0, 400);
+    }
+
+    this.saveDb();
+    return evt;
+  }
+
+  touchUserActivity(userId: string, ip?: string, ua?: string): void {
+    const db = this.getDb();
+    const user = db.users.find((u) => u.id === userId);
+    if (!user) return;
+
+    const nowMs = Date.now();
+    const lastMs = user.lastActiveAt ? new Date(user.lastActiveAt).getTime() : 0;
+    // Throttle disk writes to at most once every 60 seconds per user
+    if (nowMs - lastMs < 60_000) return;
+
+    user.lastActiveAt = new Date(nowMs).toISOString();
+    if (ip) user.lastLoginIp = ip.split(',')[0].trim();
+    if (ua) user.lastLoginDevice = parseDeviceFromUA(ua);
+    this.saveDb();
+  }
+
+  getLoginHistory(): LoginEvent[] {
+    const db = this.getDb();
+    return db.loginHistory || [];
+  }
+
+  recordAuditLog(params: Omit<AdminAuditLog, 'id' | 'timestamp'>): AdminAuditLog {
+    const db = this.getDb();
+    if (!db.auditLogs) db.auditLogs = [];
+
+    const entry: AdminAuditLog = {
+      id: 'aud_' + crypto.randomBytes(6).toString('hex'),
+      adminId: params.adminId,
+      adminUsername: params.adminUsername,
+      action: params.action,
+      target: params.target,
+      details: params.details,
+      timestamp: new Date().toISOString(),
+    };
+
+    db.auditLogs.unshift(entry);
+    if (db.auditLogs.length > 300) {
+      db.auditLogs = db.auditLogs.slice(0, 300);
+    }
+
+    this.saveDb();
+    return entry;
+  }
+
+  getAuditLogs(): AdminAuditLog[] {
+    const db = this.getDb();
+    return db.auditLogs || [];
+  }
+
+  // --- Supreme Admin CRM Methods ---
+  adminCreateUser(params: {
+    username: string;
+    email: string;
+    password: string;
+    role: 'user' | 'admin';
+    status?: 'active' | 'vip';
+    initialCredits: number;
+    note?: string;
+  }): User {
+    const db = this.getDb();
+    const cleanEmail = params.email.trim().toLowerCase();
+    const cleanUsername = params.username.trim();
+    const salt = crypto.randomBytes(16).toString('hex');
+    const passwordHash = hashPassword(params.password, salt);
+
+    const isWhitelistedAdmin = this.isAdminEmail(cleanEmail);
+    const finalRole: 'user' | 'admin' = params.role === 'admin' || isWhitelistedAdmin ? 'admin' : 'user';
+    const credits = finalRole === 'admin' ? 999999999 : Math.max(0, Number(params.initialCredits) || 0);
+
+    const user: User = {
+      id: 'usr_' + crypto.randomBytes(6).toString('hex'),
+      username: cleanUsername,
+      email: cleanEmail,
+      passwordHash,
+      salt,
+      role: finalRole,
+      status: params.status || 'active',
+      authProvider: 'local',
+      credits,
+      loginCount: 0,
+      note: params.note?.trim() || undefined,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    db.users.unshift(user);
+
+    if (credits > 0 && finalRole !== 'admin') {
+      db.transactions.unshift({
+        id: 'tx_' + crypto.randomBytes(6).toString('hex'),
+        userId: user.id,
+        username: user.username,
+        type: 'bonus',
+        amount: 0,
+        credits,
+        memo: 'Admin khởi tạo tài khoản và cấp số dư ban đầu',
+        status: 'completed',
+        createdAt: new Date().toISOString(),
+      });
+    }
+
+    this.saveDb();
+    return user;
+  }
+
+  adminUpdateUser(
+    userId: string,
+    patch: {
+      role?: 'user' | 'admin';
+      status?: 'active' | 'vip' | 'banned';
+      note?: string;
+      newPassword?: string;
+    }
+  ): User | undefined {
+    const db = this.getDb();
+    const user = db.users.find((u) => u.id === userId);
+    if (!user) return undefined;
+
+    if (patch.role) {
+      // Prevent demoting whitelisted master admin emails accidentally
+      if (patch.role === 'user' && this.isAdminEmail(user.email)) {
+        user.role = 'admin';
+      } else {
+        user.role = patch.role;
+      }
+      if (user.role === 'admin') {
+        user.credits = 999999999;
+      } else if (user.credits >= 999999999) {
+        user.credits = db.settings?.welcomeCredits ?? 5000;
+      }
+    }
+
+    if (patch.status) {
+      // Never ban whitelisted admin emails
+      if (patch.status === 'banned' && this.isAdminEmail(user.email)) {
+        user.status = 'active';
+      } else {
+        user.status = patch.status;
+      }
+    }
+
+    if (typeof patch.note === 'string') {
+      user.note = patch.note.trim();
+    }
+
+    if (patch.newPassword && patch.newPassword.trim().length >= 4) {
+      const salt = crypto.randomBytes(16).toString('hex');
+      user.passwordHash = hashPassword(patch.newPassword.trim(), salt);
+      user.salt = salt;
+    }
+
+    user.updatedAt = new Date().toISOString();
+    this.saveDb();
+    return user;
+  }
+
+  adminDeleteUser(userId: string): boolean {
+    const db = this.getDb();
+    const idx = db.users.findIndex((u) => u.id === userId);
+    if (idx === -1) return false;
+    // Never delete whitelisted admin account
+    if (this.isAdminEmail(db.users[idx].email)) return false;
+    db.users.splice(idx, 1);
+    this.saveDb();
+    return true;
+  }
+
+  adminBulkGiftCredits(params: {
+    target: 'all' | 'vip' | 'active7d';
+    credits: number;
+    memo: string;
+  }): number {
+    const db = this.getDb();
+    const amount = Math.round(Number(params.credits));
+    if (!amount || amount <= 0) return 0;
+
+    const sevenDaysAgo = Date.now() - 7 * 86400000;
+    let count = 0;
+
+    for (const u of db.users) {
+      if (u.role === 'admin' || u.status === 'banned') continue;
+      if (params.target === 'vip' && u.status !== 'vip') continue;
+      if (params.target === 'active7d') {
+        const lastTs = u.lastActiveAt || u.lastLoginAt || u.createdAt;
+        if (!lastTs || new Date(lastTs).getTime() < sevenDaysAgo) continue;
+      }
+
+      u.credits = Math.max(0, (u.credits || 0) + amount);
+      u.updatedAt = new Date().toISOString();
+      db.transactions.unshift({
+        id: 'tx_' + crypto.randomBytes(6).toString('hex'),
+        userId: u.id,
+        username: u.username,
+        type: 'bonus',
+        amount: 0,
+        credits: amount,
+        memo: params.memo || `Quà tặng hệ thống (+${amount.toLocaleString()} Credits)`,
+        status: 'completed',
+        createdAt: new Date().toISOString(),
+      });
+      count++;
+    }
+
+    if (count > 0) {
+      this.saveDb();
+    }
+    return count;
+  }
 }
 
+const globalForDb = global as unknown as { dbManager?: DatabaseManager };
 export const db = new DatabaseManager();
+if (globalForDb.dbManager && (globalForDb.dbManager as any).data) {
+  (db as any).data = (globalForDb.dbManager as any).data;
+}
+globalForDb.dbManager = db;

@@ -35,12 +35,32 @@ export async function POST(req: NextRequest) {
     // Ensure database is in sync with Vercel Blob cloud store
     await db.syncFromBlob();
 
+    const existedBefore = Boolean(db.findUserByEmail(cleanEmail));
+
     // Create or retrieve Google user with automatic Admin role check
     const user = db.createGoogleUser({
       email: cleanEmail,
       name,
       avatar,
       googleId,
+    });
+
+    if (user.status === 'banned' && user.role !== 'admin') {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Tài khoản của bạn đã bị tạm khoá bởi Quản trị viên. Vui lòng liên hệ bộ phận hỗ trợ.',
+        },
+        { status: 403 }
+      );
+    }
+
+    const ip = req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || '';
+    const userAgent = req.headers.get('user-agent') || '';
+    db.recordLoginEvent(user, {
+      action: existedBefore ? 'login_google' : 'register',
+      ip,
+      userAgent,
     });
 
     // Generate session token

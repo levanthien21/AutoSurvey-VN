@@ -170,6 +170,22 @@ export default function Navbar() {
           </Link>
         )}
 
+        {/* Quick Admin Center Pill (Visible ONLY to Admin) */}
+        {user?.role === 'admin' && (
+          <Link
+            href="/admin"
+            className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-extrabold border transition-all shadow-2xs shrink-0 ${
+              isNavActive('/admin')
+                ? 'bg-purple-600 text-white border-purple-700'
+                : 'bg-purple-50 hover:bg-purple-100 text-purple-700 border-purple-200'
+            }`}
+            title="Trung tâm Quản trị Tối thượng"
+          >
+            <ShieldCheck className="w-3.5 h-3.5 shrink-0" />
+            <span className="hidden xs:inline">Admin</span>
+          </Link>
+        )}
+
         {/* Logged-in User Balance Pill */}
         {user && (
           <Link

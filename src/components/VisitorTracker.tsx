@@ -1,11 +1,31 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { usePathname } from 'next/navigation';
+import Link from 'next/link';
+import { Megaphone, X, Sparkles, AlertTriangle } from 'lucide-react';
+
+interface AnnouncementBanner {
+  enabled: boolean;
+  text: string;
+  type: 'info' | 'promo' | 'warning';
+  linkText?: string;
+  linkUrl?: string;
+}
 
 export default function VisitorTracker() {
   const pathname = usePathname();
   const lastTrackedPath = useRef<string | null>(null);
+  const [announcement, setAnnouncement] = useState<AnnouncementBanner | null>(null);
+  const [dismissedText, setDismissedText] = useState<string>('');
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      const savedDismiss = sessionStorage.getItem('asv_dismissed_banner');
+      if (savedDismiss) setDismissedText(savedDismiss);
+    } catch {}
+  }, []);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -22,7 +42,7 @@ export default function VisitorTracker() {
           } catch {}
           document.cookie = `asv_ref=${encodeURIComponent(cleanRef)}; path=/; max-age=2592000; SameSite=Lax`;
         }
-      } catch (e) {}
+      } catch {}
 
       // 2. Get or initialize persistent visitor ID
       let visitorId = 'vid_anon';
@@ -47,24 +67,49 @@ export default function VisitorTracker() {
 
       const trackPage = (path: string) => {
         try {
+          let userId: string | undefined;
+          let username: string | undefined;
+          let email: string | undefined;
+          let token: string | null = null;
+
+          try {
+            token = localStorage.getItem('autosurvey_token');
+            const rawUser = localStorage.getItem('autosurvey_user');
+            if (rawUser) {
+              const parsed = JSON.parse(rawUser);
+              userId = parsed?.id;
+              username = parsed?.username;
+              email = parsed?.email;
+            }
+          } catch {}
+
+          const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+          if (token) headers['Authorization'] = `Bearer ${token}`;
+
           const payload = JSON.stringify({
             visitorId,
             path,
             device: getDevice(),
             referrer: document.referrer || '',
+            userId,
+            username,
+            email,
           });
 
-          if (typeof navigator !== 'undefined' && navigator.sendBeacon) {
-            navigator.sendBeacon('/api/analytics/track', payload);
-          } else {
-            fetch('/api/analytics/track', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: payload,
-              keepalive: true,
-            }).catch(() => {});
-          }
-        } catch (err) {}
+          fetch('/api/analytics/track', {
+            method: 'POST',
+            headers,
+            body: payload,
+            keepalive: true,
+          })
+            .then((r) => r.json())
+            .then((data) => {
+              if (data?.announcement) {
+                setAnnouncement(data.announcement);
+              }
+            })
+            .catch(() => {});
+        } catch {}
       };
 
       // Track on path change
@@ -84,5 +129,59 @@ export default function VisitorTracker() {
     }
   }, [pathname]);
 
-  return null;
+  const hideOnAuthPages = pathname === '/login' || pathname === '/register' || pathname === '/forgot-password';
+  if (
+    hideOnAuthPages ||
+    !announcement ||
+    !announcement.enabled ||
+    !announcement.text?.trim() ||
+    dismissedText === announcement.text
+  ) {
+    return null;
+  }
+
+  const bannerTheme =
+    announcement.type === 'warning'
+      ? 'bg-amber-600 text-white border-amber-500'
+      : announcement.type === 'promo'
+      ? 'bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 text-white border-purple-500'
+      : 'bg-blue-600 text-white border-blue-500';
+
+  return (
+    <div className={`relative z-50 w-full border-b px-4 py-2 text-xs sm:text-sm font-medium shadow-sm ${bannerTheme}`}>
+      <div className="max-w-7xl mx-auto flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2 flex-1 min-w-0">
+          {announcement.type === 'warning' ? (
+            <AlertTriangle className="w-4 h-4 shrink-0" />
+          ) : announcement.type === 'promo' ? (
+            <Sparkles className="w-4 h-4 shrink-0" />
+          ) : (
+            <Megaphone className="w-4 h-4 shrink-0" />
+          )}
+          <span className="truncate sm:whitespace-normal">{announcement.text}</span>
+          {announcement.linkUrl && (
+            <Link
+              href={announcement.linkUrl}
+              className="shrink-0 underline font-bold hover:opacity-90 ml-1"
+            >
+              {announcement.linkText || 'Xem ngay →'}
+            </Link>
+          )}
+        </div>
+        <button
+          type="button"
+          onClick={() => {
+            setDismissedText(announcement.text);
+            try {
+              sessionStorage.setItem('asv_dismissed_banner', announcement.text);
+            } catch {}
+          }}
+          className="p-1 rounded-lg hover:bg-white/20 transition-colors shrink-0"
+          aria-label="Đóng thông báo"
+        >
+          <X className="w-4 h-4" />
+        </button>
+      </div>
+    </div>
+  );
 }

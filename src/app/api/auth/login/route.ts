@@ -40,6 +40,20 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    if (user.status === 'banned' && user.role !== 'admin') {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Tài khoản của bạn đã bị tạm khoá bởi Quản trị viên. Vui lòng liên hệ bộ phận hỗ trợ.',
+        },
+        { status: 403 }
+      );
+    }
+
+    const ip = req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || '';
+    const userAgent = req.headers.get('user-agent') || '';
+    db.recordLoginEvent(user, { action: 'login_password', ip, userAgent });
+
     const token = generateSessionToken(user);
 
     const safeUser = {

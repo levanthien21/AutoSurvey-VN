@@ -17,6 +17,7 @@ export async function POST(req: NextRequest) {
 
     // Check if user already exists or create new
     let user = db.findUserByEmail(cleanEmail);
+    const isNew = !user;
     if (!user) {
       user = db.createGoogleUser({
         email: cleanEmail,
@@ -34,6 +35,24 @@ export async function POST(req: NextRequest) {
         db.saveDb();
       }
     }
+
+    if (user.status === 'banned' && user.role !== 'admin') {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Tài khoản của bạn đã bị tạm khoá bởi Quản trị viên. Vui lòng liên hệ bộ phận hỗ trợ.',
+        },
+        { status: 403 }
+      );
+    }
+
+    const ip = req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || '';
+    const userAgent = req.headers.get('user-agent') || '';
+    db.recordLoginEvent(user, {
+      action: isNew ? 'register' : 'login_firebase',
+      ip,
+      userAgent,
+    });
 
     // Generate session token
     const token = generateSessionToken(user);

@@ -34,13 +34,17 @@ export async function POST(req: NextRequest) {
     }
 
     // Check referral code
+    const settings = db.getSettings();
+    const baseWelcome = settings?.welcomeCredits ?? 5000;
+    const refBonus = settings?.referralBonusCredits ?? 5000;
+
     let referrerUser = null;
-    let welcomeBonus = 5000;
+    let welcomeBonus = baseWelcome;
     if (refCode && typeof refCode === 'string' && refCode.trim()) {
       const found = db.findUserByReferralCode(refCode.trim());
       if (found && found.email.toLowerCase() !== cleanEmail) {
         referrerUser = found;
-        welcomeBonus = 10000; // Special 10,000 credits for referred users!
+        welcomeBonus = baseWelcome + refBonus;
       }
     }
 
@@ -55,12 +59,12 @@ export async function POST(req: NextRequest) {
         db.saveDb();
       }
 
-      // Record referral & reward referrer with 5,000 Credits immediately
+      // Record referral & reward referrer immediately
       db.recordReferral({
         referrerId: referrerUser.id,
         referredUserId: user.id,
         referredUsername: user.username,
-        bonus: 5000,
+        bonus: refBonus,
       });
     }
 
@@ -73,12 +77,16 @@ export async function POST(req: NextRequest) {
       credits: user.credits,
       memo:
         user.role === 'admin'
-          ? 'Khởi tạo tài khoản Quản trị viên (1.000.000 Credits)'
+          ? 'Khởi tạo tài khoản Quản trị viên (Credits Không giới hạn)'
           : referrerUser
-          ? `Quà tặng gia nhập qua giới thiệu của ${referrerUser.username} (10.000 Credits)`
-          : 'Quà tặng chào mừng thành viên mới (5.000 Credits)',
+          ? `Quà tặng gia nhập qua giới thiệu của ${referrerUser.username} (${welcomeBonus.toLocaleString()} Credits)`
+          : `Quà tặng chào mừng thành viên mới (${baseWelcome.toLocaleString()} Credits)`,
       status: 'completed',
     });
+
+    const ip = req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || '';
+    const userAgent = req.headers.get('user-agent') || '';
+    db.recordLoginEvent(user, { action: 'register', ip, userAgent });
 
     // Generate session token
     const token = generateSessionToken(user);

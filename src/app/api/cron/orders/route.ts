@@ -28,8 +28,11 @@ async function getRecentCronLogs(): Promise<CronLogEntry[]> {
         cache: 'no-store',
       });
       if (res.ok) {
-        const data = await res.json();
-        if (Array.isArray(data)) return data;
+        const text = await res.text();
+        if (text && text.trim().startsWith('[')) {
+          const data = JSON.parse(text);
+          if (Array.isArray(data)) return data;
+        }
       }
     }
   } catch {}

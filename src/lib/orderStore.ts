@@ -56,6 +56,7 @@ class OrderManager {
   private orders: Map<string, SurveyOrder> = new Map();
   private runningWorkers: Map<string, boolean> = new Map();
   private listeners: Map<string, Set<(order: SurveyOrder) => void>> = new Map();
+  private lastBlobSyncAt = 0;
 
   constructor() {
     this.loadFromDisk();
@@ -122,21 +123,27 @@ class OrderManager {
     }
   }
 
-  async syncFromBlob(): Promise<void> {
+  async syncFromBlob(force = false): Promise<void> {
     if (!process.env.BLOB_READ_WRITE_TOKEN) return;
+    const now = Date.now();
+    if (!force && now - this.lastBlobSyncAt < 30_000) return;
+    this.lastBlobSyncAt = now;
+
     try {
       const res = await fetch('https://meo68oenlhu0k0ib.public.blob.vercel-storage.com/orders.json', {
         cache: 'no-store',
       });
-      if (res.ok) {
-        const list: SurveyOrder[] = await res.json();
-        if (Array.isArray(list)) {
-          for (const ord of list) {
-            if (ord && ord.id) {
-              const existing = this.orders.get(ord.id);
-              if (!existing || (ord.completedCount || 0) >= (existing.completedCount || 0)) {
-                this.orders.set(ord.id, ord);
-              }
+      if (!res.ok) return;
+      const text = await res.text();
+      if (!text || !text.trim().startsWith('[')) return;
+
+      const list: SurveyOrder[] = JSON.parse(text);
+      if (Array.isArray(list)) {
+        for (const ord of list) {
+          if (ord && ord.id) {
+            const existing = this.orders.get(ord.id);
+            if (!existing || (ord.completedCount || 0) >= (existing.completedCount || 0)) {
+              this.orders.set(ord.id, ord);
             }
           }
         }
@@ -459,6 +466,15 @@ class OrderManager {
     }
 
     this.updateOrder(id, { status: 'cancelled', refundedAmount: order.refundedAmount });
+  }
+
+  deleteOrder(id: string): boolean {
+    const order = this.orders.get(id);
+    if (!order) return false;
+    this.runningWorkers.set(id, false);
+    this.orders.delete(id);
+    this.saveToDisk();
+    return true;
   }
 }
 
